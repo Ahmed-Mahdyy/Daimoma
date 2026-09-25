@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Daimoma — Design Prototype</title>
+<link rel="stylesheet" href="prototype.css">
+</head>
+<body>
+<a class="skip" href="#main" data-i18n="skip">Skip to content</a>
+<div class="ribbon" data-i18n="ribbon">PROTOTYPE — synthetic data, simulated actions</div>
+
+<header class="topbar">
+  <img class="logo" src="../../../assets/brand/icon.svg" alt="" width="30" height="30">
+  <strong id="wordmark" class="wordmark">Daimoma</strong>
+  <div class="topbar-actions">
+    <label class="ctl"><span data-i18n="role">Role</span>
+      <select id="role">
+        <option value="employee">Employee</option>
+        <option value="manager">Manager</option>
+        <option value="hr">HR</option>
+      </select></label>
+    <label class="ctl"><span data-i18n="screen">Screen</span>
+      <select id="screen"></select></label>
+    <label class="ctl"><span data-i18n="state">State</span>
+      <select id="state">
+        <option value="normal">Normal</option>
+        <option value="loading">Loading</option>
+        <option value="empty">Empty</option>
+        <option value="error">Error</option>
+        <option value="conflict">Stale/conflict</option>
+        <option value="expired">Session expired</option>
+        <option value="forbidden">Forbidden/404</option>
+      </select></label>
+    <label class="ctl"><span data-i18n="width">Width</span>
+      <select id="width">
+        <option value="360">360</option>
+        <option value="768">768</option>
+        <option value="1440" selected>1440</option>
+      </select></label>
+    <div class="notif-shell">
+      <button id="notif-toggle" class="notif-toggle" type="button" aria-expanded="false" aria-controls="notif-panel" aria-label="Notifications, 2 unread">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9ZM10 21h4"/></svg>
+        <span id="notif-count" class="notif-count">2</span>
+      </button>
+      <section id="notif-panel" class="notif-panel hidden" aria-labelledby="notif-heading">
+        <div class="notif-head"><h2 id="notif-heading">Notifications</h2><span id="notif-summary" class="muted"></span></div>
+        <div id="notif-list" class="notif-list"></div>
+        <button id="notif-all" class="notif-all" type="button">View all notifications</button>
+      </section>
+    </div>
+    <button id="lang" class="btn secondary">العربية</button>
+  </div>
+</header>
+
+<div class="shell">
+  <nav class="sidenav" aria-label="Main">
+    <div class="navgroup" data-i18n="navMy">My work</div>
+    <a href="#" class="navitem" data-nav="dashboard" data-i18n="navHome">Home</a>
+    <a href="#" class="navitem" data-nav="requests" data-i18n="navReq">My requests</a>
+    <a href="#" class="navitem" data-nav="timesheet" data-i18n="navTime">My time</a>
+    <a href="#" class="navitem" data-nav="notifications" data-i18n="navNotif">Notifications</a>
+    <div class="navgroup mgr hidden" data-i18n="navTeam">Team</div>
+    <a href="#" class="navitem mgr hidden" data-nav="reviewq" data-i18n="navReviews">Reviews</a>
+    <a href="#" class="navitem mgr hidden" data-nav="teamtime" data-i18n="navTeamTime">Team time</a>
+    <div class="navgroup hr hidden" data-i18n="navAdmin">Administration</div>
+    <a href="#" class="navitem hr hidden" data-nav="employees" data-i18n="navEmployees">Employees</a>
+    <a href="#" class="navitem hr hidden" data-nav="types" data-i18n="navTypes">Request types</a>
+    <a href="#" class="navitem hr hidden" data-nav="reports" data-i18n="navReports">Reports</a>
+  </nav>
+
+  <main id="main" class="stage-wrap" tabindex="-1">
+    <div id="stage" class="stage w1440"><!-- screens injected by app.js --></div>
+  </main>
+</div>
+
+<div id="toast" class="toast" role="status" aria-live="polite"></div>
+<script src="app.js"></script>
+</body>
+</html>

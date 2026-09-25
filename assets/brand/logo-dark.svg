@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 290 72" role="img" aria-labelledby="title">
+  <title id="title">Daimoma on dark surfaces</title>
+  <g transform="translate(4 4) scale(.667)">
+    <rect x="2" y="2" width="92" height="92" rx="26" fill="#DFF5EB"/>
+    <circle cx="41" cy="33" r="10" fill="#0B5650"/>
+    <path d="M20 65c0-12 9.4-21 21-21s21 9 21 21v2H20z" fill="#0B5650"/>
+    <circle cx="68" cy="67" r="18" fill="#0F6B63" stroke="#DFF5EB" stroke-width="4"/>
+    <path d="m60 67 5.5 5.5L76 61" fill="none" stroke="#fff" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+  <text x="82" y="49" font-family="Inter,'Segoe UI',Arial,sans-serif" font-size="34" font-weight="700" letter-spacing="-1" fill="#fff">Daimoma</text>
+</svg>
