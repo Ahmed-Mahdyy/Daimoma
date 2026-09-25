@@ -1,6 +1,6 @@
 # Data Model: Accounts, Organization, Audit, Notifications
 
-Status: provisional schema; D-003/D-004/D-008/D-009 approval and migration review required. Business records use UUID primary keys and timezone-aware created/updated timestamps where applicable.
+Status: provisional schema; D-003/D-004 policies were approved on 2026-09-25; D-008/D-009 and migration review remain pending. Business records use UUID primary keys and timezone-aware created/updated timestamps where applicable.
 
 | Model | Fields | Constraints/defaults |
 | --- | --- | --- |

@@ -1,7 +1,7 @@
 # Implementation Plan: Brand and Product Foundation
 
 **Feature**: 001-brand-product-foundation | **Date**: 2026-09-25 | **Spec**: [spec.md](spec.md)
-**Status**: Planning refined after D-000/D-001/D-002 and the coded-prototype decision. Design acceptance remains gated by D-009 UX thresholds, brand clearance and reviewer sign-off. This is not application implementation.
+**Status**: Phase 001 design/prototype direction approved by owner on 2026-09-25 (D-010), with logo and colors deferred to React implementation. UX targets under D-009 are approved as targets, not verified compliance; commercial brand clearance and runtime tests remain outstanding. This is not application implementation.
 
 ## Summary
 
@@ -20,7 +20,7 @@ Turn the source brief into an approved bilingual product and design system for *
 | Performance/quality goals | WCAG 2.2 AA target for testable design states; prototype demonstrates responsive/reflow and interaction patterns. Production latency/Web Vitals targets in `AGENTS.md` remain provisional under D-009 and must not be reported as achieved by this static design. |
 | Scale/scope | 3 roles; 10 mandatory modules inventoried; bilingual core employee, manager and HR journeys; required components and asynchronous states. No production data, API endpoints or business decisions for phases 002-005. |
 
-**Open policy gate**: D-009 UX acceptance thresholds require owner approval before design acceptance; use WCAG 2.2 AA criteria as the ratified constitution's baseline, not as a claim that an audit already passed. Brand name choice is approved, but confusion/trademark/license clearance and tagline/artwork are not.
+**Handoff gate**: D-009 phase-001 UX targets are approved but not proven by a browser/accessibility audit. D-010 accepts the prototype design direction while explicitly deferring logo and palette approval to 002:T025 before branded React UI work. Name selection is approved; trademark/license clearance and tagline are not.
 
 ## Constitution Check
 
@@ -28,22 +28,22 @@ Turn the source brief into an approved bilingual product and design system for *
 | --- | --- |
 | I: scope and traceability | Map all brief sections/modules/roles to FRs and the existing task IDs; no payroll/surveillance or silent scope expansion. D-000 ratified, D-001 name and D-002 bilingual scope recorded. |
 | II, IV, VIII: server authority, data integrity and contracts | Mark review/authorization states as design-only; UI visibility is not security. No real database, API, schema or server authorization is delivered in this phase; contract explicitly hands these obligations to 002-005. |
-| III, IX: tests and evidence | Write independent walkthrough acceptance cases before prototypes, retain actual review findings; no simulated production/test success. Reviewer checklist remains open until a human accepts it. |
+| III, IX: tests and evidence | Walkthrough acceptance cases and actual agent checks are recorded separately; the owner approved prototype direction under D-010. Browser/accessibility testing and production behavior remain unverified. |
 | V: maintainability | Semantic tokens and reusable component contracts; no new framework, queue, service or production dependency. |
 | VI: privacy | Synthetic names/records only; no secrets, credentials, actual employee data or unlicensed brand assets. |
 | VII: accessible responsive UX | EN/LTR and AR/RTL across core journeys and states; keyboard, focus, contrast, reflow, translated errors/statuses and reduced motion reviewed against WCAG 2.2 AA. |
 | X: AI and change control | No commit/deploy/subagent implementation claims; report provenance and review separately from proposed design. |
 
-**Pre-research result**: No constitutional violation for planning. **Post-design result**: No violation introduced by this design. D-009, uncompleted design artifacts and reviewer-owned checklist gates **block final design acceptance and unrestricted implementation**, but do not block writing provisional planning artifacts. No production release is authorized.
+**Pre-research result**: No constitutional violation for planning. **Post-design result**: The owner approved Phase 001 prototype/interaction direction (D-010); SVG logos and palette remain candidates until 002:T025. Unperformed accessibility/browser checks remain open and must not be reported as passing. Business/security policies for Phase 002 and production release remain gated.
 
 ## Project Structure
 
 - `specs/001-brand-product-foundation/`: spec, this plan, [research.md](research.md), [data-model.md](data-model.md), [contracts/ui.md](contracts/ui.md), [quickstart.md](quickstart.md), tasks and review checklists.
-- `docs/product/product-definition.md`: future brief coverage, personas, goals, module and MVP inventory (T001/T003).
-- `docs/brand/identity.md`, `docs/brand/usage.md`, `assets/brand/`: future naming rationale/clearance, tagline, font/license register, editable logos/variants and token JSON (T004-T006).
-- `docs/design/employee-acceptance.md`, `docs/design/employee-flows.md`, `docs/design/reviewer-acceptance.md`, `docs/design/reviewer-flows.md`, `docs/design/component-system.md`: future test cases, flows and shared UI patterns (T007-T009, T011-T012).
-- `docs/design/prototypes/`: future clearly marked static HTML/CSS mockups with minimal JS for demo interactions, bilingual content and RTL states (T010/T013). These paths are planned, not claimed to exist.
-- `docs/evidence/`: future actual review, accessibility findings and traceability; `frontend/src/components/ui/`, `frontend/src/app/` become real runtime work in phase 002, not in this plan.
+- `docs/product/product-definition.md`: brief coverage, personas, goals, module and MVP inventory (T001/T003).
+- `docs/brand/identity.md`, `docs/brand/usage.md`, `assets/brand/`: naming rationale, tagline proposals, candidate logos/variants and token JSON (T004-T006). Final artwork/palette approval deferred to 002:T025.
+- `docs/design/employee-acceptance.md`, `docs/design/employee-flows.md`, `docs/design/reviewer-acceptance.md`, `docs/design/reviewer-flows.md`, `docs/design/component-system.md`: test cases, flows and shared UI patterns (T007-T009, T011-T012).
+- `docs/design/prototypes/`: clearly marked static HTML/CSS/JS mockups with bilingual interactions and RTL states (T010/T013), not a runtime application.
+- `docs/evidence/`: actual artifact-level findings and traceability, with outstanding human/browser checks identified; `frontend/src/components/ui/`, `frontend/src/app/` become real runtime work in phase 002.
 
 ## Execution Design
 
@@ -59,7 +59,7 @@ Follow [quickstart.md](quickstart.md) against [contracts/ui.md](contracts/ui.md)
 
 ## Migration and Rollout
 
-No schema/data changes. Treat approved tokens/assets and translated strings as versioned handoff to phase 002; audit each consuming screen on a later breaking token/component change. Separate owner design acceptance, legal/license review and application release acceptance.
+No schema/data changes. Hand off approved interaction structure and candidate SVGs/tokens to phase 002; 002:T025 must revisit and obtain explicit logo/palette approval before treating them as production branding or implementing branded React UI. Audit consuming screens on later token/component changes. Owner approval of the prototype is separate from accessibility verification, legal/license review and application release acceptance.
 
 ## Risks and Complexity
 

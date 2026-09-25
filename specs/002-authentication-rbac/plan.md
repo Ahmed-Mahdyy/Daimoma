@@ -1,11 +1,11 @@
 # Implementation Plan: Authentication and RBAC
 
 **Feature**: 002-authentication-rbac | **Date**: 2026-09-20 | **Spec**: [spec.md](spec.md)
-**Status**: Provisional; decisions D-003/D-004/D-007/D-008/D-009 block affected implementation.
+**Status**: Provisional; D-003 account/visibility and D-004 routing/reassignment are approved on 2026-09-25, while D-007/D-008/D-009 and reviewer gates still block affected implementation.
 
 ## Summary and Technical Context
 
-Create the first integrated vertical slice with Django 5.2 LTS/compatible DRF, PostgreSQL 17, React 19/strict TypeScript/Vite, same-origin sessions, and approved design tokens. Select supported patched versions, Python 3.13 and supported Node LTS in a locked toolchain. Local Python 3.12 is currently only Spec Kit's runtime; do not claim the application environment exists.
+Create the first integrated vertical slice with Django 5.2 LTS/compatible DRF, PostgreSQL 17, React 19/strict TypeScript/Vite, same-origin sessions, and a reviewed accessible design system. Phase 001 tokens and logo are candidates under D-010: revisit both and obtain owner approval in 002:T025 before branding the React UI. Select supported patched versions, Python 3.13 and supported Node LTS in a locked toolchain. Local Python 3.12 is currently only Spec Kit's runtime; do not claim the application environment exists.
 
 Use Django's custom auth model before the first migration, groups for business roles, explicit services/selectors/serializers, drf-spectacular OpenAPI, generated frontend types, TanStack Query, React Router, and form validation. Package choices and their versions need compatibility/security review. Use vetted recovery/MFA/abuse-protection components rather than custom cryptography.
 
@@ -25,7 +25,7 @@ I: role scope mapped; II: every read/create/action surface scoped; III-IV: Postg
 4. Implement organization/role/ownership policy and scoped related-field querysets. Never expose `is_staff`, `is_superuser`, arbitrary permissions, or client-assigned organization.
 5. Serialize reporting/role changes using an organization lock, then employee locks in stable UUID order, then affected workflow records. Domain review services use compatible employee-before-target lock order and recheck eligibility. New domain integrations must participate in reassignment before release.
 6. Add audit append and recipient-scoped notification foundation; no domain workflow is hidden in signals. Define a safe target type/ID, not arbitrary URLs supplied by users.
-7. Implement auth/profile/directory/settings UI and typed API client. Clear caches on logout/account change; never store auth tokens in localStorage.
+7. Before finalizing branded auth/profile/directory/settings UI, complete 002:T025: revisit logo and colors with the owner, record approval and verify contrast/EN-AR variants. Candidate assets are not final. Implement typed API client; clear caches on logout/account change; never store auth tokens in localStorage.
 8. Establish CI and staging smoke flow with approved infrastructure; defer production action to explicit human approval.
 
 ## Contracts, Failure Handling, and Security

@@ -1,6 +1,6 @@
 # Phase 001 Design Review — Evidence
 
-Date: 2026-09-25. Reviewer: Devin (agent-generated findings) + **owner sign-off pending**. Scope: brand assets, design docs, coded prototypes in `docs/design/prototypes/`.
+Date: 2026-09-25. Reviewer: Devin (agent-generated findings). Owner accepted Phase 001 prototype/design direction on 2026-09-25 under D-010, **excluding final logo and color approval**. Scope: brand candidates, design docs, coded prototypes in `docs/design/prototypes/`. This is not a browser accessibility audit or application acceptance.
 
 ## Verified by agent (artifact-level checks)
 
@@ -16,7 +16,12 @@ Date: 2026-09-25. Reviewer: Devin (agent-generated findings) + **owner sign-off 
 - Real browser rendering at 360/768/1440 and 320px reflow, 200% text resize.
 - Arabic translation quality review (agent-generated strings in `app.js` — a native/fluent reviewer should check tone and correctness).
 - Font coverage once Inter + IBM Plex Sans Arabic are actually embedded (fallbacks only in prototype).
-- Owner acceptance of palette, tagline pick, logo artwork.
+- Final logo and palette decision explicitly deferred by owner to 002:T025 during React implementation; tagline and font licenses remain open.
+
+## Owner handoff decision (2026-09-25)
+
+- Owner explicitly approved Phase 001 design/prototype direction. The acceptance does **not** finalize the candidate person/check-in logo or teal color palette; owner asked to revisit both while the React UI is implemented. D-010 in `AGENTS.md` and 002:T025 preserve this gate.
+- Earlier feedback and outstanding human/browser checks below remain accurate as historical findings. Approval does not establish WCAG compliance, production functionality, font licensing or trademark clearance.
 
 ## Owner feedback round 1 (2026-09-25)
 
@@ -39,6 +44,6 @@ Date: 2026-09-25. Reviewer: Devin (agent-generated findings) + **owner sign-off 
 
 ## Known issues / follow-ups
 
-- `reviewq` screen's row button glyph is minimal ("→"); acceptable for prototype, replace with labeled action in phase 002.
-- Timesheet prototype shows draft-with-overlap-warning state; submitted-locked and returned states are documented but only partially simulated in code.
+- `reviewq` uses a labeled Open action, but its detail is still a fixed example; Phase 002+ must bind review data to authorized records.
+- Timesheet prototype shows a draft with a long-shift warning and read-only previous weeks; submitted-locked and returned editing states are documented but only partially simulated in code.
 - Name conflict (Daimoma Express, TR; ديمومة consultancy, JO) documented in `identity.md`; owner accepted risk 2026-09-25. Formal trademark check required before any commercial use.

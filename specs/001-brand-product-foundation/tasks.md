@@ -1,6 +1,6 @@
 # Tasks: Brand and Product Foundation
 
-**Status**: Deliverables produced 2026-09-25; owner review pending before design acceptance (T016). IDs are local to feature 001.
+**Status**: Phase 001 prototype/design handoff approved by owner 2026-09-25 under D-010; final logo/colors explicitly deferred to 002:T025. This is not production or accessibility acceptance. IDs are local to feature 001.
 
 ## Setup and Foundational
 
@@ -37,8 +37,8 @@ Goal: shared navigation with explicit review/admin scope. Independent review: re
 
 - [x] T014 Recorded findings in `docs/evidence/001-design-review.md` — agent-verified items (contrast, structure, bidi/focus code) vs pending human/browser checks listed honestly (FR-005, FR-006).
 - [x] T015 Requirement→artifact→evidence map in `docs/evidence/001-traceability.md`; prototype vs production evidence distinguished (FR-007).
-- [ ] T016 Reconcile `spec.md`, `plan.md`, `contracts/ui.md`, and `AGENTS.md` decisions; **awaits owner review of the produced deliverables** — do not check until the owner accepts the design package (FR-001, FR-008).
+- [x] T016 Reconciled `spec.md`, `plan.md`, `contracts/ui.md`, and `AGENTS.md` after owner approval of the Phase 001 prototype/design direction on 2026-09-25 (D-010). Final logo/colors explicitly deferred to 002:T025; accessibility/browser verification and tagline/licensing remain separate open gates (FR-001, FR-008).
 
 ## Dependencies and Execution Strategy
 
-T001 -> T002 -> US1 -> US2 -> US3 -> handoff. Executed in order. Remaining before phase 002: owner design review (T016), tagline selection, font downloads + license verification, human accessibility walkthrough. These do not block starting phase 002 scaffolding decisions but do block claiming design acceptance.
+T001 -> T002 -> US1 -> US2 -> US3 -> handoff. Owner approved the prototype/interaction direction under D-010. Before finalizing branded React UI in phase 002: obtain explicit logo/palette approval in 002:T025, choose tagline if used, verify font licenses and complete real browser/keyboard/RTL/zoom accessibility checks. Phase 001 handoff approval does not authorize production branding, claim WCAG compliance, or approve remaining phase-002 security policies.

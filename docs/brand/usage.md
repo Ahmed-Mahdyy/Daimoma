@@ -1,6 +1,6 @@
 # Daimoma — Brand Usage Guide
 
-Status: phase-001 deliverable (T006). Tokens live in `assets/brand/tokens.json`; assets in `assets/brand/`. This is a proposed system pending owner design review.
+Status: phase-001 prototype handoff (T006). Tokens live in `assets/brand/tokens.json`; assets in `assets/brand/`. Owner approved the Phase 001 design direction on 2026-09-25 but explicitly deferred final logo and palette selection to React implementation (D-010); treat these values as candidates, not approved production branding.
 
 ## Name and spelling
 
@@ -40,7 +40,7 @@ Contrast values computed from the token pairs above (WCAG 2.2 AA: ≥4.5:1 text,
 
 ## Logo rules
 
-Use `logo-primary.svg` on light surfaces, `logo-dark.svg` on dark surfaces, `logo-light.svg` on brand-color surfaces, `logo-arabic.svg` for Arabic light-surface contexts, and `icon.svg` for favicon/avatars ≥32px. Lockups have transparent backgrounds; place them only on appropriate contrasting surfaces. In the prototype header show the icon and exactly one locale-specific wordmark. Minimum clear space = 25% of icon width. Never mirror (even in RTL — the mark stays as drawn), recolor, or stretch.
+For the **prototype only**, use `logo-primary.svg` on light surfaces, `logo-dark.svg` on dark surfaces, `logo-light.svg` on brand-color surfaces, `logo-arabic.svg` for Arabic light-surface contexts, and `icon.svg` for favicon/avatars ≥32px. Final production usage depends on 002:T025 approval. Lockups have transparent backgrounds; place them only on appropriate contrasting surfaces. In the prototype header show the icon and exactly one locale-specific wordmark. Minimum clear space = 25% of icon width. Never mirror (even in RTL — the mark stays as drawn), recolor, or stretch.
 
 ## What this phase does NOT include
 

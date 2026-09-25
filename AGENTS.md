@@ -30,20 +30,21 @@ Exclude payroll, salary calculations, statutory leave accrual, GPS/biometrics/su
 
 ## 4. Approval register
 
-Decisions D-000 through D-002 are approved as recorded below; the others remain pending. Planning is authorized, but recommended defaults are not approved business policy. Approvals must record owner, date, answer, and affected artifacts. Do not backdate or invent answers.
+D-000 through D-004 are approved; the phase-001 UX portion of D-009 is approved, while its operating limits remain pending. D-010 records conditional design handoff: prototype interactions approved, logo and colors not finalized. Other policy decisions remain pending. Planning is authorized, but recommended defaults are not approved business policy. Approvals must record owner, date, answer, and affected artifacts. Do not backdate or invent answers.
 
 | ID | Decision | Recommended default | Affected phases |
 | --- | --- | --- | --- |
 | D-000 | Ratify constitution and MVP | **Approved 2026-09-25 (owner):** constitution ratified as version 1.0.0 as written; amendments via change control | All |
-| D-001 | Product identity | **Approved 2026-09-25 (owner):** name is **Daimoma (ديمومة)** — "continuity/permanence," root د-و-م; real Arabic word, not CDS-related; tagline/logo identity work continues in phase 001 (Dawamna rejected: existing business) | 001 |
+| D-001 | Product identity | **Approved 2026-09-25 (owner):** name is **Daimoma (ديمومة)** — "continuity/permanence," root د-و-م; real Arabic word, not CDS-related; Phase 001 created candidate artwork, with final logo/colors deferred under D-010; tagline still unselected (Dawamna rejected: existing business) | 001 |
 | D-002 | Languages | **Approved 2026-09-25 (owner):** bilingual English + Arabic with full RTL layouts, translated UI text, and directional icons | 001, 002-005 |
-| D-003 | Accounts, organization, role scope | One organization per deployment; HR provisions accounts; Manager/HR retain Employee capabilities; manager sees direct-team non-drafts, HR sees organization records including drafts; employees edit own draft/returned work only | 002-005 |
-| D-004 | Approval routing and reassignment | Manager then optional HR; no self-approval; explicit eligible fallback or block submission; changed reporting line atomically reassigns outstanding manager steps and revokes old manager access | 002-005 |
+| D-003 | Accounts, organization, role scope | **Approved 2026-09-25 (owner, option B):** one organization per deployment; HR provisions accounts, no self-signup; drafts visible only to their employee owner, including against managers and HR. Manager sees current direct-team non-draft work; HR sees organization non-draft work; Manager/HR retain personal Employee capabilities. Employees edit own draft/returned work only. Cross-organization test fixtures remain for isolation checks. | 002-005 |
+| D-004 | Approval routing and reassignment | **Approved 2026-09-25 (owner):** when an ordinary manager is missing/ineligible or would self-review, an eligible non-self HR reviewer is assigned responsibility; if none is eligible, block submission rather than leave an unowned queue. No self-approval. **Approved 2026-09-25 (owner, option A):** after an eligible manager approves a request, only request types explicitly configured as HR-required enter an additional HR stage; otherwise manager approval is final. **Approved 2026-09-25 (owner, option A):** an eligible non-self HR fallback decision completes even an HR-required request; do not add a second HR stage. **Approved 2026-09-25 (owner, option A):** manager changes atomically reassign outstanding steps to the new eligible manager or eligible non-self HR fallback; revoke former-manager access immediately, preserve completed history, and block the administrative change if no eligible reviewer can own all pending steps. Which request types are configured HR-required remains a later request-type configuration decision (D-006). | 002-005 |
 | D-005 | Time policy | Weekly sheet; organization timezone/week boundary; start/end and unpaid breaks; integer minutes; split overnight intervals at local boundaries; no future completed work; HR-only justified reopening | 004, 005 |
 | D-006 | Request fields, confidentiality, attachments | Listed 5 categories with fixed typed fields; PDF/PNG/JPEG, 5 MB/file and 3/request; private quarantine and scanning; explicitly decide whether confidential HR-only routing is needed before collecting sensitive information | 003, 005, 007 |
 | D-007 | Hosting and external services | Managed container, same-origin application, private managed PostgreSQL, private storage, transactional email; select budget, region, provider, scanner, and service limits | 002, 003, 007 |
 | D-008 | Real data, privacy, retention, privileged authentication | Synthetic demo initially; no production deletion; approve retention/RPO/RTO; require tested privileged MFA before real employee data | 002, 003, 006, 007 |
 | D-009 | Measurable operating limits | **Partially approved 2026-09-25 (owner):** phase-001 UX acceptance — WCAG 2.2 AA target; EN/LTR + AR/RTL at 360/768/1440 px; 320 px reflow; 200% text enlargement; keyboard/contrast/state checks. Still pending: performance workload, session/invitation/recovery expiry, login throttles, report ranges | 001-007 |
+| D-010 | Phase 001 design handoff and production brand | **Approved 2026-09-25 (owner):** Phase 001 design/prototype direction accepted; current SVG logo and palette/tokens are provisional. Revisit and obtain explicit approval of final logo and color palette while building React UI, before treating assets/tokens as production branding (002:T025 before branded UI tasks). Name and EN/AR scope remain approved. No accessibility, legal, or release approval implied. | 001, 002 |
 
 Until approved, references to these defaults in feature artifacts are provisional contracts. Safe structural work and review may continue, but affected implementation gates stay closed. Missing manager or sole self-reviewing HR is not permission to bypass review.
 
@@ -123,7 +124,7 @@ Return/reject/reopen require a reason. Rejected requests are terminal under the 
 | --- | --- | --- | --- |
 | View own records/profile | Yes | Yes | Yes |
 | Edit work | Own draft/returned | Own draft/returned | Own draft/returned |
-| Read others' operational records | No | Current direct-team non-drafts | Organization scope, per D-003 |
+| Read others' operational records | No | Current direct-team non-drafts only | Organization non-drafts only; other employees' drafts private (D-003) |
 | Review requests | No | Current eligible assigned manager | Required HR stage or explicit eligible fallback |
 | Review timesheets | No | Current eligible assigned manager | Explicit authorized fallback/escalation |
 | Configure employees/roles/reporting lines | No | No | Controlled and audited |
@@ -147,7 +148,7 @@ OpenAPI generated in phase 002 and expanded with each domain is the implementati
 
 ## 10. Branding and UX delivery
 
-Produce the approved Daimoma (ديمومة) name/meaning/rationale and propose tagline; primary logo, icon, light/dark variants; primary/secondary/success/warning/error/neutral palette; both Latin and Arabic typography; 3-5 personality attributes; spacing, imagery, radius, and emphasis rules. Proposed personality: clear, trustworthy, calm, supportive, efficient. Check licensing and confusing names; do not assert trademark clearance without evidence.
+Produce the approved Daimoma (ديمومة) name/meaning/rationale and propose tagline; primary logo, icon, light/dark variants; primary/secondary/success/warning/error/neutral palette; both Latin and Arabic typography; 3-5 personality attributes; spacing, imagery, radius, and emphasis rules. The owner accepted the Phase 001 prototype direction under D-010 but deferred final logo and palette approval to React implementation (002:T025); do not copy candidate SVGs/tokens into production as approved branding. Proposed personality: clear, trustworthy, calm, supportive, efficient. Check licensing and confusing names; do not assert trademark clearance without evidence.
 
 Design Employee request/time flows, Manager review/return flows, and HR administration/reporting flows before coding. Inventory login/invitation/recovery/profile, role dashboards, personal requests/editor/detail/history, weekly timesheet/editor/history, review queues, employee directory/detail/roles, request-type/settings screens, reports, notifications, forbidden/unavailable/session-expired states.
 

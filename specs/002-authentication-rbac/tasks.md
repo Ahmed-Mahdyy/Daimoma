@@ -47,6 +47,10 @@ Goal: role-aware shell and durable, safe supporting infrastructure. Independent 
 - [ ] T023 Specify and implement vetted privileged MFA before any real employee data in `backend/apps/accounts/` and corresponding frontend account security flow; retain synthetic-only gate until verified (FR-001, FR-012).
 - [ ] T024 Deploy the approved synthetic staging access slice using `deployment/` only after human authorization; record real smoke results in `docs/evidence/002-staging.md` (FR-012).
 
+## Deferred Phase 001 Brand Approval (D-010)
+
+- [ ] T025 [US3] During React UI implementation, revisit the candidate logo in `assets/brand/` and palette in `assets/brand/tokens.json` with the owner; record explicit final logo/color approval (or revisions) in `docs/evidence/002-foundation.md`, verify contrast and EN/AR variants, then implement the approved tokens/assets in `frontend/src/`. Do not treat the Phase 001 SVGs/colors as final or mark this complete without the owner's decision (FR-008).
+
 ## Dependencies and Execution Strategy
 
-T001 -> T002-T007 -> US1 -> US2 -> US3 -> quality/staging. US2 depends on custom auth and shared permissions; US3 shell design can be prepared after T007, but integration waits on authentication. Independent tests in different domains may be authored after contracts stabilize; no parallel writers/subagents are implicitly authorized. Foundation completion is required before request/time workflows. Open provider/MFA decisions cannot be hidden behind mocked success.
+T001 -> T002-T007 -> US1 -> US2 -> US3 -> quality/staging. T025 follows Phase 001 handoff and must be completed with explicit owner logo/palette approval before T011, T016 or T019 finalizes branded React UI; backend/auth policy work can proceed independently once its own approvals are satisfied. US2 depends on custom auth and shared permissions; US3 shell integration waits on authentication. Independent tests in different domains may be authored after contracts stabilize; no parallel writers/subagents are implicitly authorized. Foundation completion is required before request/time workflows. Open provider/MFA decisions cannot be hidden behind mocked success.

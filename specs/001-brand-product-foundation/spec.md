@@ -2,7 +2,7 @@
 
 **Feature**: 001-brand-product-foundation
 **Created**: 2026-09-20
-**Status**: Draft; owner review required before design acceptance.
+**Status**: Owner approved Phase 001 design/prototype handoff on 2026-09-25, conditional on revisiting logo and palette during React implementation (D-010). This is not production or accessibility acceptance.
 **Source**: Brief sections 1-5, 8-9, 13-14, 17-23; master reference sections 2-4, 10, 17-19.
 **Scope**: Product identity, bounded MVP, role journeys, reusable design language, and traceable acceptance. No application business implementation.
 
@@ -81,4 +81,4 @@ Personas, role/action matrix, brand assets, design tokens, components, screen st
 
 ## Assumptions and Approval Gates
 
-D-000 is approved (2026-09-25): constitution ratified as version 1.0.0. D-001 name is approved (2026-09-25): **Daimoma (ديمومة)**; its tagline/logo/identity deliverables remain open tasks. D-002 is approved (2026-09-25): bilingual English + Arabic with full RTL. D-009 UX acceptance is approved for phase 001 (2026-09-25): WCAG 2.2 AA design target; English/LTR and Arabic/RTL review at 360/768/1440 CSS px; 320 px reflow and 200% text enlargement; keyboard, contrast, and applicable loading/error/empty states checked. Production performance, session, throttle, and report-range limits under D-009 remain pending for later phases. The personality direction in the master is a proposal. No claim of trademark clearance, usability success, accessibility compliance, or completed visual assets is made by this specification. Test-first applies when design components become executable in phase 002.
+D-000 is approved (2026-09-25): constitution ratified as version 1.0.0. D-001 name is approved (2026-09-25): **Daimoma (ديمومة)**; identity documentation and candidate artwork exist, but tagline and final logo approval remain open. D-002 is approved (2026-09-25): bilingual English + Arabic with full RTL. D-009 UX acceptance criteria are approved for phase 001 (2026-09-25): WCAG 2.2 AA design target; English/LTR and Arabic/RTL review at 360/768/1440 CSS px; 320 px reflow and 200% text enlargement; keyboard, contrast, and applicable loading/error/empty states must be checked. These checks have not been verified by a human/browser walkthrough. D-010 (2026-09-25) accepts the prototype design direction, conditional on revisiting and approving the logo and colors during React implementation (002:T025). Production performance, session, throttle, and report-range limits under D-009 remain pending for later phases. The personality direction in the master is a proposal. No claim of trademark clearance, usability success, accessibility compliance, or final brand approval is made by this specification. Test-first applies when design components become executable in phase 002.

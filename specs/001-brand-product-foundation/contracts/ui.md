@@ -1,6 +1,6 @@
 # UI and Brand Contract
 
-**Status**: Phase 001 design contract for the approved name **Daimoma (ديمومة)** and English + Arabic/RTL scope. Brand licensing, tagline, D-009 UX acceptance and reviewer approval remain pending. This is not a running application or an API contract.
+**Status**: Owner-approved Phase 001 interaction/prototype handoff (2026-09-25, D-010) for **Daimoma (ديمومة)** and English + Arabic/RTL. Logo and palette are candidate assets to revisit and approve during React implementation; tagline, licensing, browser accessibility checks and production UX validation remain outstanding. This is not a running application or an API contract.
 
 ## Shared primitives
 
@@ -33,8 +33,8 @@ English and Arabic are required in every designed core journey, not optional. Se
 
 ## Prototype interface
 
-Deliver clearly labelled static HTML/CSS mockups with minimal local JavaScript to switch locales, navigate mock journeys and show state variants; no Figma dependency, backend, real sign-in, submitted requests, stored time, or live permission enforcement. Use local synthetic data only; do not capture credentials. Derive tokens from proposed structured JSON in `assets/brand/tokens.json` when created, with CSS custom properties for the prototype; later React/Tailwind integration is phase 002. The planned mockups in `docs/design/prototypes/` are not yet implemented.
+Deliver clearly labelled static HTML/CSS mockups with minimal local JavaScript to switch locales, navigate mock journeys and show state variants; no Figma dependency, backend, real sign-in, submitted requests, stored time, or live permission enforcement. Use local synthetic data only; do not capture credentials. The mockups in `docs/design/prototypes/` and candidate tokens in `assets/brand/tokens.json` now exist; the latter must be reviewed under D-010 before production React use. React/Tailwind integration is phase 002.
 
 ## Brand outputs
 
-Approved name and Arabic spelling are recorded, but name availability/trademark/confusion, tagline, logo/icons and font/icon licenses must be checked before final-use claims. Deliver editable sources plus light/dark logo variants and a product icon in `assets/brand/`. Light/dark logo variants do not imply application-wide dark mode. Maintain explicit provenance and reviewer acceptance for each asset.
+The name and Arabic spelling are approved. Candidate editable logos (including light/dark) and a product icon exist in `assets/brand/`; candidate palette/tokens exist in `assets/brand/tokens.json`. Neither the logo nor palette is final under D-010: revisit both with the owner during React work (002:T025) before branding production components. Tagline, font licenses and legal availability remain separate unresolved checks. Light/dark logo variants do not imply application-wide dark mode. Maintain provenance and explicit approval for final assets.
