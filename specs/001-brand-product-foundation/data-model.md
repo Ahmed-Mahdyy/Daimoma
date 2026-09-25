@@ -1,0 +1,17 @@
+# Design Artifact Model
+
+Feature 001 creates versioned design documents/assets only: no application tables, migrations or stored user records. Approved identity is **Daimoma (ديمومة)**; legal availability, tagline and visual assets remain unverified or unfinished. Every design artifact references source requirements and stays distinct from production implementation.
+
+| Artifact | Fields / relationships | Validation and lifecycle |
+| --- | --- | --- |
+| Persona | `role` (Employee/Manager/HR), goals, tasks, access assumptions, key journeys, pain points | One per role minimum; Manager/HR retain personal journeys; proposed access assumptions must not imply proven server authorization. Draft → owner-reviewed → accepted. |
+| Journey | actor, entry, action, visible state, next state, alternate/error/return path, requirement ID, screen reference | Employee request/time, manager review and HR administration/reporting required; record unauthorized and session-expired paths as design states. Draft → reviewed → accepted. |
+| Brand identity | approved name, Arabic spelling, meaning, rationale, alternative names/rejection reasons, proposed tagline, personality attributes, owner decision | Daimoma selected under D-001; record trademark/confusion check result and owner-approved tagline before brand acceptance. Name selection ≠ legal clearance. |
+| Brand asset | purpose (primary/icon/light/dark), editable source/export path, authorship, font/icon license, contrast usage, approval | Source and exports required at handoff; no unverified third-party art; final use requires actual clearance/review. |
+| Design token | semantic name, value, usage, light/dark context, typography/script coverage, spacing/radius | No status semantics conveyed by color alone; tokens reusable in later React/Tailwind. Draft → measured → approved; no hardcoded brand color claimed accessible without a measurement. |
+| Localized string | stable key, English text, Arabic text, context, reviewer/approval | Every displayed action, error, validation/status message and navigation label gets both languages; placeholder punctuation and mixed-direction content reviewed; missing keys do not silently claim full translation. |
+| Component contract | component name, inputs/content, applicable states, keyboard and focus behavior, responsive and direction behavior, token references | Cover loading/empty/error/validation/disabled/success plus conflict/session expiry where applicable. Document accessible name, error association and non-color status. |
+| Prototype screen | journey reference, actor, width, locale, text direction, simulated state, clearly marked mock status | EN uses LTR, AR uses RTL, at 360/768/1440 CSS px; test 320px reflow and zoom. Static demo interactions never claim persisted business changes. |
+| Review evidence | requirement ID, artifact version/path, reviewer, date, viewport/browser/locale, finding and correction | Only actual observations count; owner sign-off separate from automatic artifact checks and phase 002 production tests. |
+
+Relationships: a persona has many journeys; a journey consists of prototype screens and component states; a component uses versioned tokens and localized strings; an asset is described by the identity; evidence references the precise artifact and relevant FR/task IDs. No application domain status transition or identity table is defined here: phases 002-005 own persistence and enforcement.

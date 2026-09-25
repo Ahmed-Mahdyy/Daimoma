@@ -1,0 +1,13 @@
+# Specification Quality: Foundation
+
+Created: 2026-09-20. Feature: [spec.md](../spec.md). This built-in checklist concerns specification quality, not implementation completion.
+
+- [x] User value, three roles, bounded scope, and explicit exclusions are defined.
+- [x] Stories have independent reviews and Given/When/Then scenarios.
+- [x] All brand outputs, component categories, responsive states, and accessibility requirements are identified.
+- [x] Functional requirements have stable identifiers and mapped tasks.
+- [x] Edge cases and conditional language scope are stated.
+- [ ] Owner decisions D-000/D-001/D-002 and measurable UX acceptance are approved.
+- [x] Final brand/design requirements are unambiguous after owner clarification.
+
+Readiness: suitable for clarification and provisional planning, not final design acceptance or unrestricted implementation.
