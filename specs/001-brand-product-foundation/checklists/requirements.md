@@ -7,7 +7,7 @@ Created: 2026-09-20. Feature: [spec.md](../spec.md). This built-in checklist con
 - [x] All brand outputs, component categories, responsive states, and accessibility requirements are identified.
 - [x] Functional requirements have stable identifiers and mapped tasks.
 - [x] Edge cases and conditional language scope are stated.
-- [ ] Owner decisions D-000/D-001/D-002 and measurable UX acceptance are approved.
+- [x] Owner decisions D-000/D-001/D-002 and measurable UX acceptance are approved.
 - [x] Final brand/design requirements are unambiguous after owner clarification.
 
-Readiness: suitable for clarification and provisional planning, not final design acceptance or unrestricted implementation.
+Readiness: all specification-quality items pass as of 2026-09-25; the reviewer-owned checklist in `review.md` and design deliverables still gate implementation acceptance.

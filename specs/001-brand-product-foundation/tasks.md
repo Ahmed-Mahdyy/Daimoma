@@ -5,7 +5,7 @@
 ## Setup and Foundational
 
 - [ ] T001 Reconcile all 25 brief sections and final deliverables with `AGENTS.md` coverage; record gaps before adding scope (FR-001, FR-007).
-- [ ] T002 Resolve UX acceptance under D-009 in `AGENTS.md`; review `checklists/review.md` before final design (FR-008). Approved 2026-09-25: D-000 constitution ratified v1.0.0; D-001 name is Daimoma (ديمومة); D-002 bilingual English + Arabic/RTL required.
+- [ ] T002 Review `checklists/review.md` before final design (FR-008). Approved 2026-09-25: D-000 constitution ratified v1.0.0; D-001 name is Daimoma (ديمومة); D-002 bilingual English + Arabic/RTL; D-009 phase-001 UX acceptance (WCAG 2.2 AA, 360/768/1440 + 320px reflow, 200% text, keyboard/contrast/states).
 
 ## US1 - Product identity and scope
 

@@ -43,7 +43,7 @@ Decisions D-000 through D-002 are approved as recorded below; the others remain 
 | D-006 | Request fields, confidentiality, attachments | Listed 5 categories with fixed typed fields; PDF/PNG/JPEG, 5 MB/file and 3/request; private quarantine and scanning; explicitly decide whether confidential HR-only routing is needed before collecting sensitive information | 003, 005, 007 |
 | D-007 | Hosting and external services | Managed container, same-origin application, private managed PostgreSQL, private storage, transactional email; select budget, region, provider, scanner, and service limits | 002, 003, 007 |
 | D-008 | Real data, privacy, retention, privileged authentication | Synthetic demo initially; no production deletion; approve retention/RPO/RTO; require tested privileged MFA before real employee data | 002, 003, 006, 007 |
-| D-009 | Measurable operating limits | Approve performance workload, session expiry, invitation/recovery expiry, login throttles, report ranges, and accessibility acceptance thresholds before corresponding implementation | 001-007 |
+| D-009 | Measurable operating limits | **Partially approved 2026-09-25 (owner):** phase-001 UX acceptance — WCAG 2.2 AA target; EN/LTR + AR/RTL at 360/768/1440 px; 320 px reflow; 200% text enlargement; keyboard/contrast/state checks. Still pending: performance workload, session/invitation/recovery expiry, login throttles, report ranges | 001-007 |
 
 Until approved, references to these defaults in feature artifacts are provisional contracts. Safe structural work and review may continue, but affected implementation gates stay closed. Missing manager or sole self-reviewing HR is not permission to bypass review.
 
