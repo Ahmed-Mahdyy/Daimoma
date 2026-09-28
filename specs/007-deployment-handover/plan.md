@@ -5,7 +5,7 @@
 
 ## Technical Context and Structure
 
-Build a pinned containerized Django/React application with managed PostgreSQL/private storage/transactional email and the approved scanner. Use Gunicorn or an approved production server, never runserver. Serve hashed SPA assets and `/api/v1/` on one HTTPS origin; ensure frontend route fallback excludes APIs/private files/health paths. Configuration lives under `deployment/`, application settings under `backend/config/`, approved CI under `.github/workflows/`, and genuine operational evidence under `docs/evidence/`.
+Plan a pinned Django/React self-hosted deployment per revised D-007, with private PostgreSQL, private storage, approved server-side mail transport and scanner. Choose an actual host/topology only after owner approval; self-hosting does not remove infrastructure or operations costs. Use Gunicorn or an approved production server, never runserver. Serve hashed SPA assets and `/api/v1/` on one HTTPS origin; ensure frontend route fallback excludes APIs/private files/health paths. Configuration lives under `deployment/`, application settings under `backend/config/`, approved CI under `.github/workflows/`, and genuine operational evidence under `docs/evidence/`.
 
 ## Constitution Check
 

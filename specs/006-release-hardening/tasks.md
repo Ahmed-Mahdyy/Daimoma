@@ -36,6 +36,7 @@ Goal: truthful complete evidence and no unresolved release blockers. Independent
 ## Polish
 
 - [ ] T014 Reconcile all affected feature specifications/contracts/tasks and regression evidence after fixes; update `AGENTS.md` current status without fabricating approvals (FR-006, FR-007, FR-008).
+- [ ] T015 If real employee data is in scope for release, obtain approval of a vetted privileged MFA method and implement/test the HR account security flow in `backend/apps/accounts/` and `frontend/src/features/auth/`; verify privacy/retention policy and record evidence in `docs/evidence/006-security.md` before permitting real-data use. If release remains synthetic-only, record the unresolved MFA gate explicitly in `docs/evidence/006-release-review.md` and do not claim real-data readiness (FR-001, FR-005, FR-008).
 
 ## Dependencies and Strategy
 

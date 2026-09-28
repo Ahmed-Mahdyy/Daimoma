@@ -1,0 +1,43 @@
+# Local development stack — fully dockerized (owner decision 2026-09-25, D-007).
+# Nothing is installed on the host beyond Docker. Staging/production topology is
+# deferred until a server exists and deployment is explicitly approved.
+
+services:
+  db:
+    image: postgres:17
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-daimoma}
+      POSTGRES_USER: ${POSTGRES_USER:-daimoma}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-daimoma_dev_password}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  backend:
+    build: ./backend
+    env_file: .env
+    volumes:
+      - ./backend:/app
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+
+  frontend:
+    build: ./frontend
+    volumes:
+      - ./frontend:/app
+      - frontend_node_modules:/app/node_modules
+    ports:
+      - "5173:5173"
+    depends_on:
+      - backend
+
+volumes:
+  pgdata:
+  frontend_node_modules:

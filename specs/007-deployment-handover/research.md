@@ -2,7 +2,7 @@
 
 | Decision | Rationale | Alternative rejected |
 | --- | --- | --- |
-| Same-origin managed application and private data services | Simpler secure browser sessions and operations | Public PostgreSQL or broad cross-origin cookie policies |
+| Same-origin self-hosted target with private data services (D-007 revised 2026-09-25) | Meets owner hosting direction while preserving server-side sessions and database isolation; topology remains to be approved | Public PostgreSQL or broad cross-origin cookie policies |
 | Immutable locked build with manual promotion | Reproducible staged candidate and explicit release control | Building unpinned dependencies independently in production |
 | Controlled migration job and compatible rollback | Prevent worker races and unsafe schema reversal | Resetting the database or automatically reversing arbitrary migrations |
 | Database and attachment restore rehearsal | A successful backup job alone does not prove recoverability | Claiming recovery without restoring files/data |

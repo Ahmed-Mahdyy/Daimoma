@@ -56,7 +56,7 @@ False-positive scanner findings, dependency advisories, flaky/racy tests, unexec
 - **FR-005**: Review dependencies/secrets/settings/privacy; remediate release-blocking findings without weakening security controls or faking results.
 - **FR-006**: Track defects with severity, reproduction, affected requirements, correction, regression test, and reviewer outcome.
 - **FR-007**: Maintain requirement-to-task-to-implementation-to-test/evidence and reviewed AI-use traceability; explicitly report unrun checks.
-- **FR-008**: Block release on unresolved critical/high security or correctness defects, mandatory failed/unrun checks, or missing owner acceptance.
+- **FR-008**: Block release on unresolved critical/high security or correctness defects, mandatory failed/unrun checks, or missing owner acceptance. Synthetic-only release must be labeled as such; any release using real employee data additionally requires approved and tested privileged MFA plus privacy/retention policies before use (D-008, 006:T015).
 
 ### Key Entities
 
@@ -71,4 +71,4 @@ Test execution evidence, defect record, performance measurement, traceability re
 
 ## Assumptions and Approval Gates
 
-Requires integrated 002-005; D-008 real-data/privacy/MFA and D-009 workload/limits are approved before relevant acceptance. Staging delivery foundations from 002 are prerequisites for production-like checks; 007 final deployment follows this acceptance, avoiding circular dependency. Tests are mandatory.
+Requires integrated 002-005 and approved D-009 workload/limits before relevant acceptance. D-008 permits synthetic-only testing; privileged MFA was deferred beyond Phase 002. A synthetic-only release may be reviewed with an explicit no-real-data restriction, but real-data acceptance additionally requires approved privacy/retention policy and a vetted, implemented and tested MFA flow (T015). Staging delivery foundations from 002 are prerequisites for production-like checks; 007 final deployment follows this acceptance, avoiding circular dependency. Tests are mandatory.
