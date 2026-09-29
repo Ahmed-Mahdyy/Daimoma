@@ -4,6 +4,13 @@
  * Auth tokens are never stored in localStorage.
  */
 
+export interface Paged<T> {
+  count: number;
+  next: string | null;
+  previous: string | null;
+  results: T[];
+}
+
 export interface ApiErrorBody {
   code: string;
   detail: string;

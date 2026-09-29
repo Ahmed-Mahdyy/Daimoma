@@ -23,6 +23,7 @@ INSTALLED_APPS = [
     "apps.organizations",
     "apps.audit",
     "apps.notifications",
+    "apps.employee_requests",
 ]
 
 MIDDLEWARE = [
@@ -89,6 +90,8 @@ SESSION_COOKIE_SAMESITE = "Lax"
 SESSION_IDLE_SECONDS = env.int("SESSION_IDLE_SECONDS", default=7200)
 SESSION_ABSOLUTE_SECONDS = env.int("SESSION_ABSOLUTE_SECONDS", default=86400)
 CSRF_COOKIE_SAMESITE = "Lax"
+# Origins allowed to submit unsafe requests — the SPA origin, env-driven.
+CSRF_TRUSTED_ORIGINS = env.list("DJANGO_CSRF_TRUSTED_ORIGINS", default=[])
 
 EMAIL_BACKEND = env(
     "DJANGO_EMAIL_BACKEND", default="django.core.mail.backends.console.EmailBackend"
@@ -118,6 +121,13 @@ SPECTACULAR_SETTINGS = {
     "TITLE": "Daimoma API",
     "VERSION": "0.1.0",
     "SERVE_INCLUDE_SCHEMA": False,
+    "ENUM_NAME_OVERRIDES": {
+        "PreferredLocaleEnum": [
+            "apps.accounts.models.EmployeeProfile.preferred_locale",
+            "apps.organizations.serializers.EmployeeProvisionSerializer.preferred_locale",
+            "apps.organizations.serializers.EmployeeUpdateSerializer.preferred_locale",
+        ],
+    },
 }
 
 LOGGING = {

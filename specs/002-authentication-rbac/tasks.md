@@ -26,30 +26,30 @@ Goal: invited employee accesses only their own workspace. Independent test: onbo
 
 Goal: HR manages directory and reporting lines without privilege/data corruption. Independent test: two teams, role change, invalid relationships, deactivation.
 
-- [ ] T013 [US2] Write failing role/team/org/last-HR/cycle/concurrent-assignment tests in `backend/apps/organizations/tests/test_administration.py` (FR-002, FR-004, FR-005, FR-010).
-- [ ] T014 [US2] Implement provision/deactivate/reactivate, invitation re-issue, role/reporting-line, department management (add/rename/deactivate, never delete), and settings services plus safe serializer allowlists in `backend/apps/organizations/`; add atomic audit and domain-reassignment extension points (FR-004, FR-005, FR-006).
-- [ ] T015 [US2] Implement scoped directory/related choices and bounded filters/ordering in `backend/apps/organizations/selectors.py` and `views.py`; test query counts (FR-002, FR-009).
-- [ ] T016 [US2] Build tested directory/detail/invitation/role/manager/settings UI — including department management, reactivation confirmation, and scoped audit-history views for HR and managers — in `frontend/src/features/employees/` and `frontend/src/features/settings/` with confirmation and accessible errors (FR-004, FR-006, FR-008, FR-009).
+- [x] T013 [US2] Write failing role/team/org/last-HR/cycle/concurrent-assignment tests in `backend/apps/organizations/tests/test_administration.py` (FR-002, FR-004, FR-005, FR-010).
+- [x] T014 [US2] Implement provision/deactivate/reactivate, invitation re-issue, role/reporting-line, department management (add/rename/deactivate, never delete), and settings services plus safe serializer allowlists in `backend/apps/organizations/`; add atomic audit and domain-reassignment extension points (FR-004, FR-005, FR-006).
+- [x] T015 [US2] Implement scoped directory/related choices and bounded filters/ordering in `backend/apps/organizations/selectors.py` and `views.py`; test query counts (FR-002, FR-009).
+- [x] T016 [US2] Build tested directory/detail/invitation/role/manager/settings UI — including department management, reactivation confirmation, and scoped audit-history views for HR and managers — in `frontend/src/features/employees/` and `frontend/src/features/settings/` with confirmation and accessible errors (FR-004, FR-006, FR-008, FR-009).
 
 ## US3 - Scoped workspace and shared foundations
 
 Goal: role-aware shell and durable, safe supporting infrastructure. Independent test: direct URL/API attempts across roles and teams.
 
-- [ ] T017 [US3] Write audit redaction/immutability and recipient-isolation/deduplication tests in `backend/apps/audit/tests/` and `backend/apps/notifications/tests/` (FR-006, FR-007, FR-010).
-- [ ] T018 [US3] Implement explicit audit/notification creation, recipient selectors, and scoped read endpoints in `backend/apps/audit/services.py`, `backend/apps/audit/views.py`, and `backend/apps/notifications/` — audit reads are HR-organization-wide or manager-current-direct-reports; notification reads are recipient-only (FR-006, FR-007).
-- [ ] T019 [US3] Implement approved tokens/shared components, authenticated role navigation, and the notification bell/dropdown/list with unread count and mark-read in `frontend/src/components/ui/`, `frontend/src/app/`, and `frontend/src/features/notifications/` per the approved prototype behavior, with keyboard/responsive/state tests (FR-007, FR-008).
-- [ ] T020 [US3] Add cross-role browser tests in `tests/e2e/auth-rbac.spec.ts` covering protected routes, empty/error states, and direct unauthorized requests (FR-002, FR-008, FR-010).
+- [x] T017 [US3] Write audit redaction/immutability and recipient-isolation/deduplication tests in `backend/apps/audit/tests/` and `backend/apps/notifications/tests/` (FR-006, FR-007, FR-010).
+- [x] T018 [US3] Implement explicit audit/notification creation, recipient selectors, and scoped read endpoints in `backend/apps/audit/services.py`, `backend/apps/audit/views.py`, and `backend/apps/notifications/` — audit reads are HR-organization-wide or manager-current-direct-reports; notification reads are recipient-only (FR-006, FR-007).
+- [x] T019 [US3] Implement approved tokens/shared components, authenticated role navigation, and the notification bell/dropdown/list with unread count and mark-read in `frontend/src/components/ui/`, `frontend/src/app/`, and `frontend/src/features/notifications/` per the approved prototype behavior, with keyboard/responsive/state tests (FR-007, FR-008).
+- [x] T020 [US3] Add cross-role browser tests in `tests/e2e/auth-rbac.spec.ts` covering protected routes, empty/error states, and direct unauthorized requests (FR-002, FR-008, FR-010).
 
 ## Polish, Quality, and Local Verification
 
-- [ ] T021 Configure lint/types/backend/component/build/schema-drift/secret/dependency checks in `.github/workflows/ci.yml` after repository hosting is approved (FR-010, FR-011).
-- [ ] T022 Test fresh/populated migrations, query budgets, safe settings, and privilege boundaries; record actual results in `docs/evidence/002-foundation.md` (FR-005, FR-010, FR-011).
-- [ ] T023 Record the owner-approved Phase 002 MFA deferral and enforce/document synthetic-only use in `docs/evidence/002-foundation.md`; do not build a placeholder MFA flow or accept real/de-identified employee data. Carry the real-data MFA gate to 006:T015 (FR-001, FR-012).
-- [ ] T024 Run a local production-like smoke check of the synthetic access slice (DEBUG off, session/security settings, migrations, invitation/recovery via the local mail sink); record real results in `docs/evidence/002-foundation.md`. Remote self-hosted staging via `deployment/` is deferred under D-007 until a server exists and deployment is explicitly authorized; do not claim a live staging flow (FR-012).
+- [x] T021 Configure lint/types/backend/component/build/schema-drift/secret/dependency checks in `.github/workflows/ci.yml` after repository hosting is approved (FR-010, FR-011).
+- [x] T022 Test fresh/populated migrations, query budgets, safe settings, and privilege boundaries; record actual results in `docs/evidence/002-foundation.md` (FR-005, FR-010, FR-011).
+- [x] T023 Record the owner-approved Phase 002 MFA deferral and enforce/document synthetic-only use in `docs/evidence/002-foundation.md`; do not build a placeholder MFA flow or accept real/de-identified employee data. Carry the real-data MFA gate to 006:T015 (FR-001, FR-012).
+- [x] T024 Run a local production-like smoke check of the synthetic access slice (DEBUG off, session/security settings, migrations, invitation/recovery via the local mail sink); record real results in `docs/evidence/002-foundation.md`. Remote self-hosted staging via `deployment/` is deferred under D-007 until a server exists and deployment is explicitly authorized; do not claim a live staging flow (FR-012).
 
 ## Deferred Phase 001 Brand Approval (D-010)
 
-- [ ] T025 [US3] During React UI implementation, revisit the candidate logo in `assets/brand/` and palette in `assets/brand/tokens.json` with the owner; record explicit final logo/color approval (or revisions) in `docs/evidence/002-foundation.md`, verify contrast and EN/AR variants, then implement the approved tokens/assets in `frontend/src/`. Do not treat the Phase 001 SVGs/colors as final or mark this complete without the owner's decision (FR-008).
+- [x] T025 [US3] During React UI implementation, revisit the candidate logo in `assets/brand/` and palette in `assets/brand/tokens.json` with the owner; record explicit final logo/color approval (or revisions) in `docs/evidence/002-foundation.md`, verify contrast and EN/AR variants, then implement the approved tokens/assets in `frontend/src/`. Do not treat the Phase 001 SVGs/colors as final or mark this complete without the owner's decision (FR-008).
 
 ## Dependencies and Execution Strategy
 

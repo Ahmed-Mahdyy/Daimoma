@@ -9,15 +9,14 @@ Provisional; inherits shared transport/errors from phase 002. All paths are unde
 | GET requests/ | search, status, type, employee, date range, ordering, page/page_size | Scoped `{count,next,previous,results}`; employee filter cannot widen authorization |
 | POST requests/ | type_id, title, description, approved category fields | Own DRAFT; server owner/org/cycle/status/version |
 | GET/PATCH requests/{id}/ | PATCH allowlisted content plus expected_version | Own draft/returned only; detail includes safe reviewer/status/activity |
-| POST requests/{id}/attachments/ | Multipart file, expected_version | Editable parent; quarantined metadata, never public URL |
-| GET requests/{id}/attachments/{attachment_id}/download/ | None | Current request scope and ACCEPTED scan state required |
+| ~~POST requests/{id}/attachments/~~ | — | **Deferred per D-006 (2026-09-29):** no attachment endpoints exist in Phase 003 |
 | POST requests/{id}/submit/ | expected_version | Atomic validation/snapshot/cycle/steps/event/notification; read-only pending state |
 | POST requests/{id}/approve/ | expected_version | Current non-self eligible reviewer and required stage; next stage or final approved |
 | POST requests/{id}/reject/ | expected_version, reason | Final rejection; reason required |
 | POST requests/{id}/return/ | expected_version, reason | Returned editable work; preserve reviewed cycle |
-| GET requests/{id}/events/ | Pagination | Scoped immutable timeline; no credential/security-log payload |
+| GET requests/{id}/history/ | None | Scoped immutable `{events, steps}` timeline; no credential/security-log payload |
 
-Request fields explicitly exclude employee_id, organization_id, status, cycle, approval route, reviewer IDs, and decision timestamps from ordinary writes. Date inputs are ISO dates; unknown/irrelevant category fields rejected. File size/count/type defaults remain proposed under D-006; scan-unavailable means unavailable file/submission prerequisite, not a silent bypass.
+Request fields explicitly exclude employee_id, organization_id, status, cycle, approval route, reviewer IDs, and decision timestamps from ordinary writes. Date inputs are ISO dates; unknown/irrelevant category fields rejected. No file handling exists in Phase 003 per D-006; if attachments are approved later they are a separately specified contract, never silently added.
 
 ## State contract
 
@@ -25,8 +24,8 @@ Approval in PENDING_MANAGER may finalize only manager-only routes. HR-required r
 
 ## UI contract
 
-List/filter/sort/pagination, type-dependent form, upload state, request detail/timeline, review queue, reason dialogs, and HR type editor. Explain current reviewer and locked fields. Preserve recoverable draft input after validation/network failure. Refetch on 409; do not optimistically approve. Status changes invalidate detail/list/summary/notifications queries. All six states, mobile record cards, keyboard focus, and accessible reasons are required.
+List/filter/sort/pagination, type-dependent form, request detail/timeline, review queue, reason dialogs, and HR type editor. Explain current reviewer and locked fields. Preserve recoverable draft input after validation/network failure. Refetch on 409; do not optimistically approve. Status changes invalidate detail/list/summary/notifications queries. All six states, mobile record cards, keyboard focus, and accessible reasons are required.
 
 ## Atomic and external effects
 
-Transition, steps, event, and durable notification commit together. Scope is checked again at notification target/download time. External scan/storage failures expose a safe state and operational diagnostics without leaking credentials or accepting unscanned content. Notification summaries omit sensitive free-text details.
+Transition, steps, event, and durable notification commit together. Scope is checked again at notification target/read time. Notification summaries omit sensitive free-text details.

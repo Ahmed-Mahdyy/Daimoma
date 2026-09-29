@@ -36,8 +36,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       await apiLogout();
     } finally {
-      // Clear all scoped query data on logout (contracts/api.md).
+      // Clear all scoped query data, then hard-navigate to /login — a full
+      // reload guarantees no stale client state survives sign-out
+      // (contracts/api.md).
       queryClient.clear();
+      window.location.assign("/login");
     }
   }, [queryClient]);
 

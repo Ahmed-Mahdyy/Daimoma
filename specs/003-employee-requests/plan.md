@@ -5,7 +5,7 @@
 
 ## Summary and Technical Context
 
-Extend the phase 002 Django/DRF/PostgreSQL and React/TypeScript foundation with explicit request workflow services. Reuse scoped permissions, notifications, audit, forms, error transport, and OpenAPI types. Private storage and scanning are justified by supporting attachments; select maintained adapters/service and bounded failure handling, not an unaudited upload helper.
+Extend the phase 002 Django/DRF/PostgreSQL and React/TypeScript foundation with explicit request workflow services. Reuse scoped permissions, notifications, audit, forms, error transport, and OpenAPI types. Attachments, private storage, and scanning are deferred per D-006 (2026-09-29) — no upload feature is built in this phase.
 
 ## Constitution Check
 
@@ -18,9 +18,9 @@ I scope excludes payroll/general workflow building; II scopes every surface; III
 ## Execution Design
 
 1. Approve fixed type fields and routing; write model/API/permission tests before logic.
-2. Create type/request/attachment/step/event schema and constraints from `data-model.md`.
+2. Create type/request/step/event schema and constraints from `data-model.md` (no attachment model — deferred per D-006).
 3. Scope lists/details/related choices before serialization; assign owner/organization from authenticated identity.
-4. Implement draft services and storage quarantine. Size/count/type checks are server-side; enforce parent editability and concurrent count limits under lock. Scanner failures stay unavailable, never fail open. File downloads recheck request scope and acceptance state.
+4. Implement validated draft services (category-aware fields, protected workflow fields, expected-version updates).
 5. Lock employee profile then request for submission/review/reassignment; recheck current eligibility and expected version. On submission create validated route/content snapshot, steps, event, and notification in one transaction. Use one documented lock order shared with phase 002 administration.
 6. Implement approve/reject/return; restart all required steps on resubmission with incremented cycle. Final decisions are immutable. Generic updates cannot alter workflow fields.
 7. Integrate reporting-line changes with atomic pending-step reassignment; past decisions remain unchanged. No eligible reviewer means an explicit blocked queue needing HR action.
@@ -28,7 +28,7 @@ I scope excludes payroll/general workflow building; II scopes every surface; III
 
 ## Failure and Side-Effect Boundaries
 
-An untrusted filename never chooses a storage path. External uploads/scans require consistent metadata lifecycle: staged file, persisted quarantine reference, accepted scan state; submission cannot use pending content. Orphan cleanup/retention is a separately approved operation, not destructive request-path behavior. Domain history may hold an allowlisted request snapshot under request permissions; generic audit logs must not duplicate sensitive content.
+No files exist in this phase (D-006). Domain history may hold an allowlisted request snapshot under request permissions; generic audit logs must not duplicate sensitive content.
 
 Durable notification rows commit with transitions. Email is optional unless independently approved; never add it to approval correctness. Competing mutations return documented 409 with unchanged losing state; clients refresh rather than optimistically assume approval.
 
@@ -38,4 +38,4 @@ See quickstart for positive/negative/race/file tests. List queries eager-load ty
 
 ## Migration and Rollout
 
-Additive migrations and reviewed type configuration; no fixed credentials, foreign IDs, destructive resets, or rewriting previous cycles. Deploy only after phase 002 and storage/scanner readiness. Gate confidential HR content separately until D-006 scope is explicit.
+Additive migrations and reviewed type configuration; no fixed credentials, foreign IDs, destructive resets, or rewriting previous cycles. Deploy only after phase 002 evidence. Confidential HR-only routing is not built (D-006).

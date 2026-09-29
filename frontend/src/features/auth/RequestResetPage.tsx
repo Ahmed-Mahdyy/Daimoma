@@ -27,7 +27,7 @@ export function RequestResetPage() {
           in 30 minutes.
         </p>
         <p className="mt-4">
-          <Link to="/login" className="text-blue-700 underline">
+          <Link to="/login" className="text-brand-700 underline">
             Back to sign in
           </Link>
         </p>
@@ -64,7 +64,7 @@ export function RequestResetPage() {
         <button
           type="submit"
           disabled={isSubmitting}
-          className="rounded bg-blue-700 p-2 font-medium text-white disabled:opacity-60"
+          className="rounded bg-brand-700 p-2 font-medium text-white disabled:opacity-60"
         >
           {isSubmitting ? "Sending…" : "Send recovery link"}
         </button>

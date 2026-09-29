@@ -1,1 +1,19 @@
 @import "tailwindcss";
+
+/* Approved brand tokens (owner decision, 002:T025 — assets/brand/tokens.json).
+   Teal scale mapped from color.brand; gold is the logo check accent. */
+@theme {
+  --color-brand-50: #e0f2f0;
+  --color-brand-100: #c2e5e1;
+  --color-brand-300: #5fa8a0;
+  --color-brand-600: #0f6b63;
+  --color-brand-700: #0b5650;
+  --color-brand-800: #0b4b45;
+  --color-gold-500: #c9a227;
+
+  --font-sans: "Inter", "Segoe UI", Arial, sans-serif;
+}
+
+html[dir="rtl"] body {
+  font-family: "IBM Plex Sans Arabic", "Noto Sans Arabic", Tahoma, sans-serif;
+}

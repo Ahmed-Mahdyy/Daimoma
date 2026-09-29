@@ -16,6 +16,7 @@ dist/
 .vite/
 playwright-report/
 test-results/
+.playwright-browsers/
 *.log
 *.sqlite3
 media/

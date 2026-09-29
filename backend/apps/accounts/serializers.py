@@ -41,11 +41,11 @@ class UserSummarySerializer(serializers.Serializer):
     display_name = serializers.SerializerMethodField()
     roles = serializers.SerializerMethodField()
 
-    def get_display_name(self, user):
+    def get_display_name(self, user) -> str:
         profile = getattr(user, "profile", None)
         return profile.display_name if profile else ""
 
-    def get_roles(self, user):
+    def get_roles(self, user) -> list[str]:
         return sorted(user.groups.values_list("name", flat=True))
 
 
@@ -90,7 +90,7 @@ class MeSerializer(serializers.ModelSerializer):
             "manager",
         ]
 
-    def get_roles(self, profile):
+    def get_roles(self, profile) -> list[str]:
         return sorted(profile.user.groups.values_list("name", flat=True))
 
     def to_internal_value(self, data):

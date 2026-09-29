@@ -6,11 +6,23 @@ import {
   RouterProvider,
 } from "react-router-dom";
 
+import { AppLayout } from "./AppLayout";
+import { AuditPage } from "../features/audit/AuditPage";
 import { AuthProvider } from "../features/auth/AuthProvider";
 import { useAuth } from "../features/auth/auth-context";
 import { LoginPage } from "../features/auth/LoginPage";
 import { RequestResetPage } from "../features/auth/RequestResetPage";
 import { SetPasswordPage } from "../features/auth/SetPasswordPage";
+import { DepartmentsPage } from "../features/departments/DepartmentsPage";
+import { EmployeeDetailPage } from "../features/employees/EmployeeDetailPage";
+import { EmployeesPage } from "../features/employees/EmployeesPage";
+import { ProvisionEmployeePage } from "../features/employees/ProvisionEmployeePage";
+import { RequestDetailPage } from "../features/requests/RequestDetailPage";
+import { RequestEditPage } from "../features/requests/RequestEditPage";
+import { RequestFormPage } from "../features/requests/RequestFormPage";
+import { RequestsPage } from "../features/requests/RequestsPage";
+import { RequestTypesPage } from "../features/requests/RequestTypesPage";
+import { OrgSettingsPage } from "../features/settings/OrgSettingsPage";
 import { SettingsPage } from "../features/settings/SettingsPage";
 
 const queryClient = new QueryClient();
@@ -31,13 +43,15 @@ function RequireAuth() {
 function HomePage() {
   const { user } = useAuth();
   return (
-    <main className="mx-auto max-w-xl p-6">
-      <h1 className="text-2xl font-semibold">Daimoma</h1>
-      <p className="mt-2">Welcome, {user?.display_name || user?.email}.</p>
-      <a href="/settings" className="mt-4 inline-block text-blue-700 underline">
-        Settings
-      </a>
-    </main>
+    <div>
+      <h1 className="text-2xl font-semibold">
+        Welcome, {user?.display_name || user?.email}
+      </h1>
+      <p className="mt-2 text-sm text-gray-600">
+        Use the navigation above to manage employees, review your team, or
+        update your settings.
+      </p>
+    </div>
   );
 }
 
@@ -55,8 +69,24 @@ const router = createBrowserRouter([
   {
     element: <RequireAuth />,
     children: [
-      { path: "/", element: <HomePage /> },
-      { path: "/settings", element: <SettingsPage /> },
+      {
+        element: <AppLayout />,
+        children: [
+          { path: "/", element: <HomePage /> },
+          { path: "/employees", element: <EmployeesPage /> },
+          { path: "/employees/new", element: <ProvisionEmployeePage /> },
+          { path: "/employees/:id", element: <EmployeeDetailPage /> },
+          { path: "/requests", element: <RequestsPage /> },
+          { path: "/requests/new", element: <RequestFormPage /> },
+          { path: "/requests/types", element: <RequestTypesPage /> },
+          { path: "/requests/:id", element: <RequestDetailPage /> },
+          { path: "/requests/:id/edit", element: <RequestEditPage /> },
+          { path: "/departments", element: <DepartmentsPage /> },
+          { path: "/audit", element: <AuditPage /> },
+          { path: "/settings", element: <SettingsPage /> },
+          { path: "/settings/organization", element: <OrgSettingsPage /> },
+        ],
+      },
     ],
   },
 ]);

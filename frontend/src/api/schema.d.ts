@@ -4,6 +4,28 @@
  */
 
 export interface paths {
+    "/api/v1/audit-events/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * @description GET /api/v1/audit-events/ — paginated, scoped audit history.
+         *
+         *     HR: all organization events. Managers: events affecting current direct
+         *     reports only. Employees: 403. Append-only — no detail/patch/delete.
+         */
+        get: operations["audit_events_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/auth/csrf/": {
         parameters: {
             query?: never;
@@ -24,10 +46,980 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/auth/invitations/accept/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * @description POST /api/v1/auth/invitations/accept/ — single-use 48h token + new
+         *     password. Replay, expiry, and policy violations all rejected.
+         */
+        post: operations["auth_invitations_accept_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/login/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * @description POST /api/v1/auth/login/ — email/password. Explicitly CSRF-protected
+         *     even for anonymous callers; bounded failures; generic error.
+         */
+        post: operations["auth_login_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/logout/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description POST /api/v1/auth/logout/ — ends the current session only. */
+        post: operations["auth_logout_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/password-reset/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * @description POST /api/v1/auth/password-reset/ — generic acknowledgement; never
+         *     reveals whether the email maps to an account.
+         */
+        post: operations["auth_password_reset_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/password-reset/confirm/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * @description POST /api/v1/auth/password-reset/confirm/ — 30-min single-use token;
+         *     on success all existing sessions are invalidated.
+         */
+        post: operations["auth_password_reset_confirm_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/choices/managers/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * @description GET /api/v1/choices/managers/ — HR-only scoped options for the
+         *     reporting-line field: active profiles inside the caller's organization.
+         *     Never exposes global user lists.
+         */
+        get: operations["choices_managers_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/departments/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["departments_list"];
+        put?: never;
+        post: operations["departments_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/departments/{id}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description PATCH only — departments are deactivated, never deleted. */
+        get: operations["departments_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** @description PATCH only — departments are deactivated, never deleted. */
+        patch: operations["departments_partial_update"];
+        trace?: never;
+    };
+    "/api/v1/employees/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * @description GET — scoped directory: employee sees self, manager sees current
+         *     direct reports, HR sees the organization (no general directory).
+         *     POST — HR provisioning only.
+         */
+        get: operations["employees_list"];
+        put?: never;
+        /**
+         * @description GET — scoped directory: employee sees self, manager sees current
+         *     direct reports, HR sees the organization (no general directory).
+         *     POST — HR provisioning only.
+         */
+        post: operations["employees_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/employees/{id}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * @description GET — same scoped-visibility rules as the list; out-of-scope ids are
+         *     404 (non-enumerating). PATCH — HR only.
+         */
+        get: operations["employees_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * @description GET — same scoped-visibility rules as the list; out-of-scope ids are
+         *     404 (non-enumerating). PATCH — HR only.
+         */
+        patch: operations["employees_partial_update"];
+        trace?: never;
+    };
+    "/api/v1/employees/{id}/deactivate/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["employees_deactivate_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/employees/{id}/reactivate/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["employees_reactivate_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/employees/{id}/resend-invitation/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["employees_resend_invitation_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * @description GET /api/v1/me/ — own profile summary.
+         *     PATCH /api/v1/me/ — allowlisted self-service fields only.
+         */
+        get: operations["me_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * @description GET /api/v1/me/ — own profile summary.
+         *     PATCH /api/v1/me/ — allowlisted self-service fields only.
+         */
+        patch: operations["me_partial_update"];
+        trace?: never;
+    };
+    "/api/v1/me/password/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * @description POST /api/v1/me/password/ — requires the current password; ends all
+         *     other sessions while keeping the caller's session alive.
+         */
+        post: operations["me_password_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/notifications/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * @description GET /api/v1/notifications/ — recipient-only, paginated, `?unread=true`
+         *     filter; the envelope always carries `unread_count` for the bell.
+         */
+        get: operations["notifications_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/notifications/{id}/read/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * @description POST /api/v1/notifications/{id}/read/ — recipient-only; others' ids
+         *     are 404 (non-enumerating). Idempotent.
+         */
+        post: operations["notifications_read_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/notifications/read-all/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * @description POST /api/v1/notifications/read-all/ — marks every unread row for the
+         *     caller; never touches other recipients.
+         */
+        post: operations["notifications_read_all_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/organization/settings/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["organization_settings_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch: operations["organization_settings_partial_update"];
+        trace?: never;
+    };
+    "/api/v1/request-types/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["request_types_list"];
+        put?: never;
+        post: operations["request_types_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/request-types/{id}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch: operations["request_types_partial_update"];
+        trace?: never;
+    };
+    "/api/v1/requests/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["requests_list"];
+        put?: never;
+        post: operations["requests_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/requests/{id}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["requests_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch: operations["requests_partial_update"];
+        trace?: never;
+    };
+    "/api/v1/requests/{id}/approve/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Approve/reject/return the current pending step. */
+        post: operations["requests_approve_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/requests/{id}/history/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Immutable per-request history — events + all steps across cycles. */
+        get: operations["requests_history_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/requests/{id}/reject/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Approve/reject/return the current pending step. */
+        post: operations["requests_reject_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/requests/{id}/return/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Approve/reject/return the current pending step. */
+        post: operations["requests_return_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/requests/{id}/submit/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["requests_submit_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
-    schemas: never;
+    schemas: {
+        ApprovalStep: {
+            cycle: number;
+            sequence: number;
+            required_role: components["schemas"]["RequiredRoleEnum"];
+            /** Format: uuid */
+            reviewer?: string | null;
+            readonly reviewer_name: string;
+            /** Format: email */
+            readonly reviewer_email: string;
+            status?: components["schemas"]["ApprovalStepStatusEnum"];
+            reason?: string;
+            /** Format: date-time */
+            decided_at?: string | null;
+        };
+        /**
+         * @description * `waiting` - Waiting
+         *     * `pending` - Pending
+         *     * `approved` - Approved
+         *     * `rejected` - Rejected
+         *     * `returned` - Returned
+         * @enum {string}
+         */
+        ApprovalStepStatusEnum: "waiting" | "pending" | "approved" | "rejected" | "returned";
+        /**
+         * @description Read-only safe audit shape: no actor internals, no secrets (metadata
+         *     is already redacted at write time).
+         */
+        AuditEvent: {
+            /** Format: uuid */
+            readonly id: string;
+            action: string;
+            /** Format: email */
+            readonly actor_email: string;
+            readonly actor_name: string;
+            target_type: string;
+            /** Format: uuid */
+            target_id: string;
+            metadata?: unknown;
+            /** Format: date-time */
+            readonly occurred_at: string;
+        };
+        /**
+         * @description * `leave` - Leave
+         *     * `equipment` - Equipment
+         *     * `hr_service` - HR service
+         *     * `work_from_home` - Work from home
+         *     * `general` - General
+         * @enum {string}
+         */
+        CategoryEnum: "leave" | "equipment" | "hr_service" | "work_from_home" | "general";
+        Department: {
+            /** Format: uuid */
+            readonly id: string;
+            name: string;
+            is_active?: boolean;
+        };
+        DetailResponse: {
+            detail: string;
+        };
+        /**
+         * @description HR provisioning input — organization and privileges are assigned
+         *     server-side; the allowlist contains no is_staff/is_superuser/password.
+         */
+        EmployeeProvision: {
+            /** Format: email */
+            email: string;
+            employee_code: string;
+            /** @default  */
+            display_name: string;
+            /** @default  */
+            phone: string;
+            /** @default  */
+            job_title: string;
+            /** @default en */
+            preferred_locale: components["schemas"]["PreferredLocaleEnum"];
+            /** Format: uuid */
+            department?: string | null;
+            /** Format: uuid */
+            manager?: string | null;
+            roles?: string[];
+        };
+        /**
+         * @description Read shape for scoped lists/details — organization, owner, status and
+         *     workflow fields are server-owned and never writable through this API.
+         */
+        EmployeeRequest: {
+            /** Format: uuid */
+            readonly id: string;
+            /** Format: uuid */
+            readonly employee: string;
+            readonly employee_name: string;
+            /** Format: email */
+            readonly employee_email: string;
+            readonly employee_code: string;
+            /** Format: uuid */
+            readonly type: string;
+            readonly type_name: string;
+            readonly type_category: string;
+            readonly title: string;
+            readonly description: string;
+            /** Format: date */
+            readonly start_date: string | null;
+            /** Format: date */
+            readonly end_date: string | null;
+            readonly equipment_item: string;
+            readonly quantity: number | null;
+            readonly status: components["schemas"]["EmployeeRequestStatusEnum"];
+            readonly cycle: number;
+            readonly version: number;
+            /** Format: date-time */
+            readonly submitted_at: string | null;
+            readonly current_step: {
+                [key: string]: unknown;
+            } | null;
+            /** Format: date-time */
+            readonly created_at: string;
+            /** Format: date-time */
+            readonly updated_at: string;
+        };
+        /**
+         * @description * `draft` - Draft
+         *     * `pending_manager` - Pending manager
+         *     * `pending_hr` - Pending HR
+         *     * `approved` - Approved
+         *     * `returned` - Returned
+         *     * `rejected` - Rejected
+         * @enum {string}
+         */
+        EmployeeRequestStatusEnum: "draft" | "pending_manager" | "pending_hr" | "approved" | "returned" | "rejected";
+        /** @description Safe directory fields — never exposes auth internals. */
+        EmployeeSummary: {
+            /** Format: uuid */
+            readonly id: string;
+            /** Format: email */
+            readonly email: string;
+            readonly is_active: boolean;
+            readonly roles: string[];
+            employee_code: string;
+            display_name?: string;
+            phone?: string;
+            job_title?: string;
+            preferred_locale?: components["schemas"]["PreferredLocaleEnum"];
+            /** Format: uuid */
+            department?: string | null;
+            readonly department_name: string;
+            /** Format: uuid */
+            manager?: string | null;
+            readonly manager_name: string;
+            version?: number;
+        };
+        Login: {
+            /** Format: email */
+            email: string;
+            password: string;
+        };
+        ManagerChoice: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            user_id: string;
+            display_name: string;
+            employee_code: string;
+            roles: string[];
+        };
+        ManagerChoices: {
+            count: number;
+            results: components["schemas"]["ManagerChoice"][];
+        };
+        /**
+         * @description Read/write serializer for GET/PATCH /api/v1/me/.
+         *
+         *     Explicit allowlist: only display_name, phone, preferred_locale are
+         *     writable. Any other key in the payload — including privilege fields —
+         *     is rejected with validation_error (no silent drops). `version` carries
+         *     the optimistic-lock value and is never written directly.
+         */
+        Me: {
+            /** Format: uuid */
+            readonly id: string;
+            /** Format: email */
+            readonly email: string;
+            readonly roles: string[];
+            readonly employee_code: string;
+            display_name?: string;
+            phone?: string;
+            preferred_locale?: components["schemas"]["PreferredLocaleEnum"];
+            readonly job_title: string;
+            /** Format: uuid */
+            readonly department: string;
+            /** Format: uuid */
+            readonly manager: string;
+            version?: number;
+        };
+        Notification: {
+            /** Format: uuid */
+            readonly id: string;
+            readonly event_key: string;
+            readonly kind: string;
+            readonly summary: string;
+            readonly target_type: string;
+            /** Format: uuid */
+            readonly target_id: string | null;
+            readonly is_read: boolean;
+            /** Format: date-time */
+            readonly read_at: string | null;
+            /** Format: date-time */
+            readonly created_at: string;
+        };
+        NotificationDetail: {
+            detail: string;
+        };
+        OrgDetailResponse: {
+            detail: string;
+        };
+        OrgSettings: {
+            /** Format: uuid */
+            readonly id: string;
+            name: string;
+            timezone?: string;
+            week_start?: number;
+            /**
+             * Format: uuid
+             * @description Eligible non-self HR reviewer used when no manager can review (D-004).
+             */
+            fallback_reviewer?: string | null;
+        };
+        PagedAuditEvents: {
+            count: number;
+            /** Format: uri */
+            next: string | null;
+            /** Format: uri */
+            previous: string | null;
+            results: components["schemas"]["AuditEvent"][];
+        };
+        PagedDepartments: {
+            count: number;
+            results: components["schemas"]["Department"][];
+        };
+        PagedEmployees: {
+            count: number;
+            results: components["schemas"]["EmployeeSummary"][];
+        };
+        PagedNotifications: {
+            count: number;
+            /** Format: uri */
+            next: string | null;
+            /** Format: uri */
+            previous: string | null;
+            unread_count: number;
+            results: components["schemas"]["Notification"][];
+        };
+        PasswordChange: {
+            current_password: string;
+            new_password: string;
+        };
+        PasswordResetRequest: {
+            /** Format: email */
+            email: string;
+        };
+        PatchedDepartment: {
+            /** Format: uuid */
+            readonly id?: string;
+            name?: string;
+            is_active?: boolean;
+        };
+        /**
+         * @description Explicit allowlist for PATCH employees/{id}/ — everything else,
+         *     including privilege fields, is rejected outright.
+         */
+        PatchedEmployeeUpdate: {
+            /** Format: email */
+            email?: string;
+            employee_code?: string;
+            display_name?: string;
+            phone?: string;
+            job_title?: string;
+            preferred_locale?: components["schemas"]["PreferredLocaleEnum"];
+            /** Format: uuid */
+            department?: string | null;
+            /** Format: uuid */
+            manager?: string | null;
+            roles?: string[];
+            version?: number;
+        };
+        /**
+         * @description Read/write serializer for GET/PATCH /api/v1/me/.
+         *
+         *     Explicit allowlist: only display_name, phone, preferred_locale are
+         *     writable. Any other key in the payload — including privilege fields —
+         *     is rejected with validation_error (no silent drops). `version` carries
+         *     the optimistic-lock value and is never written directly.
+         */
+        PatchedMe: {
+            /** Format: uuid */
+            readonly id?: string;
+            /** Format: email */
+            readonly email?: string;
+            readonly roles?: string[];
+            readonly employee_code?: string;
+            display_name?: string;
+            phone?: string;
+            preferred_locale?: components["schemas"]["PreferredLocaleEnum"];
+            readonly job_title?: string;
+            /** Format: uuid */
+            readonly department?: string;
+            /** Format: uuid */
+            readonly manager?: string;
+            version?: number;
+        };
+        PatchedOrgSettings: {
+            /** Format: uuid */
+            readonly id?: string;
+            name?: string;
+            timezone?: string;
+            week_start?: number;
+            /**
+             * Format: uuid
+             * @description Eligible non-self HR reviewer used when no manager can review (D-004).
+             */
+            fallback_reviewer?: string | null;
+        };
+        /**
+         * @description Draft input allowlist — category-typed fields only; ownership/status/
+         *     workflow fields are rejected (mass-assignment protection).
+         */
+        PatchedRequestDraft: {
+            /** Format: uuid */
+            type?: string;
+            title?: string;
+            /** @default  */
+            description: string;
+            /** Format: date */
+            start_date?: string | null;
+            /** Format: date */
+            end_date?: string | null;
+            /** @default  */
+            equipment_item: string;
+            quantity?: number | null;
+            version?: number;
+        };
+        /** @description HR type configuration — organization assigned server-side. */
+        PatchedRequestTypeWrite: {
+            code?: string;
+            name?: string;
+            category?: components["schemas"]["CategoryEnum"];
+            /** @default  */
+            help_text: string;
+            /** @default false */
+            requires_hr: boolean;
+            /** @default true */
+            is_active: boolean;
+        };
+        /**
+         * @description * `en` - English
+         *     * `ar` - Arabic
+         * @enum {string}
+         */
+        PreferredLocaleEnum: "en" | "ar";
+        Reason: {
+            /** @default  */
+            reason: string;
+            /** @default  */
+            note: string;
+        };
+        /**
+         * @description Draft input allowlist — category-typed fields only; ownership/status/
+         *     workflow fields are rejected (mass-assignment protection).
+         */
+        RequestDraft: {
+            /** Format: uuid */
+            type: string;
+            title: string;
+            /** @default  */
+            description: string;
+            /** Format: date */
+            start_date?: string | null;
+            /** Format: date */
+            end_date?: string | null;
+            /** @default  */
+            equipment_item: string;
+            quantity?: number | null;
+            version?: number;
+        };
+        RequestEvent: {
+            event_type: string;
+            /** Format: uuid */
+            actor?: string | null;
+            readonly actor_name: string;
+            /** Format: email */
+            readonly actor_email: string;
+            previous_status?: string;
+            new_status?: string;
+            cycle?: number;
+            version: number;
+            reason?: string;
+            snapshot?: unknown;
+            /** Format: date-time */
+            readonly occurred_at: string;
+        };
+        RequestHistory: {
+            events: components["schemas"]["RequestEvent"][];
+            steps: components["schemas"]["ApprovalStep"][];
+        };
+        /** @description Approve/reject/return input — expected version guards stale clients. */
+        RequestReview: {
+            /** @default  */
+            reason: string;
+            version: number;
+        };
+        RequestType: {
+            /** Format: uuid */
+            readonly id: string;
+            code: string;
+            name: string;
+            category: components["schemas"]["CategoryEnum"];
+            help_text?: string;
+            requires_hr?: boolean;
+            is_active?: boolean;
+        };
+        /** @description HR type configuration — organization assigned server-side. */
+        RequestTypeWrite: {
+            code: string;
+            name: string;
+            category: components["schemas"]["CategoryEnum"];
+            /** @default  */
+            help_text: string;
+            /** @default false */
+            requires_hr: boolean;
+            /** @default true */
+            is_active: boolean;
+        };
+        /**
+         * @description * `manager` - Manager
+         *     * `hr` - HR
+         * @enum {string}
+         */
+        RequiredRoleEnum: "manager" | "hr";
+        /** @description Shared shape for invitation acceptance and recovery confirmation. */
+        TokenPassword: {
+            token: string;
+            password: string;
+        };
+        /** @description Safe user summary — never exposes password, tokens, or staff flags. */
+        UserSummary: {
+            /** Format: uuid */
+            id: string;
+            /** Format: email */
+            email: string;
+            readonly display_name: string;
+            readonly roles: string[];
+        };
+    };
     responses: never;
     parameters: never;
     requestBodies: never;
@@ -36,6 +1028,25 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    audit_events_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PagedAuditEvents"];
+                };
+            };
+        };
+    };
     auth_csrf_retrieve: {
         parameters: {
             query?: never;
@@ -45,12 +1056,874 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description No response body */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["DetailResponse"];
+                };
+            };
+        };
+    };
+    auth_invitations_accept_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TokenPassword"];
+                "application/x-www-form-urlencoded": components["schemas"]["TokenPassword"];
+                "multipart/form-data": components["schemas"]["TokenPassword"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DetailResponse"];
+                };
+            };
+        };
+    };
+    auth_login_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Login"];
+                "application/x-www-form-urlencoded": components["schemas"]["Login"];
+                "multipart/form-data": components["schemas"]["Login"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserSummary"];
+                };
+            };
+        };
+    };
+    auth_logout_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DetailResponse"];
+                };
+            };
+        };
+    };
+    auth_password_reset_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PasswordResetRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["PasswordResetRequest"];
+                "multipart/form-data": components["schemas"]["PasswordResetRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DetailResponse"];
+                };
+            };
+        };
+    };
+    auth_password_reset_confirm_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TokenPassword"];
+                "application/x-www-form-urlencoded": components["schemas"]["TokenPassword"];
+                "multipart/form-data": components["schemas"]["TokenPassword"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DetailResponse"];
+                };
+            };
+        };
+    };
+    choices_managers_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagerChoices"];
+                };
+            };
+        };
+    };
+    departments_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PagedDepartments"];
+                };
+            };
+        };
+    };
+    departments_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Department"];
+                "application/x-www-form-urlencoded": components["schemas"]["Department"];
+                "multipart/form-data": components["schemas"]["Department"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Department"];
+                };
+            };
+        };
+    };
+    departments_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Department"];
+                };
+            };
+        };
+    };
+    departments_partial_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["PatchedDepartment"];
+                "application/x-www-form-urlencoded": components["schemas"]["PatchedDepartment"];
+                "multipart/form-data": components["schemas"]["PatchedDepartment"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Department"];
+                };
+            };
+        };
+    };
+    employees_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PagedEmployees"];
+                };
+            };
+        };
+    };
+    employees_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EmployeeProvision"];
+                "application/x-www-form-urlencoded": components["schemas"]["EmployeeProvision"];
+                "multipart/form-data": components["schemas"]["EmployeeProvision"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EmployeeSummary"];
+                };
+            };
+        };
+    };
+    employees_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EmployeeSummary"];
+                };
+            };
+        };
+    };
+    employees_partial_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["PatchedEmployeeUpdate"];
+                "application/x-www-form-urlencoded": components["schemas"]["PatchedEmployeeUpdate"];
+                "multipart/form-data": components["schemas"]["PatchedEmployeeUpdate"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EmployeeSummary"];
+                };
+            };
+        };
+    };
+    employees_deactivate_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["Reason"];
+                "application/x-www-form-urlencoded": components["schemas"]["Reason"];
+                "multipart/form-data": components["schemas"]["Reason"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrgDetailResponse"];
+                };
+            };
+        };
+    };
+    employees_reactivate_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["Reason"];
+                "application/x-www-form-urlencoded": components["schemas"]["Reason"];
+                "multipart/form-data": components["schemas"]["Reason"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrgDetailResponse"];
+                };
+            };
+        };
+    };
+    employees_resend_invitation_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrgDetailResponse"];
+                };
+            };
+        };
+    };
+    me_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Me"];
+                };
+            };
+        };
+    };
+    me_partial_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["PatchedMe"];
+                "application/x-www-form-urlencoded": components["schemas"]["PatchedMe"];
+                "multipart/form-data": components["schemas"]["PatchedMe"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Me"];
+                };
+            };
+        };
+    };
+    me_password_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PasswordChange"];
+                "application/x-www-form-urlencoded": components["schemas"]["PasswordChange"];
+                "multipart/form-data": components["schemas"]["PasswordChange"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DetailResponse"];
+                };
+            };
+        };
+    };
+    notifications_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PagedNotifications"];
+                };
+            };
+        };
+    };
+    notifications_read_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Notification"];
+                };
+            };
+        };
+    };
+    notifications_read_all_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotificationDetail"];
+                };
+            };
+        };
+    };
+    organization_settings_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrgSettings"];
+                };
+            };
+        };
+    };
+    organization_settings_partial_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["PatchedOrgSettings"];
+                "application/x-www-form-urlencoded": components["schemas"]["PatchedOrgSettings"];
+                "multipart/form-data": components["schemas"]["PatchedOrgSettings"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrgSettings"];
+                };
+            };
+        };
+    };
+    request_types_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RequestType"][];
+                };
+            };
+        };
+    };
+    request_types_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RequestTypeWrite"];
+                "application/x-www-form-urlencoded": components["schemas"]["RequestTypeWrite"];
+                "multipart/form-data": components["schemas"]["RequestTypeWrite"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RequestType"];
+                };
+            };
+        };
+    };
+    request_types_partial_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["PatchedRequestTypeWrite"];
+                "application/x-www-form-urlencoded": components["schemas"]["PatchedRequestTypeWrite"];
+                "multipart/form-data": components["schemas"]["PatchedRequestTypeWrite"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RequestType"];
+                };
+            };
+        };
+    };
+    requests_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EmployeeRequest"][];
+                };
+            };
+        };
+    };
+    requests_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RequestDraft"];
+                "application/x-www-form-urlencoded": components["schemas"]["RequestDraft"];
+                "multipart/form-data": components["schemas"]["RequestDraft"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EmployeeRequest"];
+                };
+            };
+        };
+    };
+    requests_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EmployeeRequest"];
+                };
+            };
+        };
+    };
+    requests_partial_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["PatchedRequestDraft"];
+                "application/x-www-form-urlencoded": components["schemas"]["PatchedRequestDraft"];
+                "multipart/form-data": components["schemas"]["PatchedRequestDraft"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EmployeeRequest"];
+                };
+            };
+        };
+    };
+    requests_approve_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RequestReview"];
+                "application/x-www-form-urlencoded": components["schemas"]["RequestReview"];
+                "multipart/form-data": components["schemas"]["RequestReview"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EmployeeRequest"];
+                };
+            };
+        };
+    };
+    requests_history_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RequestHistory"];
+                };
+            };
+        };
+    };
+    requests_reject_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RequestReview"];
+                "application/x-www-form-urlencoded": components["schemas"]["RequestReview"];
+                "multipart/form-data": components["schemas"]["RequestReview"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EmployeeRequest"];
+                };
+            };
+        };
+    };
+    requests_return_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RequestReview"];
+                "application/x-www-form-urlencoded": components["schemas"]["RequestReview"];
+                "multipart/form-data": components["schemas"]["RequestReview"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EmployeeRequest"];
+                };
+            };
+        };
+    };
+    requests_submit_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RequestReview"];
+                "application/x-www-form-urlencoded": components["schemas"]["RequestReview"];
+                "multipart/form-data": components["schemas"]["RequestReview"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EmployeeRequest"];
+                };
             };
         };
     };

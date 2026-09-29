@@ -63,7 +63,7 @@ export function SetPasswordPage({ mode }: { mode: "invitation" | "reset" }) {
         <h1 className="text-2xl font-semibold">Password set</h1>
         <p className="mt-2">
           Your password is saved.{" "}
-          <Link to="/login" className="text-blue-700 underline">
+          <Link to="/login" className="text-brand-700 underline">
             Sign in
           </Link>
           .
@@ -133,7 +133,7 @@ export function SetPasswordPage({ mode }: { mode: "invitation" | "reset" }) {
         <button
           type="submit"
           disabled={isSubmitting}
-          className="rounded bg-blue-700 p-2 font-medium text-white disabled:opacity-60"
+          className="rounded bg-brand-700 p-2 font-medium text-white disabled:opacity-60"
         >
           {isSubmitting ? "Saving…" : "Set password"}
         </button>

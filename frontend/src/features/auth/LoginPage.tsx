@@ -42,7 +42,12 @@ export function LoginPage() {
 
   return (
     <main className="mx-auto flex min-h-screen max-w-md flex-col justify-center p-6">
-      <h1 className="text-2xl font-semibold">Sign in to Daimoma</h1>
+      <img
+        src="/brand/logo-en.png"
+        alt="Daimoma"
+        className="mb-8 h-24 w-auto self-center"
+      />
+      <h1 className="text-2xl font-semibold">Sign in</h1>
       <form
         onSubmit={handleSubmit(onSubmit)}
         className="mt-6 flex flex-col gap-4"
@@ -92,13 +97,13 @@ export function LoginPage() {
         <button
           type="submit"
           disabled={isSubmitting}
-          className="rounded bg-blue-700 p-2 font-medium text-white disabled:opacity-60"
+          className="rounded bg-brand-700 p-2 font-medium text-white disabled:opacity-60"
         >
           {isSubmitting ? "Signing in…" : "Sign in"}
         </button>
       </form>
       <p className="mt-4 text-sm">
-        <Link to="/reset-password" className="text-blue-700 underline">
+        <Link to="/reset-password" className="text-brand-700 underline">
           Forgot your password?
         </Link>
       </p>

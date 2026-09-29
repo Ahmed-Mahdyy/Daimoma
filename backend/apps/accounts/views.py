@@ -1,6 +1,8 @@
 from django.contrib.auth import logout, update_session_auth_hash
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import ensure_csrf_cookie
+from drf_spectacular.utils import extend_schema, inline_serializer
+from rest_framework import serializers as drf_serializers
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -23,6 +25,10 @@ from apps.accounts.services import (
     request_password_reset,
 )
 
+DetailSerializer = inline_serializer(
+    name="DetailResponse", fields={"detail": drf_serializers.CharField()}
+)
+
 
 @method_decorator(ensure_csrf_cookie, name="get")
 class CsrfBootstrapView(APIView):
@@ -32,6 +38,7 @@ class CsrfBootstrapView(APIView):
     permission_classes = [AllowAny]
     authentication_classes = []
 
+    @extend_schema(responses={200: DetailSerializer})
     def get(self, request):
         return Response({"detail": "ok"})
 
@@ -43,6 +50,7 @@ class LoginView(APIView):
     permission_classes = [AllowAny]
     authentication_classes = [CsrfEnforcedSessionAuthentication]
 
+    @extend_schema(request=LoginSerializer, responses={200: UserSummarySerializer})
     def post(self, request):
         serializer = LoginSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -55,6 +63,7 @@ class LogoutView(APIView):
 
     permission_classes = [IsActiveAuthenticated]
 
+    @extend_schema(request=None, responses={200: DetailSerializer})
     def post(self, request):
         logout(request)
         return Response({"detail": "Signed out."})
@@ -67,6 +76,7 @@ class InvitationAcceptView(APIView):
     permission_classes = [AllowAny]
     authentication_classes = []
 
+    @extend_schema(request=TokenPasswordSerializer, responses={200: DetailSerializer})
     def post(self, request):
         serializer = TokenPasswordSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -81,6 +91,7 @@ class PasswordResetRequestView(APIView):
     permission_classes = [AllowAny]
     authentication_classes = []
 
+    @extend_schema(request=PasswordResetRequestSerializer, responses={200: DetailSerializer})
     def post(self, request):
         serializer = PasswordResetRequestSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -95,6 +106,7 @@ class PasswordResetConfirmView(APIView):
     permission_classes = [AllowAny]
     authentication_classes = []
 
+    @extend_schema(request=TokenPasswordSerializer, responses={200: DetailSerializer})
     def post(self, request):
         serializer = TokenPasswordSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -110,6 +122,7 @@ class MePasswordView(APIView):
 
     permission_classes = [IsActiveAuthenticated]
 
+    @extend_schema(request=PasswordChangeSerializer, responses={200: DetailSerializer})
     def post(self, request):
         serializer = PasswordChangeSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -129,9 +142,11 @@ class MeView(APIView):
 
     permission_classes = [IsActiveAuthenticated]
 
+    @extend_schema(responses={200: MeSerializer})
     def get(self, request):
         return Response(MeSerializer(request.user.profile).data)
 
+    @extend_schema(request=MeSerializer, responses={200: MeSerializer})
     def patch(self, request):
         profile = request.user.profile
         serializer = MeSerializer(profile, data=request.data, partial=True)

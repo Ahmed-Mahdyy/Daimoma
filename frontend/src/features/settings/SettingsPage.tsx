@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useForm } from "react-hook-form";
+import { Link } from "react-router-dom";
 
 import { ApiError } from "../../api/client";
 import { changePassword, updateMe } from "../../api/auth";
@@ -71,6 +72,14 @@ export function SettingsPage() {
     <main className="mx-auto max-w-xl p-6">
       <h1 className="text-2xl font-semibold">Settings</h1>
 
+      {user.roles.includes("HR") && (
+        <p className="mt-3 text-sm">
+          <Link to="/settings/organization" className="text-brand-700 underline">
+            Organization settings (HR)
+          </Link>
+        </p>
+      )}
+
       <section aria-labelledby="profile-heading" className="mt-8">
         <h2 id="profile-heading" className="text-lg font-medium">
           Profile
@@ -123,7 +132,7 @@ export function SettingsPage() {
           )}
           <button
             type="submit"
-            className="self-start rounded bg-blue-700 px-4 py-2 font-medium text-white"
+            className="self-start rounded bg-brand-700 px-4 py-2 font-medium text-white"
           >
             Save profile
           </button>
@@ -190,7 +199,7 @@ export function SettingsPage() {
           )}
           <button
             type="submit"
-            className="self-start rounded bg-blue-700 px-4 py-2 font-medium text-white"
+            className="self-start rounded bg-brand-700 px-4 py-2 font-medium text-white"
           >
             Change password
           </button>
