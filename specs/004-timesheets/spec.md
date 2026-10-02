@@ -2,9 +2,9 @@
 
 **Feature**: 004-timesheets
 **Created**: 2026-09-20
-**Status**: Draft; time/period/reopening policy requires owner approval.
+**Status**: Approved policy basis — D-005 approved 2026-10-02 (owner): employees submit each day independently; the weekly sheet is the review unit; always two-stage review (manager then HR); return unlocks the whole week; HR-only reopening; HR-configured working window (earliest start, latest end, max daily hours) with flag-and-reason for out-of-window entries.
 **Source**: Brief sections 4-7, 9-15; phase 002 identity/scope and shared events.
-**Scope**: Actual working intervals, daily entries within a weekly sheet, submission, manager review, corrections, HR reopening, history, and notifications. No live clock, shifts, billing, or payroll calculation.
+**Scope**: Actual working intervals, daily submission (each day locks when submitted) within a weekly review sheet, manager-then-HR review, corrections, HR reopening, history, notifications, and an HR-configured working-hours window. No live clock, shifts, billing, or payroll calculation.
 
 ## User Scenarios & Testing
 
@@ -22,12 +22,12 @@ As an employee I enter start/end times and unpaid breaks, correct editable entri
 
 ### User Story 2 - Submit and review locked work (Priority: P1)
 
-As an employee I submit the week for review; as the eligible reviewer I approve, reject, or return it with a clear reason.
+As an employee I submit each day as it is completed and then submit the week for review; as the manager I approve, reject, or return the week, and HR then completes the second review stage.
 
-**Independent Test**: Submit a week, attempt every entry mutation, return it, correct/resubmit, and approve as a different eligible user.
+**Independent Test**: Submit a week, attempt every entry mutation, return it, correct/resubmit, and approve through both manager and HR stages as different eligible users.
 
 **Acceptance Scenarios**:
-1. Given a valid nonempty week and eligible reviewer, when submitting, then the sheet and all entries become read-only and submission history/notification are recorded.
+1. Given a valid week with at least one submitted day and no draft days holding entries, when submitting, then the sheet and all entries become read-only and submission history/notification are recorded.
 2. Given submitted/decided work, when attempting add/edit/remove/reparent operations through any interface, then changes fail until an authorized transition unlocks the sheet.
 3. Given returned work with a reason, when the owner corrects/resubmits, then a new cycle records the correction and preserves the prior submitted snapshot.
 4. Given competing review/submission/edit operations, when processed concurrently, then exactly one valid state/version outcome is recorded without overlap or duplicate decisions.
@@ -47,16 +47,16 @@ As authorized HR I can reopen a decided sheet with a reason; as an owner/reviewe
 
 ### Edge Cases
 
-Zero entries, zero/negative duration, break equal to elapsed time, future completed work, minute precision, overnight/day/week split, DST nonexistent/ambiguous local times, duplicate period creation, overlaps across sheets, concurrent edits/submission, inactive/missing reviewer, changed organization time settings, stale UI, network retry, and attempted parent reassignment.
+Zero entries, zero/negative duration, break equal to elapsed time, future completed work, minute precision, overnight/day/week split, DST nonexistent/ambiguous local times, duplicate period creation, overlaps across sheets, concurrent edits/submission, inactive/missing reviewer, changed organization time settings, stale UI, network retry, attempted parent reassignment, unsubmitted days with entries at week submit, out-of-window entries without a reason, and a sole-HR fallback completing the manager stage (no second HR stage per D-004).
 
 ## Requirements
 
 ### Functional Requirements
 
-- **FR-001**: Employees maintain their own daily start/end/break entries in one sheet per approved period and view integer-minute daily/week totals.
-- **FR-002**: Validate actual time, break bounds, minute precision, future intervals, approved timezone/day/week semantics, and non-overlap across all active employee entries including concurrent writes.
-- **FR-003**: Submission requires valid nonempty work and an eligible non-self reviewer, records a snapshot/cycle, and locks the sheet and all child mutations.
-- **FR-004**: Only the current eligible reviewer can approve, reject, or return submitted work; return/reject require reasons; decisions cannot be ordinary field edits.
+- **FR-001**: Employees maintain their own daily start/end/break entries in one weekly sheet per approved period, submit each day independently (locking it), and view integer-minute daily/week totals.
+- **FR-002**: Validate actual time, break bounds, minute precision, future intervals, approved timezone/day/week semantics, and non-overlap across all active employee entries including concurrent writes. Entries outside the HR-configured working window (earliest start, latest end, max daily hours) are flagged and require an employee-supplied reason to save.
+- **FR-003**: Daily submission requires valid nonempty day content; weekly submission requires at least one submitted day, no draft days holding entries, and an eligible non-self manager reviewer; weekly submission records a snapshot/cycle and locks the sheet and all child mutations.
+- **FR-004**: Every submitted week requires two stages: the eligible manager reviews first, then an eligible non-self HR reviewer. Only the current stage's eligible reviewer can approve, reject, or return; return/reject require reasons; decisions cannot be ordinary field edits. Return unlocks the whole week's days; reject locks the week terminally unless reopened.
 - **FR-005**: Returned work supports correction and resubmission while preserving previous submitted content/decisions; rejected work stays locked unless explicitly reopened.
 - **FR-006**: Authorized HR alone may reopen approved/rejected sheets with a reason; historical approvals remain but current approved totals exclude reopened work.
 - **FR-007**: Conflicting edits/submission/review and reporting-line changes preserve one valid outcome, current eligibility, history, and deduplicated notifications.
@@ -66,7 +66,7 @@ Zero entries, zero/negative duration, break equal to elapsed time, future comple
 
 ### Key Entities
 
-Timesheet, time entry, immutable submission/review event, employee/reviewer, and shared notification. Approved hours are a scoped projection of current approved sheet state, not an independently mutable total.
+Timesheet (weekly review unit), work day (daily submission unit), time entry, immutable submission/review event, employee/reviewer, shared notification, and the organization working-window configuration. Approved hours are a scoped projection of current approved sheet state, not an independently mutable total.
 
 ## Success Criteria
 
@@ -77,4 +77,4 @@ Timesheet, time entry, immutable submission/review event, employee/reviewer, and
 
 ## Assumptions and Approval Gates
 
-Requires phase 002 services, not phase 003 implementation. D-004 reviewer/fallback policy and D-005 time/period/reopening policy are pending; D-009 limits apply. Start/end mode satisfies the source's 'from/to times or hours'; duration-only input is deferred. Organization timezone/week changes affect new periods only after impact review. Automated tests are mandatory.
+Requires phase 002 services, not phase 003 implementation. D-004 reviewer/fallback policy approved (an HR fallback decision at the manager stage completes review — no forced second HR stage when no manager exists). D-005 approved 2026-10-02: daily employee submission, weekly two-stage (manager→HR) review, whole-week return, HR-only reopening, working window (earliest start/latest end/max daily hours) with flag-and-reason exceptions. D-009 limits apply. Start/end mode satisfies the source's 'from/to times or hours'; duration-only input is deferred. Organization timezone/week changes affect new periods only after impact review. Automated tests are mandatory.

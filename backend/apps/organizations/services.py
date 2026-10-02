@@ -166,8 +166,10 @@ def update_employee(actor, profile, attrs, *, expected_version=None):
         # D-004: pending manager-steps move to the new reviewer (or HR
         # fallback) atomically; a missing eligible reviewer blocks the change.
         from apps.employee_requests.services import reassign_pending_manager_steps
+        from apps.timesheets.services import reassign_pending_sheets
 
         reassign_pending_manager_steps(profile, mgr)
+        reassign_pending_sheets(profile, mgr)
     if "roles" in attrs:
         new_groups = _resolve_roles(attrs["roles"])
         removing_hr = (

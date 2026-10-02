@@ -24,6 +24,7 @@ INSTALLED_APPS = [
     "apps.audit",
     "apps.notifications",
     "apps.employee_requests",
+    "apps.timesheets",
 ]
 
 MIDDLEWARE = [

@@ -564,6 +564,198 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/timesheets/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["timesheets_list"];
+        put?: never;
+        post: operations["timesheets_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/timesheets/{id}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["timesheets_retrieve"];
+        put?: never;
+        post?: never;
+        delete: operations["timesheets_destroy"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/timesheets/{id}/approve/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["timesheets_approve_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/timesheets/{id}/days/{work_date}/submit/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["timesheets_days_submit_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/timesheets/{id}/entries/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["timesheets_entries_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/timesheets/{id}/entries/{entry_pk}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch: operations["timesheets_entries_partial_update"];
+        trace?: never;
+    };
+    "/api/v1/timesheets/{id}/entries/{entry_pk}/void/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["timesheets_entries_void_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/timesheets/{id}/history/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["timesheets_history_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/timesheets/{id}/reject/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["timesheets_reject_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/timesheets/{id}/reopen/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["timesheets_reopen_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/timesheets/{id}/return/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["timesheets_return_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/timesheets/{id}/submit/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["timesheets_submit_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -921,6 +1113,24 @@ export interface components {
             is_active: boolean;
         };
         /**
+         * @description Create/update payload. start_at/end_at must carry explicit UTC
+         *     offsets (ISO-8601 with offset).
+         */
+        PatchedTimeEntryWrite: {
+            /** Format: date */
+            work_date?: string;
+            /** Format: date-time */
+            start_at?: string;
+            /** Format: date-time */
+            end_at?: string;
+            break_minutes?: number;
+            /** @description Explicit per-day break allocation when the interval crosses local midnight. */
+            segment_breaks?: number[];
+            description?: string;
+            window_reason?: string;
+            expected_version?: number;
+        };
+        /**
          * @description * `en` - English
          *     * `ar` - Arabic
          * @enum {string}
@@ -1005,6 +1215,104 @@ export interface components {
          * @enum {string}
          */
         RequiredRoleEnum: "manager" | "hr";
+        SheetTransition: {
+            reason?: string;
+            expected_version?: number;
+        };
+        TimeEntry: {
+            /** Format: uuid */
+            readonly id: string;
+            /** Format: date */
+            readonly work_date: string;
+            /** Format: date-time */
+            readonly start_at: string;
+            /** Format: date-time */
+            readonly end_at: string;
+            readonly break_minutes: number;
+            readonly duration_minutes: number;
+            readonly description: string;
+            readonly window_flag: boolean;
+            readonly window_reason: string;
+            /** Format: date-time */
+            readonly voided_at: string | null;
+        };
+        /**
+         * @description Create/update payload. start_at/end_at must carry explicit UTC
+         *     offsets (ISO-8601 with offset).
+         */
+        TimeEntryWrite: {
+            /** Format: date */
+            work_date?: string;
+            /** Format: date-time */
+            start_at?: string;
+            /** Format: date-time */
+            end_at?: string;
+            break_minutes?: number;
+            /** @description Explicit per-day break allocation when the interval crosses local midnight. */
+            segment_breaks?: number[];
+            description?: string;
+            window_reason?: string;
+            expected_version?: number;
+        };
+        Timesheet: {
+            /** Format: uuid */
+            readonly id: string;
+            /** Format: uuid */
+            readonly employee: string;
+            /** @default  */
+            readonly employee_name: string;
+            /** Format: email */
+            readonly employee_email: string;
+            readonly employee_code: string;
+            /** Format: date */
+            readonly period_start: string;
+            /** Format: date */
+            readonly period_end: string;
+            readonly timezone: string;
+            readonly status: components["schemas"]["TimesheetStatusEnum"];
+            /** Format: uuid */
+            readonly current_reviewer: string | null;
+            readonly reviewer_name: string | null;
+            readonly reviewer_email: string | null;
+            readonly cycle: number;
+            readonly version: number;
+            /** Format: date-time */
+            readonly submitted_at: string | null;
+            readonly total_minutes: number;
+            readonly days: components["schemas"]["WorkDay"][];
+            /** Format: date-time */
+            readonly created_at: string;
+            /** Format: date-time */
+            readonly updated_at: string;
+        };
+        /** @description Only an anchor date — period bounds + timezone are server-derived. */
+        TimesheetCreate: {
+            /** Format: date */
+            period_start: string;
+        };
+        TimesheetEvent: {
+            event_type: string;
+            readonly actor_email: string | null;
+            readonly actor_name: string | null;
+            previous_state: string;
+            new_state: string;
+            cycle: number;
+            version: number;
+            reason: string;
+            snapshot: unknown;
+            /** Format: date-time */
+            occurred_at: string;
+        };
+        /**
+         * @description * `collecting` - Collecting
+         *     * `pending_manager` - Pending manager
+         *     * `pending_hr` - Pending HR
+         *     * `approved` - Approved
+         *     * `returned` - Returned
+         *     * `rejected` - Rejected
+         * @enum {string}
+         */
+        TimesheetStatusEnum: "collecting" | "pending_manager" | "pending_hr" | "approved" | "returned" | "rejected";
         /** @description Shared shape for invitation acceptance and recovery confirmation. */
         TokenPassword: {
             token: string;
@@ -1019,6 +1327,26 @@ export interface components {
             readonly display_name: string;
             readonly roles: string[];
         };
+        WorkDay: {
+            /** Format: uuid */
+            readonly id: string;
+            /** Format: date */
+            readonly work_date: string;
+            readonly status: components["schemas"]["WorkDayStatusEnum"];
+            /** Format: date-time */
+            readonly submitted_at: string | null;
+            readonly version: number;
+            readonly total_minutes: number;
+            readonly entries: components["schemas"]["TimeEntry"][];
+        };
+        /**
+         * @description * `draft` - Draft
+         *     * `submitted` - Submitted
+         *     * `returned` - Returned
+         *     * `approved` - Approved
+         * @enum {string}
+         */
+        WorkDayStatusEnum: "draft" | "submitted" | "returned" | "approved";
     };
     responses: never;
     parameters: never;
@@ -1923,6 +2251,351 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["EmployeeRequest"];
+                };
+            };
+        };
+    };
+    timesheets_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Timesheet"][];
+                };
+            };
+        };
+    };
+    timesheets_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TimesheetCreate"];
+                "application/x-www-form-urlencoded": components["schemas"]["TimesheetCreate"];
+                "multipart/form-data": components["schemas"]["TimesheetCreate"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Timesheet"];
+                };
+            };
+        };
+    };
+    timesheets_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Timesheet"];
+                };
+            };
+        };
+    };
+    timesheets_destroy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No response body */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    timesheets_approve_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["SheetTransition"];
+                "application/x-www-form-urlencoded": components["schemas"]["SheetTransition"];
+                "multipart/form-data": components["schemas"]["SheetTransition"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Timesheet"];
+                };
+            };
+        };
+    };
+    timesheets_days_submit_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                work_date: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Timesheet"];
+                };
+            };
+        };
+    };
+    timesheets_entries_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["TimeEntryWrite"];
+                "application/x-www-form-urlencoded": components["schemas"]["TimeEntryWrite"];
+                "multipart/form-data": components["schemas"]["TimeEntryWrite"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TimeEntry"][];
+                };
+            };
+        };
+    };
+    timesheets_entries_partial_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                entry_pk: string;
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["PatchedTimeEntryWrite"];
+                "application/x-www-form-urlencoded": components["schemas"]["PatchedTimeEntryWrite"];
+                "multipart/form-data": components["schemas"]["PatchedTimeEntryWrite"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TimeEntry"];
+                };
+            };
+        };
+    };
+    timesheets_entries_void_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                entry_pk: string;
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["SheetTransition"];
+                "application/x-www-form-urlencoded": components["schemas"]["SheetTransition"];
+                "multipart/form-data": components["schemas"]["SheetTransition"];
+            };
+        };
+        responses: {
+            /** @description No response body */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    timesheets_history_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TimesheetEvent"][];
+                };
+            };
+        };
+    };
+    timesheets_reject_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["SheetTransition"];
+                "application/x-www-form-urlencoded": components["schemas"]["SheetTransition"];
+                "multipart/form-data": components["schemas"]["SheetTransition"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Timesheet"];
+                };
+            };
+        };
+    };
+    timesheets_reopen_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["SheetTransition"];
+                "application/x-www-form-urlencoded": components["schemas"]["SheetTransition"];
+                "multipart/form-data": components["schemas"]["SheetTransition"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Timesheet"];
+                };
+            };
+        };
+    };
+    timesheets_return_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["SheetTransition"];
+                "application/x-www-form-urlencoded": components["schemas"]["SheetTransition"];
+                "multipart/form-data": components["schemas"]["SheetTransition"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Timesheet"];
+                };
+            };
+        };
+    };
+    timesheets_submit_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["SheetTransition"];
+                "application/x-www-form-urlencoded": components["schemas"]["SheetTransition"];
+                "multipart/form-data": components["schemas"]["SheetTransition"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Timesheet"];
                 };
             };
         };

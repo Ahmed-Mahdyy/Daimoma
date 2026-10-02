@@ -25,6 +25,9 @@ export function AppLayout() {
             <NavLink to="/" end className={linkClass}>
               Home
             </NavLink>
+            <NavLink to="/timesheets" className={linkClass}>
+              Timesheets
+            </NavLink>
             <NavLink to="/requests" className={linkClass}>
               Requests
             </NavLink>

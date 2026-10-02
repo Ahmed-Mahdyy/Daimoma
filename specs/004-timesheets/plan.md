@@ -1,7 +1,7 @@
 # Implementation Plan: Timesheets
 
 **Feature**: 004-timesheets | **Date**: 2026-09-20 | **Spec**: [spec.md](spec.md)
-**Status**: Provisional; D-004/D-005/D-009 approval required.
+**Status**: Approved basis — D-005 approved 2026-10-02; D-004/D-009 approved 2026-09-25.
 
 ## Summary and Technical Context
 

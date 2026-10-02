@@ -40,7 +40,7 @@ Goal: discover permitted work and understand genuine history. Independent test: 
 
 - [x] T018 Expand generated OpenAPI and frontend types under `frontend/src/api/`; add schema-drift and query-budget checks for request contracts (FR-008, FR-010).
 - [x] T019 Implement real API cross-role mobile/desktop journeys in `tests/e2e/requests.spec.ts`; record actual security/scanning/race/migration evidence in `docs/evidence/003-requests.md` (FR-001, FR-002, FR-003, FR-004, FR-005, FR-006, FR-007, FR-010).
-- [ ] T020 Reconcile `spec.md`, `plan.md`, `tasks.md`, contracts, and owner decisions after review; retain open defects and obtain explicit acceptance (FR-009, FR-010).
+- [x] T020 Reconcile `spec.md`, `plan.md`, `tasks.md`, contracts, and owner decisions after review; retain open defects and obtain explicit acceptance (FR-009, FR-010). **Accepted 2026-10-02 (owner).** Open defect retained: none. Deferred per D-006: attachments/file policy.
 
 ## Dependencies and Strategy
 

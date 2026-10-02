@@ -23,6 +23,10 @@ class Organization(models.Model):
         related_name="fallback_for_organizations",
         help_text="Eligible non-self HR reviewer used when no manager can review (D-004).",
     )
+    # HR-configured working window (D-005). Null = unrestricted.
+    work_earliest_start = models.TimeField(null=True, blank=True)
+    work_latest_end = models.TimeField(null=True, blank=True)
+    work_max_daily_minutes = models.PositiveIntegerField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

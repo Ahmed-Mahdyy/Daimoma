@@ -1,0 +1,18 @@
+{
+  "//": "IDE/editor typecheck only — Playwright compiles specs itself. `paths` reaches the frontend container's installed @playwright/test.",
+  "compilerOptions": {
+    "target": "ES2023",
+    "lib": ["ES2023", "DOM"],
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "skipLibCheck": true,
+    "strict": true,
+    "noEmit": true,
+    "types": ["node"],
+    "baseUrl": ".",
+    "paths": {
+      "@playwright/test": ["../../frontend/node_modules/@playwright/test"]
+    }
+  },
+  "include": ["*.ts"]
+}

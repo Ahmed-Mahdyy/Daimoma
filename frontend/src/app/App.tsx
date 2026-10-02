@@ -24,6 +24,8 @@ import { RequestsPage } from "../features/requests/RequestsPage";
 import { RequestTypesPage } from "../features/requests/RequestTypesPage";
 import { OrgSettingsPage } from "../features/settings/OrgSettingsPage";
 import { SettingsPage } from "../features/settings/SettingsPage";
+import { TimesheetDetailPage } from "../features/timesheets/TimesheetDetailPage";
+import { TimesheetsPage } from "../features/timesheets/TimesheetsPage";
 
 const queryClient = new QueryClient();
 
@@ -81,6 +83,8 @@ const router = createBrowserRouter([
           { path: "/requests/types", element: <RequestTypesPage /> },
           { path: "/requests/:id", element: <RequestDetailPage /> },
           { path: "/requests/:id/edit", element: <RequestEditPage /> },
+          { path: "/timesheets", element: <TimesheetsPage /> },
+          { path: "/timesheets/:id", element: <TimesheetDetailPage /> },
           { path: "/departments", element: <DepartmentsPage /> },
           { path: "/audit", element: <AuditPage /> },
           { path: "/settings", element: <SettingsPage /> },
