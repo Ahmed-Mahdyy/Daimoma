@@ -1,4 +1,4 @@
-import { useCallback, useMemo, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, type ReactNode } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { ApiError } from "../../api/client";
@@ -31,6 +31,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const refresh = useCallback(async () => {
     await refetch();
   }, [refetch]);
+
+  // Any API call that hits a dead session clears cached auth — RequireAuth
+  // then routes to /login instead of leaving stale authenticated UI.
+  useEffect(() => {
+    const onDead = () => queryClient.setQueryData(["me"], null);
+    window.addEventListener("daimoma:unauthenticated", onDead);
+    return () => window.removeEventListener("daimoma:unauthenticated", onDead);
+  }, [queryClient]);
 
   const signOut = useCallback(async () => {
     try {

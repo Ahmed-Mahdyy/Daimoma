@@ -5,7 +5,9 @@ from django.core.exceptions import ValidationError
 from django.db import models
 
 # Categories approved under D-006 (2026-09-29); fixed set, no free-form types.
+# "early_leave" added by owner request (2026-10-02): a same-day time range.
 DATE_CATEGORIES = {"leave", "work_from_home"}
+TIME_CATEGORIES = {"early_leave"}
 
 
 class RequestType(models.Model):
@@ -17,6 +19,7 @@ class RequestType(models.Model):
         EQUIPMENT = "equipment", "Equipment"
         HR_SERVICE = "hr_service", "HR service"
         WORK_FROM_HOME = "work_from_home", "Work from home"
+        EARLY_LEAVE = "early_leave", "Early leave"
         GENERAL = "general", "General"
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -27,6 +30,7 @@ class RequestType(models.Model):
     name = models.CharField(max_length=120)
     category = models.CharField(max_length=20, choices=Category.choices)
     help_text = models.TextField(blank=True)
+    requires_manager = models.BooleanField(default=True)
     requires_hr = models.BooleanField(default=False)
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -48,6 +52,10 @@ class RequestType(models.Model):
             raise ValidationError({"code": "Code cannot be blank."})
         if not self.name or not self.name.strip():
             raise ValidationError({"name": "Name cannot be blank."})
+        if not self.requires_manager and not self.requires_hr:
+            raise ValidationError(
+                {"requires_hr": "At least one approval stage is required."}
+            )
 
 
 class EmployeeRequest(models.Model):
@@ -76,6 +84,8 @@ class EmployeeRequest(models.Model):
     description = models.TextField()
     start_date = models.DateField(null=True, blank=True)
     end_date = models.DateField(null=True, blank=True)
+    start_time = models.TimeField(null=True, blank=True)
+    end_time = models.TimeField(null=True, blank=True)
     equipment_item = models.CharField(max_length=120, blank=True)
     quantity = models.PositiveIntegerField(null=True, blank=True)
     status = models.CharField(max_length=20, choices=Status.choices, default=Status.DRAFT)
@@ -116,6 +126,8 @@ class EmployeeRequest(models.Model):
             errors["type"] = "Request type must belong to the request's organization."
         if self.start_date and self.end_date and self.end_date < self.start_date:
             errors["end_date"] = "End date cannot be before the start date."
+        if self.start_time and self.end_time and self.end_time <= self.start_time:
+            errors["end_time"] = "End time must be after the start time."
         if self.quantity is not None and self.quantity < 1:
             errors["quantity"] = "Quantity must be at least 1."
         if self.description and len(self.description) > 5000:

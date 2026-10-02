@@ -8,7 +8,7 @@ from zoneinfo import ZoneInfo
 from config.exceptions import ConflictError
 from django.contrib.auth.models import Group
 from django.core.exceptions import ValidationError as DjangoValidationError
-from django.db import transaction
+from django.db import IntegrityError, transaction
 from django.db.models import Sum
 from django.utils import timezone
 from rest_framework.exceptions import PermissionDenied, ValidationError
@@ -18,6 +18,7 @@ from apps.accounts.permissions import ROLE_HR, is_hr
 from apps.audit.services import record_audit
 from apps.notifications.services import notify
 from apps.timesheets.models import (
+    OpenCheckIn,
     TimeEntry,
     Timesheet,
     TimesheetEvent,
@@ -101,21 +102,57 @@ def _sheet_snapshot(sheet):
 
 def get_or_create_sheet(user, anchor: date_type) -> Timesheet:
     """Fetch-or-create the caller's weekly sheet containing `anchor`.
-    Bounds + timezone are snapshotted from org settings at creation."""
+    Bounds + timezone are snapshotted from org settings at creation.
+    Future weeks are refused — no work can ever be logged in them."""
     profile = _profile(user)
     org = user.organization
     pstart, pend = period_bounds(anchor, org.week_start)
-    sheet, _ = Timesheet.objects.get_or_create(
-        employee=profile,
-        period_start=pstart,
-        defaults={
-            "organization": org,
-            "period_end": pend,
-            "timezone": org.timezone,
-        },
+    tz = ZoneInfo(org.timezone)
+    current_start, _ = period_bounds(local_date(timezone.now(), tz), org.week_start)
+    if pstart > current_start:
+        raise ValidationError(
+            {"period_start": ["Cannot open a timesheet for a future week."]}
+        )
+    # An existing sheet for the requested week always wins — return it even if
+    # a stray overlapping record exists in old data.
+    existing = Timesheet.objects.filter(
+        employee=profile, period_start=pstart
+    ).first()
+    if existing:
+        if existing.organization_id != org.id:
+            raise ConflictError("Sheet belongs to a different context.")
+        return existing
+    # A day belongs to exactly one sheet — never create a sheet whose week
+    # overlaps another existing sheet's period.
+    overlapping = (
+        Timesheet.objects.filter(employee=profile)
+        .filter(period_start__lte=pend, period_end__gte=pstart)
+        .exclude(period_start=pstart)
+        .exists()
     )
-    if sheet.organization_id != org.id or sheet.employee_id != profile.id:
-        raise ConflictError("Sheet belongs to a different context.")
+    if overlapping:
+        raise ValidationError(
+            {
+                "period_start": [
+                    "Another timesheet already covers this date."
+                ]
+            }
+        )
+    try:
+        # Savepoint so a unique-violation inside a caller's transaction stays
+        # recoverable.
+        with transaction.atomic():
+            sheet = Timesheet.objects.create(
+                employee=profile,
+                period_start=pstart,
+                organization=org,
+                period_end=pend,
+                timezone=org.timezone,
+            )
+    except IntegrityError:
+        # A concurrent open of the same week won the unique constraint race —
+        # serve the sheet it created.
+        sheet = Timesheet.objects.get(employee=profile, period_start=pstart)
     return sheet
 
 
@@ -153,12 +190,19 @@ def _day_of(sheet, profile, work_date: date_type, *, create=True) -> WorkDay:
     if day is None:
         if not create:
             raise ValidationError({"work_date": ["No entries for this date."]})
-        day = WorkDay.objects.create(
-            organization=sheet.organization,
-            employee=profile,
-            timesheet=sheet,
-            work_date=work_date,
-        )
+        try:
+            day = WorkDay.objects.create(
+                organization=sheet.organization,
+                employee=profile,
+                timesheet=sheet,
+                work_date=work_date,
+            )
+        except IntegrityError:
+            # uniq_workday_emp_date: the date already belongs to another
+            # sheet — a validation error, not a crash.
+            raise ValidationError(
+                {"work_date": ["This date already belongs to another timesheet."]}
+            ) from None
     if day.status not in EDITABLE_DAYS:
         raise ConflictError("This day is locked — submitted for review.")
     return day
@@ -363,6 +407,75 @@ def void_entry(entry_id, user, expected_version=None) -> None:
         entry.save(update_fields=["voided_at", "updated_at"])
         sheet.version += 1
         sheet.save(update_fields=["version", "updated_at"])
+
+
+def check_in(user) -> OpenCheckIn:
+    """Open a quick check-in for the caller. One open punch per employee —
+    the row is not an entry until check-out writes it through
+    create_entries (overlap/midnight/window rules apply there)."""
+    profile = _profile(user)
+    with transaction.atomic():
+        EmployeeProfile.objects.select_for_update().get(pk=profile.pk)
+        if OpenCheckIn.objects.filter(employee=profile).exists():
+            raise ConflictError("You are already checked in.")
+        return OpenCheckIn.objects.create(
+            organization=profile.organization,
+            employee=profile,
+            started_at=timezone.now(),
+        )
+
+
+def check_out(user) -> tuple[Timesheet, list[TimeEntry]]:
+    """Close the caller's open check-in: the interval from `started_at` to
+    now is written as real entries on the owning week sheet (overnight
+    spans are split per local day). On validation failure the punch stays
+    open so the employee can cancel or correct the target day."""
+    profile = _profile(user)
+    with transaction.atomic():
+        EmployeeProfile.objects.select_for_update().get(pk=profile.pk)
+        punch = OpenCheckIn.objects.filter(employee=profile).first()
+        if punch is None:
+            raise ValidationError({"detail": ["You are not checked in."]})
+        end_at = timezone.now()
+        if (end_at - punch.started_at).total_seconds() < 60:
+            raise ValidationError(
+                {
+                    "detail": [
+                        "Less than a minute has passed since check-in — "
+                        "cancel the check-in if it was a mistake."
+                    ]
+                }
+            )
+        tz = ZoneInfo(user.organization.timezone)
+        work_date = local_date(punch.started_at, tz)
+        sheet = get_or_create_sheet(user, work_date)
+        entries = create_entries(
+            sheet.id,
+            user,
+            {
+                "work_date": work_date,
+                "start_at": punch.started_at,
+                "end_at": end_at,
+                "description": "Recorded via check-in/out",
+            },
+        )
+        punch.delete()
+    return sheet, entries
+
+
+def cancel_check_in(user) -> None:
+    profile = _profile(user)
+    with transaction.atomic():
+        EmployeeProfile.objects.select_for_update().get(pk=profile.pk)
+        OpenCheckIn.objects.filter(employee=profile).delete()
+
+
+def punch_status(user) -> OpenCheckIn | None:
+    try:
+        profile = user.profile
+    except EmployeeProfile.DoesNotExist:
+        return None
+    return OpenCheckIn.objects.filter(employee=profile).first()
 
 
 def submit_day(sheet_id, work_date, user) -> WorkDay:

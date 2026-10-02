@@ -16,10 +16,16 @@ export interface NotificationPage extends Paged<NotificationRow> {
   unread_count: number;
 }
 
-export function listNotifications(unreadOnly = false, kind?: string, page?: number) {
+export function listNotifications(
+  unread?: "true" | "false",
+  kind?: string,
+  page?: number,
+  ordering?: "created_at" | "-created_at",
+) {
   const params = new URLSearchParams();
-  if (unreadOnly) params.set("unread", "true");
+  if (unread) params.set("unread", unread);
   if (kind) params.set("kind", kind);
+  if (ordering) params.set("ordering", ordering);
   if (page && page > 1) params.set("page", String(page));
   const suffix = params.size ? `?${params}` : "";
   return apiFetch<NotificationPage>(`/api/v1/notifications/${suffix}`);

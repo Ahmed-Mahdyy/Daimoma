@@ -37,6 +37,7 @@ const EMPLOYEE = {
   department_name: null,
   manager: null,
   manager_name: null,
+  photo_url: "",
   version: 1,
 };
 
@@ -66,7 +67,13 @@ describe("EmployeesPage", () => {
     expect(screen.getByLabelText(/search employees/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/filter by status/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/filter by role/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/order by/i)).toBeInTheDocument();
+    // Column headers drive server-side ordering via ?ordering=.
+    expect(
+      screen.getByRole("button", { name: "Name" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Code" }),
+    ).toBeInTheDocument();
     expect(
       screen.getByRole("link", { name: /new employee/i }),
     ).toBeInTheDocument();

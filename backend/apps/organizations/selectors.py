@@ -21,9 +21,20 @@ ORDERING_ALLOWLIST = {
     "-email",
     "job_title",
     "-job_title",
+    "department",
+    "-department",
+    "is_active",
+    "-is_active",
 }
 
-ORDERING_FIELD_MAP = {"email": "user__email", "-email": "-user__email"}
+ORDERING_FIELD_MAP = {
+    "email": "user__email",
+    "-email": "-user__email",
+    "department": "department__name",
+    "-department": "-department__name",
+    "is_active": "user__is_active",
+    "-is_active": "-user__is_active",
+}
 
 
 def scoped_directory(user, params):

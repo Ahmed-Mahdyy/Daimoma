@@ -14,6 +14,7 @@ export interface EmployeeSummary {
   department_name: string | null;
   manager: string | null;
   manager_name: string | null;
+  photo_url: string;
   version: number;
 }
 

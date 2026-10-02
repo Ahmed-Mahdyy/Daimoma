@@ -14,10 +14,18 @@ export interface RequestType {
   id: string;
   code: string;
   name: string;
-  category: "leave" | "equipment" | "hr_service" | "work_from_home" | "general";
+  category:
+    | "leave"
+    | "equipment"
+    | "hr_service"
+    | "work_from_home"
+    | "early_leave"
+    | "general";
   help_text?: string;
+  requires_manager?: boolean;
   requires_hr?: boolean;
   is_active?: boolean;
+  created_at?: string;
 }
 
 export interface ApprovalStep {
@@ -59,6 +67,8 @@ export interface EmployeeRequest {
   description: string;
   start_date: string | null;
   end_date: string | null;
+  start_time: string | null;
+  end_time: string | null;
   equipment_item: string;
   quantity: number | null;
   status: RequestStatus;
@@ -85,6 +95,8 @@ export interface RequestDraftInput {
   description: string;
   start_date?: string | null;
   end_date?: string | null;
+  start_time?: string | null;
+  end_time?: string | null;
   equipment_item?: string;
   quantity?: number | null;
   version?: number;
@@ -100,6 +112,7 @@ export interface RequestTypeWriteInput {
   name: string;
   category: RequestType["category"];
   help_text?: string;
+  requires_manager?: boolean;
   requires_hr?: boolean;
   is_active?: boolean;
 }
@@ -161,7 +174,8 @@ export function getRequestHistory(id: string): Promise<RequestHistory> {
 }
 
 export function listRequestTypes(): Promise<Paged<RequestType>> {
-  return apiFetch("/api/v1/request-types/");
+  // HR-managed lists are small; 100 keeps selects and the table complete.
+  return apiFetch("/api/v1/request-types/?page_size=100");
 }
 
 export function createRequestType(input: RequestTypeWriteInput): Promise<RequestType> {

@@ -1,7 +1,16 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
+import { type ColumnDef, type OnChangeFn, type SortingState } from "@tanstack/react-table";
 import { useState } from "react";
 import { useSearchParams } from "react-router-dom";
 
+import { Button } from "@/components/ui/button";
+import { DataTable } from "@/components/ui/data-table";
+import {
+  applySortingUpdater,
+  orderingToSorting,
+  sortingToOrdering,
+} from "@/lib/table-sorting";
+import { FilterInput, FilterSelect } from "@/components/ui/filter-bar";
 import { listEmployees } from "../../api/employees";
 import { listRequestTypes } from "../../api/requests";
 import {
@@ -9,12 +18,16 @@ import {
   getHoursReport,
   getRequestsReport,
   type HoursReportParams,
+  type HoursRow,
+  type RequestReportRow,
   type RequestsReportParams,
 } from "../../api/reporting";
 import { AsyncState } from "../../components/ui/AsyncState";
 import { PaginationControls } from "../../components/ui/PaginationControls";
+import { formatDate } from "../../lib/dates";
 import { formatMinutes } from "../timesheets/timezone";
 import { useAuth } from "../auth/auth-context";
+import { useLanguage } from "../../app/LanguageProvider";
 
 const HOURS_STATUSES = [
   { value: "approved", label: "Approved" },
@@ -25,15 +38,13 @@ const HOURS_STATUSES = [
 ];
 
 const REQUEST_STATUSES = [
-  { value: "", label: "All statuses" },
+  { value: "", label: "All" },
   { value: "pending_manager", label: "Pending manager" },
   { value: "pending_hr", label: "Pending HR" },
   { value: "approved", label: "Approved" },
   { value: "returned", label: "Returned" },
   { value: "rejected", label: "Rejected" },
 ];
-
-const inputClass = "rounded-md border px-2 py-1.5 text-sm";
 
 function useScopedEmployees() {
   return useQuery({
@@ -49,24 +60,20 @@ function TypeFilter({
   value: string;
   onChange: (v: string) => void;
 }) {
+  const { t } = useLanguage();
   const { data } = useQuery({
     queryKey: ["request-types", "report-filter"],
     queryFn: () => listRequestTypes(),
   });
   return (
-    <select
-      aria-label="Request type"
-      className={inputClass}
-      value={value}
-      onChange={(e) => onChange(e.target.value)}
-    >
-      <option value="">All types</option>
+    <FilterSelect label={t("Request type")} value={value} onChange={onChange}>
+      <option value="">{t("All")}</option>
       {(data?.results ?? []).map((t) => (
         <option key={t.id} value={t.id}>
           {t.name}
         </option>
       ))}
-    </select>
+    </FilterSelect>
   );
 }
 
@@ -77,21 +84,17 @@ function EmployeeFilter({
   value: string;
   onChange: (v: string) => void;
 }) {
+  const { t } = useLanguage();
   const { data } = useScopedEmployees();
   return (
-    <select
-      aria-label="Employee"
-      className={inputClass}
-      value={value}
-      onChange={(e) => onChange(e.target.value)}
-    >
-      <option value="">All employees</option>
+    <FilterSelect label={t("Employee")} value={value} onChange={onChange}>
+      <option value="">{t("All employees")}</option>
       {(data?.results ?? []).map((e) => (
         <option key={e.id} value={e.id}>
           {e.display_name} ({e.employee_code})
         </option>
       ))}
-    </select>
+    </FilterSelect>
   );
 }
 
@@ -103,6 +106,7 @@ function ExportButton({
   params: HoursReportParams | RequestsReportParams;
 }) {
   const { user } = useAuth();
+  const { t } = useLanguage();
   const roles = user?.roles ?? [];
   const exportMutation = useMutation({
     mutationFn: () => downloadReportCsv(kind, params),
@@ -110,14 +114,9 @@ function ExportButton({
   if (!roles.includes("Manager") && !roles.includes("HR")) return null;
   return (
     <span className="inline-flex items-center gap-2">
-      <button
-        type="button"
-        className="rounded-md border px-3 py-1.5 text-sm hover:bg-gray-100 disabled:opacity-50"
-        disabled={exportMutation.isPending}
-        onClick={() => exportMutation.mutate()}
-      >
-        {exportMutation.isPending ? "Exporting…" : "Export CSV"}
-      </button>
+      <Button type="button" variant="outline" disabled={exportMutation.isPending} onClick={() => exportMutation.mutate()}>
+        {exportMutation.isPending ? t("Exporting…") : t("Export CSV")}
+      </Button>
       {exportMutation.error && (
         <span role="alert" className="text-xs text-red-700">
           {exportMutation.error.message}
@@ -127,13 +126,77 @@ function ExportButton({
   );
 }
 
+const hoursColumns = (
+  t: (key: string) => string,
+  lang: "en" | "ar",
+): ColumnDef<HoursRow, unknown>[] => [
+  { accessorKey: "work_date", header: t("Date") },
+  {
+    accessorKey: "employee_code",
+    header: t("Employee"),
+    cell: ({ row }) => (
+      <>
+        {row.original.employee_name}{" "}
+        <span className="text-gray-500">({row.original.employee_code})</span>
+      </>
+    ),
+  },
+  {
+    id: "department",
+    header: t("Department"),
+    enableSorting: false,
+    cell: ({ row }) => row.original.department ?? "—",
+  },
+  {
+    accessorKey: "minutes",
+    header: t("Hours"),
+    cell: ({ row }) => (
+      <span className="float-right">{formatMinutes(row.original.minutes, lang)}</span>
+    ),
+  },
+];
+
+const requestReportColumns = (t: (key: string) => string): ColumnDef<RequestReportRow, unknown>[] => [
+  { accessorKey: "title", header: t("Title") },
+  {
+    accessorKey: "type",
+    header: t("Type"),
+    enableSorting: false,
+  },
+  { accessorKey: "status", header: t("Status") },
+  {
+    id: "employee",
+    header: t("Employee"),
+    enableSorting: false,
+    cell: ({ row }) => (
+      <>
+        {row.original.employee_name}{" "}
+        <span className="text-gray-500">({row.original.employee_code})</span>
+      </>
+    ),
+  },
+  {
+    accessorKey: "submitted_at",
+    header: t("Submitted"),
+    cell: ({ row }) =>
+      row.original.submitted_at
+        ? formatDate(row.original.submitted_at)
+        : "—",
+  },
+];
+
 function HoursReport({
   params,
   onPage,
+  sorting,
+  onSortingChange,
 }: {
   params: HoursReportParams;
   onPage: (p: number) => void;
+  sorting: SortingState;
+  onSortingChange: OnChangeFn<SortingState>;
 }) {
+  const { t, lang } = useLanguage();
   const { data, isLoading, error } = useQuery({
     queryKey: ["report", "hours", params],
     queryFn: () => getHoursReport(params),
@@ -144,48 +207,30 @@ function HoursReport({
       isLoading={isLoading}
       error={error}
       isEmpty={!!data && data.results.length === 0}
-      emptyText="No working hours in this period."
+      emptyText={t("No working hours in this period.")}
     >
       {data && (
         <>
           <p className="mb-2 text-sm text-gray-600">
             {data.meta.period.from} → {data.meta.period.to} ({data.meta.timezone}
-            ) — grouped by {data.meta.grouping} — total{" "}
-            <strong>{formatMinutes(data.totals.minutes)}</strong>
+            ) — {t("grouped by")} {data.meta.grouping} — {t("total")}{" "}
+            <strong>{formatMinutes(data.totals.minutes, lang)}</strong>
           </p>
-          <table className="w-full border-collapse text-sm">
-            <thead>
-              <tr className="border-b text-left">
-                <th className="py-2 pr-2">Date</th>
-                <th className="py-2 pr-2">Employee</th>
-                <th className="py-2 pr-2">Department</th>
-                <th className="py-2 text-right">Hours</th>
-              </tr>
-            </thead>
-            <tbody>
-              {data.results.map((r) => (
-                <tr
-                  key={`${r.work_date}-${r.employee_id}`}
-                  className="border-b"
-                >
-                  <td className="py-2 pr-2">{r.work_date}</td>
-                  <td className="py-2 pr-2">
-                    {r.employee_name}{" "}
-                    <span className="text-gray-500">({r.employee_code})</span>
-                  </td>
-                  <td className="py-2 pr-2">{r.department ?? "—"}</td>
-                  <td className="py-2 text-right">
-                    {formatMinutes(r.minutes)}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          <PaginationControls
-            count={data.count}
-            page={params.page ?? 1}
-            pageSize={25}
-            onPage={onPage}
+          <DataTable<HoursRow>
+            columns={hoursColumns(t, lang)}
+            data={data.results}
+            manualSorting
+            sorting={sorting}
+            onSortingChange={onSortingChange}
+            emptyText={t("No working hours in this period.")}
+            footer={
+              <PaginationControls
+                count={data.count}
+                page={params.page ?? 1}
+                pageSize={25}
+                onPage={onPage}
+              />
+            }
           />
         </>
       )}
@@ -196,10 +241,15 @@ function HoursReport({
 function RequestsReport({
   params,
   onPage,
+  sorting,
+  onSortingChange,
 }: {
   params: RequestsReportParams;
   onPage: (p: number) => void;
+  sorting: SortingState;
+  onSortingChange: OnChangeFn<SortingState>;
 }) {
+  const { t } = useLanguage();
   const { data, isLoading, error } = useQuery({
     queryKey: ["report", "requests", params],
     queryFn: () => getRequestsReport(params),
@@ -210,49 +260,30 @@ function RequestsReport({
       isLoading={isLoading}
       error={error}
       isEmpty={!!data && data.results.length === 0}
-      emptyText="No submitted requests in this period."
+      emptyText={t("No submitted requests in this period.")}
     >
       {data && (
         <>
           <p className="mb-2 text-sm text-gray-600">
-            {data.meta.period.from} → {data.meta.period.to} by submitted date (
+            {data.meta.period.from} → {data.meta.period.to} {t("by submitted date")} (
             {data.meta.timezone}) — <strong>{data.totals.count}</strong>{" "}
-            requests
+            {t("requests")}
           </p>
-          <table className="w-full border-collapse text-sm">
-            <thead>
-              <tr className="border-b text-left">
-                <th className="py-2 pr-2">Title</th>
-                <th className="py-2 pr-2">Type</th>
-                <th className="py-2 pr-2">Status</th>
-                <th className="py-2 pr-2">Employee</th>
-                <th className="py-2 pr-2">Submitted</th>
-              </tr>
-            </thead>
-            <tbody>
-              {data.results.map((r) => (
-                <tr key={r.id} className="border-b">
-                  <td className="py-2 pr-2">{r.title}</td>
-                  <td className="py-2 pr-2">{r.type}</td>
-                  <td className="py-2 pr-2">{r.status}</td>
-                  <td className="py-2 pr-2">
-                    {r.employee_name}{" "}
-                    <span className="text-gray-500">({r.employee_code})</span>
-                  </td>
-                  <td className="py-2 pr-2">
-                    {r.submitted_at
-                      ? new Date(r.submitted_at).toLocaleDateString()
-                      : "—"}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          <PaginationControls
-            count={data.count}
-            page={params.page ?? 1}
-            pageSize={25}
-            onPage={onPage}
+          <DataTable<RequestReportRow>
+            columns={requestReportColumns(t)}
+            data={data.results}
+            manualSorting
+            sorting={sorting}
+            onSortingChange={onSortingChange}
+            emptyText={t("No submitted requests in this period.")}
+            footer={
+              <PaginationControls
+                count={data.count}
+                page={params.page ?? 1}
+                pageSize={25}
+                onPage={onPage}
+              />
+            }
           />
         </>
       )}
@@ -263,6 +294,7 @@ function RequestsReport({
 /** Scoped reports (005): drafts are never included (submitted-date basis,
  * D-009); filters narrow within the caller's server-side scope. */
 export function ReportsPage() {
+  const { t } = useLanguage();
   const [params, setParams] = useSearchParams();
   const [tab, setTab] = useState<"hours" | "requests">("hours");
 
@@ -284,6 +316,10 @@ export function ReportsPage() {
     setParams(next);
   };
 
+  const sorting = orderingToSorting(filters.ordering);
+  const onSortingChange: OnChangeFn<SortingState> = (u) =>
+    setFilter("ordering", sortingToOrdering(applySortingUpdater(u, sorting)));
+
   const hoursParams: HoursReportParams = {
     from: filters.from || undefined,
     to: filters.to || undefined,
@@ -298,80 +334,77 @@ export function ReportsPage() {
   };
 
   return (
-    <div className="rounded-lg border bg-white p-4 shadow-sm">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <h1 className="text-xl font-semibold">Reports</h1>
-        <div role="tablist" aria-label="Report type" className="flex gap-1">
+    <div className="workspace-panel p-5 sm:p-7">
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <div><span className="text-xs font-bold uppercase tracking-widest text-brand-700">{t("INSIGHTS / REPORTING")}</span><h1 className="mt-1 text-3xl font-bold">{t("Reports")}</h1><p className="mt-1 text-sm text-slate-600">{t("Understand activity across your scope.")}</p></div>
+        <div role="tablist" aria-label={t("Report type")} className="flex gap-1">
           {(
             [
-              ["hours", "Working hours"],
-              ["requests", "Requests"],
+              ["hours", t("Working hours")],
+              ["requests", t("Requests")],
             ] as const
           ).map(([key, label]) => (
-            <button
+            <Button
               key={key}
               type="button"
               role="tab"
               aria-selected={tab === key}
-              className={`rounded-md px-3 py-1.5 text-sm ${
-                tab === key
-                  ? "bg-brand-700 text-white"
-                  : "text-gray-700 hover:bg-brand-50"
-              }`}
-              onClick={() => setTab(key)}
+              variant={tab === key ? "default" : "ghost"}
+              onClick={() => {
+                setTab(key);
+                // Status, type and ordering choices differ between the two
+                // reports — drop them so a stale value can't 400 the new tab.
+                const next = new URLSearchParams(params);
+                for (const k of ["status", "type", "ordering", "page"]) {
+                  next.delete(k);
+                }
+                setParams(next);
+              }}
             >
               {label}
-            </button>
+            </Button>
           ))}
         </div>
       </div>
 
-      <div className="mt-4 flex flex-wrap items-end gap-3">
-        <label className="text-sm">
-          <span className="block text-xs text-gray-600">From</span>
-          <input
-            type="date"
-            className={inputClass}
-            value={filters.from}
-            onChange={(e) => setFilter("from", e.target.value)}
-          />
-        </label>
-        <label className="text-sm">
-          <span className="block text-xs text-gray-600">To</span>
-          <input
-            type="date"
-            className={inputClass}
-            value={filters.to}
-            onChange={(e) => setFilter("to", e.target.value)}
-          />
-        </label>
+      <div className="mt-4 flex flex-wrap items-end gap-x-4 gap-y-3">
+        <FilterInput
+          label={t("From")}
+          type="date"
+          value={filters.from}
+          onChange={(e) => setFilter("from", e.target.value)}
+        />
+        <FilterInput
+          label={t("To")}
+          type="date"
+          value={filters.to}
+          onChange={(e) => setFilter("to", e.target.value)}
+        />
         {tab === "requests" ? (
-          <select
-            aria-label="Status"
-            className={inputClass}
+          <FilterSelect
+            label={t("Status")}
             value={filters.status}
-            onChange={(e) => setFilter("status", e.target.value)}
+            onChange={(v) => setFilter("status", v)}
           >
             {REQUEST_STATUSES.map((o) => (
               <option key={o.value} value={o.value}>
-                {o.label}
+                {t(o.label)}
               </option>
             ))}
-          </select>
+          </FilterSelect>
         ) : (
-          <select
-            aria-label="Status"
-            className={inputClass}
+          <FilterSelect
+            label={t("Status")}
             value={filters.status}
-            onChange={(e) => setFilter("status", e.target.value)}
+            onChange={(v) => setFilter("status", v)}
           >
-            <option value="">Approved only (default)</option>
+            <option value="">{t("Approved only (default)")}</option>
             {HOURS_STATUSES.map((o) => (
               <option key={o.value} value={o.value}>
-                {o.label}
+                {t(o.label)}
               </option>
             ))}
-          </select>
+          </FilterSelect>
         )}
         <EmployeeFilter
           value={filters.employee}
@@ -383,29 +416,6 @@ export function ReportsPage() {
             onChange={(v) => setFilter("type", v)}
           />
         )}
-        <select
-          aria-label="Ordering"
-          className={inputClass}
-          value={filters.ordering}
-          onChange={(e) => setFilter("ordering", e.target.value)}
-        >
-          <option value="">Default order</option>
-          {tab === "hours" ? (
-            <>
-              <option value="work_date">Oldest first</option>
-              <option value="-work_date">Newest first</option>
-              <option value="-minutes">Most hours</option>
-              <option value="employee_code">Employee code</option>
-            </>
-          ) : (
-            <>
-              <option value="-submitted_at">Recently submitted</option>
-              <option value="submitted_at">Oldest submitted</option>
-              <option value="title">Title A–Z</option>
-              <option value="status">Status</option>
-            </>
-          )}
-        </select>
         <ExportButton
           kind={tab === "hours" ? "working-hours" : "requests"}
           params={tab === "hours" ? hoursParams : requestsParams}
@@ -416,6 +426,8 @@ export function ReportsPage() {
         {tab === "hours" ? (
           <HoursReport
             params={hoursParams}
+            sorting={sorting}
+            onSortingChange={onSortingChange}
             onPage={(p) => {
               const next = new URLSearchParams(params);
               next.set("page", String(p));
@@ -425,6 +437,8 @@ export function ReportsPage() {
         ) : (
           <RequestsReport
             params={requestsParams}
+            sorting={sorting}
+            onSortingChange={onSortingChange}
             onPage={(p) => {
               const next = new URLSearchParams(params);
               next.set("page", String(p));

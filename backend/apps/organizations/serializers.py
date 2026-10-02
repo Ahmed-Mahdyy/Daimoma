@@ -7,8 +7,8 @@ from apps.organizations.models import Department, Organization
 class DepartmentSerializer(serializers.ModelSerializer):
     class Meta:
         model = Department
-        fields = ["id", "name", "is_active"]
-        read_only_fields = ["id"]
+        fields = ["id", "name", "is_active", "created_at"]
+        read_only_fields = ["id", "created_at"]
 
 
 class EmployeeSummarySerializer(serializers.ModelSerializer):
@@ -21,6 +21,7 @@ class EmployeeSummarySerializer(serializers.ModelSerializer):
     manager_name = serializers.CharField(
         source="manager.display_name", read_only=True, default=None
     )
+    photo_url = serializers.SerializerMethodField()
 
     class Meta:
         model = EmployeeProfile
@@ -38,12 +39,22 @@ class EmployeeSummarySerializer(serializers.ModelSerializer):
             "department_name",
             "manager",
             "manager_name",
+            "photo_url",
             "version",
         ]
 
     def get_roles(self, profile) -> list[str]:
         # .all() consumes the prefetch_related cache; .values_list() would not.
         return sorted(g.name for g in profile.user.groups.all())
+
+    def get_photo_url(self, profile) -> str:
+        """Scoped photo endpoint; `v` busts caches after a re-upload."""
+        if not profile.photo:
+            return ""
+        return (
+            f"/api/v1/employees/{profile.pk}/photo/"
+            f"?v={int(profile.updated_at.timestamp())}"
+        )
 
 
 class EmployeeProvisionSerializer(serializers.Serializer):

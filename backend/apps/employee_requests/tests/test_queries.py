@@ -4,7 +4,7 @@ isolation. D-004/D-009: scope before count; allowlisted params only."""
 import pytest
 
 from apps.conftest import TEST_PASSWORD, login, make_profile, make_user
-from apps.employee_requests.models import EmployeeRequest
+from apps.employee_requests.models import EmployeeRequest, RequestType
 from apps.employee_requests.services import submit_request
 
 pytestmark = pytest.mark.django_db
@@ -90,6 +90,22 @@ class TestScopedList:
         assert titles == ["Alpha", "Beta"]
         resp = client.get(LIST, {"ordering": "__proto__"})
         assert resp.status_code == 400
+
+    def test_related_field_ordering(self, api_client, org, report, leave_type):
+        """Column sorting maps allowlisted ids to joined fields (type name,
+        employee display name)."""
+        other_type = RequestType.objects.create(
+            organization=org, code="EQP", name="Equipment", category="equipment",
+        )
+        make_draft(org, report.profile, leave_type, title="T1")
+        make_draft(org, report.profile, other_type, title="T2")
+        client = authed(api_client, report)
+        resp = client.get(LIST, {"ordering": "-type"})
+        assert resp.status_code == 200
+        types = [r["type_name"] for r in resp.json()["results"]]
+        assert types == sorted(types, reverse=True)
+        resp = client.get(LIST, {"ordering": "employee"})
+        assert resp.status_code == 200
 
     def test_pagination_bounded(self, api_client, org, report, leave_type):
         for i in range(30):

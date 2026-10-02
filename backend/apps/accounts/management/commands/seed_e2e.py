@@ -2,26 +2,32 @@
 data only). Idempotent — safe to re-run. Passwords are test-only constants."""
 
 import os
+from datetime import UTC, date, datetime, timedelta
 
+from django.conf import settings
 from django.contrib.auth.models import Group
-from django.core.management.base import BaseCommand
+from django.core.management.base import BaseCommand, CommandError
+from rest_framework.exceptions import ValidationError
 
 from apps.accounts.models import EmployeeProfile, User
 from apps.accounts.permissions import ROLE_HR, ROLE_MANAGER
 from apps.organizations.models import Organization
+from apps.timesheets.models import TimeEntry
+from apps.timesheets.services import create_entries, get_or_create_sheet
 
 E2E_PASSWORD = os.environ.get("E2E_SEED_PASSWORD", "E2ePassw0rd1")
 
 
 def upsert_user(org, email, roles=()):
-    user, _ = User.objects.get_or_create(
+    user, created = User.objects.get_or_create(
         email=email, defaults={"organization": org, "is_active": True}
     )
-    user.organization = org
-    user.is_active = True
-    user.set_password(E2E_PASSWORD)
-    user.save()
-    user.groups.set(Group.objects.filter(name__in=roles))
+    if created:
+        user.set_password(E2E_PASSWORD)
+        user.save(update_fields=["password"])
+        user.groups.set(Group.objects.filter(name__in=roles))
+    elif user.organization_id != org.id:
+        raise CommandError("A demo email already belongs to another organization.")
     return user
 
 
@@ -29,6 +35,8 @@ class Command(BaseCommand):
     help = "Seed synthetic e2e users (local development only)."
 
     def handle(self, *args, **options):
+        if not settings.DEBUG:
+            raise CommandError("Synthetic demo seeding is limited to development.")
         org, _ = Organization.objects.get_or_create(
             name="E2E Corp", defaults={"timezone": "UTC", "week_start": 0}
         )
@@ -73,9 +81,53 @@ class Command(BaseCommand):
                 "is_active": True,
             },
         )
+        for code, category, name in (
+            ("early_leave", "early_leave", "Early leave"),
+            ("equipment", "equipment", "Equipment"),
+            ("hr_service", "hr_service", "HR service"),
+            ("work_from_home", "work_from_home", "Work from home"),
+            ("general", "general", "General request"),
+        ):
+            RequestType.objects.get_or_create(
+                organization=org,
+                code=code,
+                defaults={"name": name, "category": category, "is_active": True},
+            )
+
+        for user in (employee, manager, hr):
+            work_date = date(2025, 6, 2)
+            # Stale overlapping sheets in an already-used dev database can make
+            # opening the demo week fail; the sample entry is best-effort.
+            try:
+                sheet = get_or_create_sheet(user, work_date)
+            except ValidationError:
+                continue
+            if not TimeEntry.objects.filter(workday__timesheet=sheet).exists():
+                try:
+                    create_entries(
+                        sheet.id,
+                        user,
+                        {
+                            "work_date": work_date,
+                            "start_at": datetime.combine(
+                                work_date, datetime.min.time(), UTC
+                            )
+                            + timedelta(hours=9),
+                            "end_at": datetime.combine(
+                                work_date, datetime.min.time(), UTC
+                            )
+                            + timedelta(hours=17),
+                            "break_minutes": 30,
+                            "description": "Synthetic example workday",
+                            "window_reason": "Synthetic demo schedule",
+                        },
+                    )
+                except ValidationError:
+                    # The day is owned by a stale overlapping sheet in this
+                    # dev database — the demo entry is best-effort only.
+                    continue
         self.stdout.write(
             self.style.SUCCESS(
-                f"Seeded e2e org '{org.name}' (hr/manager/employee-e2e@acme.test, "
-                f"password {E2E_PASSWORD})"
+                f"Seeded synthetic users, request types and sample timesheets in '{org.name}'."
             )
         )

@@ -19,6 +19,17 @@ ORDERING_ALLOWLIST = {
     "-status",
     "title",
     "-title",
+    "type",
+    "-type",
+    "employee",
+    "-employee",
+}
+
+ORDERING_FIELD_MAP = {
+    "type": "type__name",
+    "-type": "-type__name",
+    "employee": "employee__display_name",
+    "-employee": "-employee__display_name",
 }
 
 
@@ -77,8 +88,9 @@ def request_queryset(user, params):
     ordering = params.get("ordering", "-created_at")
     if ordering not in ORDERING_ALLOWLIST:
         raise ValidationError({"ordering": ["Unsupported ordering field."]})
+    field = ORDERING_FIELD_MAP.get(ordering, ordering)
     # UUID tie-breaker keeps pagination deterministic under duplicate values.
-    return qs.order_by(ordering, "id")
+    return qs.order_by(field, "id")
 
 
 def active_request_types(user):

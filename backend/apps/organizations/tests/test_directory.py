@@ -80,8 +80,28 @@ class TestFiltersAndOrdering:
 
     def test_allowlisted_ordering(self, hr_user, employee):
         c = hr_client(hr_user)
-        for order in ["display_name", "-display_name", "employee_code", "email"]:
+        for order in [
+            "display_name", "-display_name", "employee_code", "email",
+            "department", "-department", "is_active", "-is_active",
+            "job_title",
+        ]:
             assert c.get(f"{EMPLOYEES}?ordering={order}").status_code == 200
+
+    def test_department_and_status_ordering_sort(self, org, hr_user, employee):
+        dept_b = Department.objects.create(organization=org, name="Beta")
+        dept_a = Department.objects.create(organization=org, name="Alpha")
+        a = make_profile(org, make_user(org, "da@x.test"), "DA")
+        a.department = dept_a
+        a.save(update_fields=["department"])
+        employee.profile.department = dept_b
+        employee.profile.save(update_fields=["department"])
+        c = hr_client(hr_user)
+        body = c.get(f"{EMPLOYEES}?ordering=department").json()
+        names = [r["department_name"] for r in body["results"]]
+        assert names.index("Alpha") < names.index("Beta")
+        body = c.get(f"{EMPLOYEES}?ordering=-is_active").json()
+        actives = [r["is_active"] for r in body["results"]]
+        assert actives == sorted(actives, reverse=True)
 
     def test_unknown_ordering_rejected(self, hr_user):
         response = hr_client(hr_user).get(f"{EMPLOYEES}?ordering=password")
@@ -157,3 +177,68 @@ class TestQueryCounts:
         c = hr_client(hr_user)
         with django_assert_max_num_queries(10):
             c.get(CHOICES_MANAGERS)
+
+
+def _png() -> bytes:
+    import io
+
+    from PIL import Image
+
+    buf = io.BytesIO()
+    Image.new("RGB", (4, 4), (10, 120, 200)).save(buf, "PNG")
+    return buf.getvalue()
+
+
+@pytest.mark.django_db
+class TestEmployeePhoto:
+    """Scoped photo endpoint: serves bytes to viewers who can see the record,
+    404 for out-of-scope ids and missing photos (non-enumerating)."""
+
+    URL = "/api/v1/employees/{pk}/photo/"
+
+    def _photo(self, profile):
+        from django.core.files.base import ContentFile
+
+        profile.photo.save("p.png", ContentFile(_png()), save=False)
+        profile.photo_content_type = "image/png"
+        profile.save(update_fields=["photo", "photo_content_type"])
+        return profile
+
+    def test_detail_serializes_scoped_photo_url(self, hr_user, employee):
+        self._photo(employee.profile)
+        body = hr_client(hr_user).get(f"{EMPLOYEES}{employee.profile.id}/").json()
+        assert body["photo_url"].startswith(
+            f"/api/v1/employees/{employee.profile.id}/photo/?v="
+        )
+
+    def test_detail_photo_url_blank_without_photo(self, hr_user, employee):
+        body = hr_client(hr_user).get(f"{EMPLOYEES}{employee.profile.id}/").json()
+        assert body["photo_url"] == ""
+
+    def test_hr_streams_visible_photo(self, hr_user, employee):
+        profile = self._photo(employee.profile)
+        resp = hr_client(hr_user).get(self.URL.format(pk=profile.pk))
+        assert resp.status_code == 200
+        assert resp["Content-Type"] == "image/png"
+
+    def test_employee_streams_own_photo(self, employee):
+        profile = self._photo(employee.profile)
+        resp = authed_client(employee).get(self.URL.format(pk=profile.pk))
+        assert resp.status_code == 200
+
+    def test_out_of_scope_returns_404(self, org, manager):
+        stranger = self._photo(
+            make_profile(org, make_user(org, "s@x.test"), "S1")
+        )
+        resp = authed_client(manager).get(self.URL.format(pk=stranger.pk))
+        assert resp.status_code == 404
+
+    def test_missing_photo_returns_404(self, hr_user, employee):
+        resp = hr_client(hr_user).get(
+            self.URL.format(pk=employee.profile.pk)
+        )
+        assert resp.status_code == 404
+
+    def test_anonymous_rejected(self, employee):
+        resp = APIClient().get(self.URL.format(pk=employee.profile.pk))
+        assert resp.status_code in (401, 403)

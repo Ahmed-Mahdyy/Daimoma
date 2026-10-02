@@ -1,11 +1,22 @@
 from drf_spectacular.utils import extend_schema, inline_serializer
 from rest_framework import serializers as drf_serializers
+from rest_framework.exceptions import ValidationError
 from rest_framework.views import APIView
 
 from apps.accounts.pagination import DefaultPagination
 from apps.accounts.permissions import IsManagerOrHR
 from apps.audit.selectors import scoped_events
 from apps.audit.serializers import AuditEventSerializer
+
+# Allowlisted ordering for the audit list (column-id → ORM field).
+AUDIT_ORDERING = {
+    "occurred_at": "occurred_at",
+    "-occurred_at": "-occurred_at",
+    "action": "action",
+    "-action": "-action",
+    "actor": "actor__email",
+    "-actor": "-actor__email",
+}
 
 PagedAuditEvents = inline_serializer(
     name="PagedAuditEvents",
@@ -32,6 +43,11 @@ class AuditEventListView(APIView):
         qs = scoped_events(request.user)
         if action := request.query_params.get("action", "").strip():
             qs = qs.filter(action=action)
+        ordering = request.query_params.get("ordering", "-occurred_at")
+        if ordering not in AUDIT_ORDERING:
+            raise ValidationError({"ordering": ["Unsupported ordering field."]})
+        field = AUDIT_ORDERING[ordering]
+        qs = qs.order_by(field, "-id" if field.startswith("-") else "id")
         paginator = DefaultPagination()
-        page = paginator.paginate_queryset(qs.order_by("-occurred_at", "-id"), request, view=self)
+        page = paginator.paginate_queryset(qs, request, view=self)
         return paginator.get_paginated_response(AuditEventSerializer(page, many=True).data)

@@ -194,6 +194,73 @@ class TestDraftCreate:
             assert field in resp.json()["field_errors"], field
 
 
+class TestEarlyLeave:
+    """Early-leave category: a same-day time range (start_date + from/to
+    hours); end must be later than start and unrelated fields are rejected."""
+
+    def payload(self, early_leave_type, **kw):
+        return {
+            "type": str(early_leave_type.id),
+            "title": "Leaving early",
+            "description": "Appointment",
+            "start_date": "2026-10-05",
+            "start_time": "14:00",
+            "end_time": "16:30",
+            **kw,
+        }
+
+    def test_create_valid_early_leave(self, api_client, employee, early_leave_type):
+        client = authed(api_client, employee)
+        resp = client.post(LIST, self.payload(early_leave_type))
+        assert resp.status_code == 201, resp.json()
+        body = resp.json()
+        assert body["start_date"] == "2026-10-05"
+        assert body["start_time"] == "14:00:00"
+        assert body["end_time"] == "16:30:00"
+
+    def test_times_required(self, api_client, employee, early_leave_type):
+        client = authed(api_client, employee)
+        body = self.payload(early_leave_type)
+        del body["start_time"], body["end_time"]
+        resp = client.post(LIST, body)
+        assert resp.status_code == 400
+        errors = resp.json()["field_errors"]
+        assert "start_time" in errors and "end_time" in errors
+
+    def test_end_not_after_start_rejected(self, api_client, employee, early_leave_type):
+        client = authed(api_client, employee)
+        for end in ("14:00", "13:00"):
+            resp = client.post(LIST, self.payload(early_leave_type, end_time=end))
+            assert resp.status_code == 400, end
+            assert "end_time" in resp.json()["field_errors"]
+
+    def test_end_date_and_equipment_rejected(self, api_client, employee, early_leave_type):
+        client = authed(api_client, employee)
+        resp = client.post(
+            LIST,
+            self.payload(early_leave_type, end_date="2026-10-06", quantity=2),
+        )
+        assert resp.status_code == 400
+        errors = resp.json()["field_errors"]
+        assert "end_date" in errors and "quantity" in errors
+
+    def test_times_rejected_on_other_categories(self, api_client, employee, leave_type):
+        client = authed(api_client, employee)
+        resp = client.post(
+            LIST,
+            {
+                "type": str(leave_type.id),
+                "title": "X",
+                "description": "d",
+                "start_date": "2026-10-05",
+                "end_date": "2026-10-09",
+                "start_time": "14:00",
+            },
+        )
+        assert resp.status_code == 400
+        assert "start_time" in resp.json()["field_errors"]
+
+
 class TestDraftEdit:
     def test_owner_edits_own_draft(self, api_client, employee, draft):
         client = authed(api_client, employee)

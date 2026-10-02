@@ -2,7 +2,7 @@
  * Auth API surface for /api/v1/ (contracts/api.md). Session is a
  * same-origin cookie — nothing is persisted to localStorage.
  */
-import { apiFetch } from "./client";
+import { apiFetch, apiUpload } from "./client";
 
 export interface Me {
   id: string;
@@ -12,6 +12,7 @@ export interface Me {
   display_name: string;
   phone: string;
   preferred_locale: string;
+  photo_url: string;
   job_title: string;
   department: string | null;
   manager: string | null;
@@ -59,6 +60,15 @@ export const updateMe = (
     version?: number;
   },
 ) => apiFetch<Me>("/api/v1/me/", { method: "PATCH", body: patch });
+
+export const uploadMyPhoto = (file: File) => {
+  const form = new FormData();
+  form.append("photo", file);
+  return apiUpload<Me>("/api/v1/me/photo/", form);
+};
+
+export const deleteMyPhoto = () =>
+  apiFetch<Me>("/api/v1/me/photo/", { method: "DELETE" });
 
 export const changePassword = (
   currentPassword: string,

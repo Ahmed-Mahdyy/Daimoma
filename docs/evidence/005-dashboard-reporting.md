@@ -1,6 +1,6 @@
 # Evidence — 005 Dashboards, Reporting, Notifications
 
-Status: implementation complete; awaiting owner acceptance.
+Status: **accepted 2026-10-02 (owner)**.
 
 All commands were actually executed inside the docker-compose stack
 (`docker compose exec backend|frontend`). No fabricated results.
@@ -103,7 +103,7 @@ HomePage removed).
 - Notification retention/deletion still unapproved (D-008) — nothing
   auto-deletes.
 
-## Next gate
+## Acceptance
 
-Owner acceptance of Phase 005 closes T015. Phase 006 (release hardening) is
-next per the delivery plan.
+**Accepted 2026-10-02 (owner)** — Phase 005 closed. Phase 006 (release
+hardening) is next per the delivery plan.

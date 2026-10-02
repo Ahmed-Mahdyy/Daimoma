@@ -44,6 +44,20 @@ def entry_payload(**kw):
     }
 
 
+class TestSheetOpen:
+    def test_future_week_sheet_rejected(self, api_client, emp):
+        c = authed(api_client, emp)
+        future = (timezone.localdate() + timedelta(weeks=2)).isoformat()
+        resp = c.post(TS, {"period_start": future}, format="json")
+        assert resp.status_code == 400
+        assert "future" in str(resp.json()).lower()
+
+    def test_current_week_sheet_allowed(self, api_client, emp):
+        c = authed(api_client, emp)
+        resp = c.post(TS, {"period_start": timezone.localdate().isoformat()}, format="json")
+        assert resp.status_code in (200, 201), resp.json()
+
+
 class TestCreate:
     def test_create_entry_computes_minutes(self, api_client, emp, sheet):
         c = authed(api_client, emp)
@@ -125,7 +139,9 @@ class TestCreate:
 
     def test_future_end_rejected(self, api_client, emp, sheet):
         c = authed(api_client, emp)
-        future = timezone.now() + timedelta(days=30)
+        future = (timezone.now() + timedelta(days=30)).replace(
+            hour=9, minute=0, second=0, microsecond=0
+        )
         resp = c.post(
             f"{TS}{sheet.id}/entries/",
             entry_payload(

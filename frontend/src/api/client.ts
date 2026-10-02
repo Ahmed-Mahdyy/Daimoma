@@ -34,6 +34,14 @@ export class ApiError extends Error {
   }
 }
 
+/** The error envelope puts real messages in field_errors when detail is the
+ * generic "Validation failed." — surface the first one for inline display. */
+export function apiErrorMessage(e: unknown): string {
+  if (!(e instanceof ApiError)) return "Something went wrong. Please try again.";
+  const first = e.fieldErrors ? Object.values(e.fieldErrors).flat()[0] : null;
+  return typeof first === "string" ? first : e.message;
+}
+
 function getCookie(name: string): string | null {
   const match = document.cookie.match(new RegExp(`(?:^|; )${name}=([^;]*)`));
   return match ? decodeURIComponent(match[1]) : null;
@@ -71,18 +79,50 @@ export async function apiFetch<T>(path: string, options: RequestOptions = {}): P
   });
 
   if (!response.ok) {
-    let body: ApiErrorBody = {
-      code: "error",
-      detail: `Request failed with status ${response.status}`,
-    };
-    try {
-      body = (await response.json()) as ApiErrorBody;
-    } catch {
-      // Non-JSON error response (proxy/infra error) — keep generic detail.
-    }
-    throw new ApiError(response.status, body);
+    await throwApiError(response);
   }
 
   if (response.status === 204) return undefined as T;
+  return (await response.json()) as T;
+}
+
+async function throwApiError(response: Response): Promise<never> {
+  let body: ApiErrorBody = {
+    code: "error",
+    detail: `Request failed with status ${response.status}`,
+  };
+  try {
+    body = (await response.json()) as ApiErrorBody;
+  } catch {
+    // Non-JSON error response (proxy/infra error) — keep generic detail.
+  }
+  // A dead session must clear cached auth so RequireAuth redirects —
+  // otherwise the SPA keeps showing authenticated chrome until reload.
+  // Only authentication_required triggers this; permission_denied (403 on
+  // an authorized route) must NOT sign the user out.
+  if (body.code === "authentication_required" || response.status === 401) {
+    window.dispatchEvent(new Event("daimoma:unauthenticated"));
+  }
+  throw new ApiError(response.status, body);
+}
+
+/** Multipart upload — the browser sets the multipart boundary itself, so no
+ * Content-Type header is sent. CSRF + auth handling matches apiFetch. */
+export async function apiUpload<T>(path: string, form: FormData): Promise<T> {
+  await ensureCsrf();
+  const headers: Record<string, string> = { Accept: "application/json" };
+  const token = getCookie("csrftoken");
+  if (token) headers["X-CSRFToken"] = token;
+
+  const response = await fetch(path, {
+    method: "POST",
+    credentials: "same-origin",
+    headers,
+    body: form,
+  });
+
+  if (!response.ok) {
+    await throwApiError(response);
+  }
   return (await response.json()) as T;
 }

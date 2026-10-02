@@ -13,11 +13,13 @@ export interface AuditEventRow {
 
 export function listAuditEvents(params?: {
   action?: string;
+  ordering?: string;
   page?: number;
   page_size?: number;
 }) {
   const query = new URLSearchParams();
   if (params?.action) query.set("action", params.action);
+  if (params?.ordering) query.set("ordering", params.ordering);
   if (params?.page) query.set("page", String(params.page));
   if (params?.page_size) query.set("page_size", String(params.page_size));
   const suffix = query.toString() ? `?${query}` : "";

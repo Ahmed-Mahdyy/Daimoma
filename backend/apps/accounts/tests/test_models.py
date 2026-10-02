@@ -1,9 +1,13 @@
 import pytest
 from django.core.exceptions import ValidationError
+from django.core.management import call_command
 from django.db import IntegrityError
+from django.test import override_settings
 
 from apps.accounts.models import EmployeeProfile, User
+from apps.employee_requests.models import RequestType
 from apps.organizations.models import Department, Organization
+from apps.timesheets.models import TimeEntry, Timesheet
 
 
 @pytest.fixture
@@ -80,3 +84,22 @@ class TestEmployeeProfile:
         profile = make_profile(org, make_user(org, "e@x.test"), "E5")
         assert profile.department is None
         profile.full_clean()  # no department is valid
+
+
+@pytest.mark.django_db
+@override_settings(DEBUG=True)
+def test_seed_e2e_creates_role_samples_without_overwriting_them():
+    call_command("seed_e2e")
+    user = User.objects.get(email="employee-e2e@acme.test")
+    user.set_password("ChangedLocally123")
+    user.save(update_fields=["password"])
+
+    call_command("seed_e2e")
+
+    assert user.refresh_from_db() is None
+    assert user.check_password("ChangedLocally123")
+    org = Organization.objects.get(name="E2E Corp")
+    assert Timesheet.objects.filter(organization=org).count() == 3
+    assert TimeEntry.objects.filter(organization=org).count() == 3
+    assert RequestType.objects.filter(organization=org).count() == 6
+    assert RequestType.objects.filter(organization=org, category="early_leave").exists()

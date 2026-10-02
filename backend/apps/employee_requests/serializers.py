@@ -2,6 +2,7 @@ from rest_framework import serializers
 
 from apps.employee_requests.models import (
     DATE_CATEGORIES,
+    TIME_CATEGORIES,
     EmployeeRequest,
     RequestApprovalStep,
     RequestEvent,
@@ -18,10 +19,12 @@ class RequestTypeSerializer(serializers.ModelSerializer):
             "name",
             "category",
             "help_text",
+            "requires_manager",
             "requires_hr",
             "is_active",
+            "created_at",
         ]
-        read_only_fields = ["id"]
+        read_only_fields = ["id", "created_at"]
 
 
 class RequestTypeWriteSerializer(serializers.Serializer):
@@ -31,8 +34,22 @@ class RequestTypeWriteSerializer(serializers.Serializer):
     name = serializers.CharField(max_length=120)
     category = serializers.ChoiceField(choices=RequestType.Category.choices)
     help_text = serializers.CharField(required=False, allow_blank=True, default="")
+    requires_manager = serializers.BooleanField(default=True)
     requires_hr = serializers.BooleanField(default=False)
     is_active = serializers.BooleanField(default=True)
+
+    def validate(self, attrs):
+        requires_manager = attrs.get(
+            "requires_manager", getattr(self.instance, "requires_manager", True)
+        )
+        requires_hr = attrs.get(
+            "requires_hr", getattr(self.instance, "requires_hr", False)
+        )
+        if not requires_manager and not requires_hr:
+            raise serializers.ValidationError(
+                {"requires_hr": "At least one approval stage is required."}
+            )
+        return attrs
 
 
 class ApprovalStepSerializer(serializers.ModelSerializer):
@@ -111,6 +128,8 @@ class EmployeeRequestSerializer(serializers.ModelSerializer):
             "description",
             "start_date",
             "end_date",
+            "start_time",
+            "end_time",
             "equipment_item",
             "quantity",
             "status",
@@ -140,6 +159,8 @@ class RequestDraftSerializer(serializers.Serializer):
         "description",
         "start_date",
         "end_date",
+        "start_time",
+        "end_time",
         "equipment_item",
         "quantity",
         "version",
@@ -150,6 +171,8 @@ class RequestDraftSerializer(serializers.Serializer):
     description = serializers.CharField(max_length=5000, allow_blank=True, default="")
     start_date = serializers.DateField(required=False, allow_null=True, default=None)
     end_date = serializers.DateField(required=False, allow_null=True, default=None)
+    start_time = serializers.TimeField(required=False, allow_null=True, default=None)
+    end_time = serializers.TimeField(required=False, allow_null=True, default=None)
     equipment_item = serializers.CharField(
         max_length=120, required=False, allow_blank=True, default=""
     )
@@ -176,7 +199,22 @@ def validate_fields_for_category(category: str, data: dict, errors: dict):
             errors.setdefault("end_date", []).append("Required for this type.")
         if start and end and end < start:
             errors.setdefault("end_date", []).append("Cannot be before start date.")
-        for f in ("equipment_item", "quantity"):
+        for f in ("equipment_item", "quantity", "start_time", "end_time"):
+            if data.get(f) not in (None, ""):
+                errors.setdefault(f, []).append("Not used by this type.")
+    elif category in TIME_CATEGORIES:
+        # Same-day time range (e.g. early leave): the day is start_date and
+        # the range is start_time -> end_time; end_time must be later.
+        if not data.get("start_date"):
+            errors.setdefault("start_date", []).append("Required for this type.")
+        start_t, end_t = data.get("start_time"), data.get("end_time")
+        if not start_t:
+            errors.setdefault("start_time", []).append("Required for this type.")
+        if not end_t:
+            errors.setdefault("end_time", []).append("Required for this type.")
+        if start_t and end_t and end_t <= start_t:
+            errors.setdefault("end_time", []).append("Must be after the start time.")
+        for f in ("end_date", "equipment_item", "quantity"):
             if data.get(f) not in (None, ""):
                 errors.setdefault(f, []).append("Not used by this type.")
     elif category == "equipment":
@@ -184,11 +222,11 @@ def validate_fields_for_category(category: str, data: dict, errors: dict):
             errors.setdefault("equipment_item", []).append("Required for this type.")
         if data.get("quantity") is None:
             errors.setdefault("quantity", []).append("Required for this type.")
-        for f in ("start_date", "end_date"):
+        for f in ("start_date", "end_date", "start_time", "end_time"):
             if data.get(f) is not None:
                 errors.setdefault(f, []).append("Not used by this type.")
     else:
-        for f in ("start_date", "end_date", "equipment_item", "quantity"):
+        for f in ("start_date", "end_date", "start_time", "end_time", "equipment_item", "quantity"):
             if data.get(f) not in (None, ""):
                 errors.setdefault(f, []).append("Not used by this type.")
 

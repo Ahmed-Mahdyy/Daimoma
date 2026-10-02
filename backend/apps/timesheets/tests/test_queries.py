@@ -112,6 +112,23 @@ class TestScopedList:
         resp = c.get(f"{TS}?ordering=bogus")
         assert resp.status_code == 400
 
+    def test_employee_and_total_ordering(self, api_client, emp, manager, hr_user):
+        """Column sorting maps to the joined employee name and the annotated
+        total_minutes aggregation."""
+        _submit_sheet(api_client, emp, date(2026, 9, 14))
+        _submit_sheet(api_client, manager, date(2026, 9, 14))
+        c = authed(api_client, hr_user)
+        resp = c.get(f"{TS}?ordering=employee")
+        assert resp.status_code == 200
+        names = [r["employee_name"] for r in resp.json()["results"]]
+        assert names == sorted(names)
+        assert len(names) >= 2
+        resp = c.get(f"{TS}?ordering=-total_minutes")
+        assert resp.status_code == 200
+        totals = [r["total_minutes"] for r in resp.json()["results"]]
+        assert totals == sorted(totals, reverse=True)
+        assert len(totals) >= 2
+
     def test_period_filter(self, api_client, emp, hr_user):
         _sheet_with_entry(api_client, emp, date(2026, 9, 14))
         _sheet_with_entry(api_client, emp, date(2026, 9, 21))
@@ -128,8 +145,11 @@ class TestQueryBudget:
     def test_list_bounded_queries(
         self, api_client, emp, manager, hr_user, django_assert_max_num_queries
     ):
-        for week in range(6):
-            _sheet_with_entry(api_client, emp, date(2026, 8, 3) + timedelta(weeks=week))
+        # 12 sheets would exceed the budget if list rows fetched days/entries
+        # per row — small page sizes previously masked the N+1. Fully-past
+        # window so entry creation passes the no-future-work rule.
+        for week in range(12):
+            _sheet_with_entry(api_client, emp, date(2026, 1, 5) + timedelta(weeks=week))
         c = authed(api_client, hr_user)
         with django_assert_max_num_queries(15):
             resp = c.get(TS)

@@ -6,6 +6,7 @@ from apps.organizations.views import (
     EmployeeDeactivateView,
     EmployeeDetailView,
     EmployeeListView,
+    EmployeePhotoView,
     EmployeeReactivateView,
     EmployeeResendInvitationView,
     ManagerChoicesView,
@@ -15,6 +16,7 @@ from apps.organizations.views import (
 urlpatterns = [
     path("employees/", EmployeeListView.as_view()),
     path("employees/<uuid:pk>/", EmployeeDetailView.as_view()),
+    path("employees/<uuid:pk>/photo/", EmployeePhotoView.as_view()),
     path("employees/<uuid:pk>/deactivate/", EmployeeDeactivateView.as_view()),
     path("employees/<uuid:pk>/reactivate/", EmployeeReactivateView.as_view()),
     path(

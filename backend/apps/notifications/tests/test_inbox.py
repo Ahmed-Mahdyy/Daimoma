@@ -66,6 +66,28 @@ class TestKindFilter:
         assert body["results"] == []
 
 
+class TestReadStatusAndOrdering:
+    def test_unread_false_returns_only_read(self, employee):
+        _notify(employee, "k1")
+        n2, _ = _notify(employee, "k2")
+        n2.read_at = datetime.now(UTC)
+        n2.save(update_fields=["read_at"])
+        body = authed(employee).get(BASE, {"unread": "false"}).json()
+        assert [r["id"] for r in body["results"]] == [str(n2.id)]
+
+    def test_ordering_oldest_first(self, employee):
+        _notify(employee, "old")
+        _notify(employee, "new")
+        newest = authed(employee).get(BASE).json()["results"]
+        oldest = authed(employee).get(BASE, {"ordering": "created_at"}).json()["results"]
+        assert [r["id"] for r in oldest] == [r["id"] for r in reversed(newest)]
+
+    def test_bad_ordering_ignored(self, employee):
+        _notify(employee, "k1")
+        resp = authed(employee).get(BASE, {"ordering": "drop table"})
+        assert resp.status_code == 200
+
+
 class TestTargetFollow:
     """GET notifications/{id}/target/ returns the frontend path only when
     the caller can CURRENTLY access the target object."""

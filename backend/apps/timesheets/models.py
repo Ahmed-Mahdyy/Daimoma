@@ -167,6 +167,29 @@ class TimeEntry(models.Model):
         return f"{self.employee} {self.work_date} {self.duration_minutes}m"
 
 
+class OpenCheckIn(models.Model):
+    """One open clock-in per employee — the quick check-in/check-out flow.
+    The row is deleted when check-out writes a real TimeEntry through the
+    normal service (so overlap/midnight/window rules still apply), or when
+    the employee cancels it. It is never a timesheet entry itself."""
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    organization = models.ForeignKey(
+        "organizations.Organization", on_delete=models.PROTECT, related_name="open_check_ins"
+    )
+    employee = models.OneToOneField(
+        "accounts.EmployeeProfile", on_delete=models.CASCADE, related_name="open_check_in"
+    )
+    started_at = models.DateTimeField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-started_at"]
+
+    def __str__(self):
+        return f"{self.employee} checked in {self.started_at}"
+
+
 class TimesheetEvent(models.Model):
     """Immutable per-cycle history; one row per sheet version. `snapshot`
     stores an allowlisted summary (submitted totals/days/timezone), never

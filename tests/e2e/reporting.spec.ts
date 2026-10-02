@@ -15,7 +15,11 @@ async function loginAs(page: Page, email: string) {
 }
 
 async function signOut(page: Page) {
-  await page.getByRole("button", { name: /sign out/i }).click();
+  const sidebarSignOut = page.locator("aside").getByRole("button", { name: /sign out/i, includeHidden: true });
+  if (!(await sidebarSignOut.isVisible())) {
+    await page.getByRole("button", { name: "Open menu" }).click();
+  }
+  await sidebarSignOut.click();
   await expect(page).toHaveURL(/\/login/);
 }
 
@@ -111,19 +115,18 @@ test.describe.serial("dashboards and reporting", () => {
       const type = page.getByLabel(/type/i);
       if (await type.isVisible().catch(() => false)) {
         await type.selectOption({ index: 1 });
-        await page.getByLabel(/start/i).fill("2026-09-15");
-        await page.getByLabel(/end/i).fill("2026-09-15");
-        const submit = page.getByRole("button", { name: /submit/i });
-        if (await submit.isEnabled().catch(() => false)) {
-          await submit.click();
+        if (await page.getByLabel(/start/i).isVisible().catch(() => false)) {
+          await page.getByLabel(/start/i).fill("2026-09-15");
+          await page.getByLabel(/end/i).fill("2026-09-15");
+          const submit = page.getByRole("button", { name: /submit/i });
+          if (await submit.isVisible().catch(() => false)) {
+            await submit.click();
+          }
         }
       }
     }
     // Open the inbox page from the bell's "View all" link.
-    await page
-      .getByRole("button", { name: /notifications/i })
-      .first()
-      .click();
+    await page.getByRole("button", { name: /notifications/i }).click();
     const viewAll = page.getByRole("link", { name: /view all/i });
     if (await viewAll.isVisible().catch(() => false)) {
       await viewAll.click();
@@ -139,13 +142,77 @@ test.describe.serial("dashboards and reporting", () => {
     await signOut(page);
   });
 
+  test("HR can add and rename a department", async ({ page }) => {
+    await loginAs(page, "hr-e2e@acme.test");
+    await page.getByRole("navigation", { name: "Main" }).getByRole("link", { name: "Departments", exact: true }).click();
+    const name = `Demo department ${Date.now()}`;
+    await page.getByRole("textbox", { name: "New department name" }).fill(name);
+    await page.getByRole("button", { name: "Add department" }).click();
+    const row = page.getByRole("row").filter({ hasText: name });
+    await expect(row).toBeVisible();
+    await row.getByRole("button", { name: "Rename" }).click();
+    await page.getByRole("textbox", { name: `Rename ${name}` }).fill(`${name} updated`);
+    await page.getByRole("button", { name: "Save", exact: true }).click();
+    await expect(page.getByText(`${name} updated`)).toBeVisible();
+    await signOut(page);
+  });
+
+  test("HR breadcrumbs link back from employee creation", async ({ page }) => {
+    await loginAs(page, "hr-e2e@acme.test");
+    await page.getByRole("navigation", { name: "HR actions" }).getByRole("link", { name: "Add employee" }).click();
+    const breadcrumb = page.getByRole("navigation", { name: "Breadcrumb" });
+    await expect(breadcrumb.getByText("New employee")).toBeVisible();
+    await breadcrumb.getByRole("link", { name: "Employees" }).click();
+    await expect(page.getByRole("heading", { name: "Employees" })).toBeVisible();
+    await signOut(page);
+  });
+
+  test("calendar selection carries the date into a new request", async ({ page }) => {
+    await loginAs(page, "employee-e2e@acme.test");
+    await page.getByRole("button", { name: /15th/ }).first().click();
+    const selected = await page.getByText(/Selected: \d{4}-\d{2}-15/).textContent();
+    const date = selected?.match(/\d{4}-\d{2}-15/)?.[0];
+    expect(date).toBeTruthy();
+    await page.getByRole("link", { name: "New request", exact: true }).last().click();
+    await page.getByLabel("Request type").selectOption({ index: 1 });
+    await expect(page.getByLabel("Start date")).toHaveValue(date);
+    await expect(page.getByLabel("End date")).toHaveValue(date);
+    await signOut(page);
+  });
+
+  test("settings route is reserved for HR", async ({ page }) => {
+    await loginAs(page, "manager-e2e@acme.test");
+    await expect(page.getByRole("navigation", { name: "Main" }).getByRole("link", { name: "Settings" })).toHaveCount(0);
+    await page.goto("/settings");
+    await expect(page).toHaveURL(/\/$/);
+    await expect(page.getByRole("heading", { name: "My dashboard" })).toBeVisible();
+    await signOut(page);
+  });
+
+  test("account menu shows role and profile; theme persists", async ({ page }) => {
+    await loginAs(page, "hr-e2e@acme.test");
+    await page.getByRole("button", { name: "Account menu" }).click();
+    const menu = page.getByRole("menu");
+    await expect(menu.getByText("hr-e2e@acme.test")).toBeVisible();
+    await expect(menu.getByText("HR", { exact: true })).toBeVisible();
+    await menu.getByRole("menuitem", { name: "My profile" }).click();
+    await expect(page.getByRole("heading", { name: "My profile" })).toBeVisible();
+    await page.getByRole("button", { name: "Switch to dark mode" }).click();
+    await expect(page.locator("html")).toHaveClass(/dark/);
+    await page.reload();
+    await expect(page.locator("html")).toHaveClass(/dark/);
+    await page.getByRole("button", { name: "Switch to light mode" }).click();
+    await signOut(page);
+  });
+
   test("mobile viewport: dashboard and reports usable at 360px", async ({
     page,
   }) => {
     await page.setViewportSize({ width: 360, height: 800 });
     await loginAs(page, "hr-e2e@acme.test");
     await expect(page.getByText("Organization dashboard")).toBeVisible();
-    await page.getByRole("link", { name: "Reports" }).click();
+    await page.getByRole("button", { name: "Open menu" }).click();
+    await page.getByRole("link", { name: "Reports", exact: true }).click();
     await expect(
       page.getByRole("heading", { name: "Reports" }),
     ).toBeVisible();

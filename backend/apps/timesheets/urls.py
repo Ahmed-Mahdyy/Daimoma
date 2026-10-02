@@ -4,6 +4,8 @@ from apps.timesheets import views
 
 urlpatterns = [
     path("timesheets/", views.TimesheetListView.as_view()),
+    path("timesheets/punch/", views.PunchView.as_view()),
+    path("timesheets/punch/checkout/", views.PunchCheckoutView.as_view()),
     path("timesheets/<uuid:pk>/", views.TimesheetDetailView.as_view()),
     path("timesheets/<uuid:pk>/entries/", views.EntryListView.as_view()),
     path(

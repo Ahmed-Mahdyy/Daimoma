@@ -37,9 +37,12 @@ export function localDate(local: string): string {
   return local.slice(0, 10);
 }
 
-export function formatMinutes(minutes: number): string {
+export function formatMinutes(minutes: number, lang: "en" | "ar" = "en"): string {
   const h = Math.floor(minutes / 60);
   const m = minutes % 60;
+  if (lang === "ar") {
+    return `${h}س ${String(m).padStart(2, "0")}د`;
+  }
   return `${h}h ${String(m).padStart(2, "0")}m`;
 }
 

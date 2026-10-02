@@ -97,6 +97,8 @@ class EmployeeProfile(models.Model):
         related_name="direct_reports",
     )
     job_title = models.CharField(max_length=150, blank=True)
+    photo = models.ImageField(upload_to="profile_photos/%Y/%m/", blank=True)
+    photo_content_type = models.CharField(max_length=50, blank=True)
     display_name = models.CharField(max_length=150, blank=True)
     phone = models.CharField(max_length=40, blank=True)
     preferred_locale = models.CharField(max_length=16, choices=Locale.choices, default=Locale.EN)

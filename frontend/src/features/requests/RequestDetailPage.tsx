@@ -14,6 +14,7 @@ import {
 } from "../../api/requests";
 import { AsyncState } from "../../components/ui/AsyncState";
 import { ConfirmDialog } from "../../components/ui/ConfirmDialog";
+import { useLanguage } from "../../app/LanguageProvider";
 import { useAuth } from "../auth/auth-context";
 import { StatusBadge } from "./StatusBadge";
 
@@ -39,9 +40,10 @@ function ReasonDialog({
   onCancel: () => void;
   busy: boolean;
 }) {
+  const { t } = useLanguage();
   const [reason, setReason] = useState("");
   const [err, setErr] = useState("");
-  const title = action === "reject" ? "Reject request" : "Return for correction";
+  const title = action === "reject" ? t("Reject request") : t("Return for correction");
   return (
     <div
       className="fixed inset-0 z-40 flex items-center justify-center bg-black/40"
@@ -58,7 +60,7 @@ function ReasonDialog({
           {title}
         </h2>
         <label htmlFor="reason" className="mt-3 block text-sm font-medium">
-          Reason <span className="text-red-600">(required)</span>
+          {t("Reason")} <span className="text-red-600">{t("(required)")}</span>
         </label>
         <textarea
           id="reason"
@@ -82,14 +84,14 @@ function ReasonDialog({
             onClick={onCancel}
             className="rounded-md border px-3 py-1.5 text-sm"
           >
-            Cancel
+            {t("Cancel")}
           </button>
           <button
             type="button"
             disabled={busy}
             onClick={() => {
               if (!reason.trim()) {
-                setErr("A reason is required.");
+                setErr(t("A reason is required."));
                 return;
               }
               onConfirm(reason.trim());
@@ -98,7 +100,7 @@ function ReasonDialog({
               action === "reject" ? "bg-red-700" : "bg-amber-600"
             }`}
           >
-            {busy ? "Working…" : action === "reject" ? "Reject" : "Return"}
+            {busy ? t("Working…") : action === "reject" ? t("Reject") : t("Return")}
           </button>
         </div>
       </div>
@@ -111,6 +113,7 @@ function ReasonDialog({
  * mutations send the expected version — a 409 surfaces a conflict message. */
 export function RequestDetailPage() {
   const { id } = useParams<{ id: string }>();
+  const { t } = useLanguage();
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [serverError, setServerError] = useState<string | null>(null);
@@ -139,12 +142,12 @@ export function RequestDetailPage() {
     if (e instanceof ApiError) {
       setServerError(
         e.status === 409
-          ? "This request changed since you loaded it — the page has been refreshed."
+          ? t("This request changed since you loaded it — the page has been refreshed.")
           : e.message,
       );
       if (e.status === 409) refresh();
     } else {
-      setServerError("Something went wrong. Please try again.");
+      setServerError(t("Something went wrong. Please try again."));
     }
   };
 
@@ -188,57 +191,66 @@ export function RequestDetailPage() {
         {req && (
           <>
             <div className="mb-1 flex items-center justify-between">
-              <Link to="/requests" className="text-sm text-gray-600 hover:underline">
-                ← Requests
+              <Link to="/requests" className="text-sm workspace-link-quiet workspace-link-muted">
+                ← {t("Requests")}
               </Link>
               <StatusBadge status={req.status} />
             </div>
             <h1 className="text-2xl font-semibold">{req.title}</h1>
             <p className="mt-1 text-sm text-gray-600">
               {req.type_name} · {req.employee_name || req.employee_email}
-              {req.cycle > 0 && ` · cycle ${req.cycle}`}
+              {req.cycle > 0 && ` · ${t("cycle {n}", { n: req.cycle })}`}
             </p>
 
             {serverError && (
               <p
                 role="alert"
-                className="mt-3 rounded-md bg-red-50 p-2 text-sm text-red-700"
+                className="mt-3 rounded-md border border-red-300 bg-red-50 p-2 text-sm text-red-800 dark:border-red-800/60 dark:bg-red-950/50 dark:text-red-200"
               >
                 {serverError}
               </p>
             )}
 
             <dl className="mt-5 grid grid-cols-2 gap-4 rounded-md border bg-white p-4 sm:grid-cols-3">
-              <Field label="Status" value={<StatusBadge status={req.status} />} />
+              <Field label={t("Status")} value={<StatusBadge status={req.status} />} />
               <Field
-                label="Submitted"
+                label={t("Submitted")}
                 value={
                   req.submitted_at
                     ? new Date(req.submitted_at).toLocaleString()
-                    : "Not submitted"
+                    : t("Not submitted")
                 }
               />
               <Field
-                label="Current reviewer"
+                label={t("Current reviewer")}
                 value={req.current_step?.reviewer_name ?? req.current_step?.reviewer_email ?? "—"}
               />
               {req.start_date && (
-                <Field label="Start" value={req.start_date} />
+                <Field
+                  label={req.type_category === "early_leave" ? t("Date") : t("Start")}
+                  value={req.start_date}
+                />
               )}
-              {req.end_date && <Field label="End" value={req.end_date} />}
+              {req.end_date && <Field label={t("End")} value={req.end_date} />}
+              {req.start_time && (
+                <Field label={t("From")} value={req.start_time.slice(0, 5)} />
+              )}
+              {req.end_time && (
+                <Field label={t("To")} value={req.end_time.slice(0, 5)} />
+              )}
               {req.equipment_item && (
-                <Field label="Item" value={req.equipment_item} />
+                <Field label={t("Item")} value={req.equipment_item} />
               )}
               {req.quantity != null && (
-                <Field label="Quantity" value={req.quantity} />
+                <Field label={t("Quantity")} value={req.quantity} />
               )}
               <div className="col-span-full">
-                <Field label="Details" value={req.description || "—"} />
+                <Field label={t("Details")} value={req.description || "—"} />
               </div>
             </dl>
 
             {/* Steps */}
-            <h2 className="mt-6 text-lg font-semibold">Review steps</h2>
+            <h2 className="mt-6 text-lg font-semibold">{t("Review steps")}</h2>
             <ul className="mt-2 space-y-2">
               {history?.steps.map((s) => (
                 <li
@@ -246,9 +258,9 @@ export function RequestDetailPage() {
                   className="flex items-center justify-between rounded-md border bg-white px-3 py-2 text-sm"
                 >
                   <span>
-                    Cycle {s.cycle} ·{" "}
-                    {s.required_role === "manager" ? "Manager" : "HR"} review —{" "}
-                    {s.reviewer_name || s.reviewer_email || "Unassigned"}
+                    {t("Cycle {n}", { n: s.cycle })} ·{" "}
+                    {t(s.required_role === "manager" ? "Manager review" : "HR review")} —{" "}
+                    {s.reviewer_name || s.reviewer_email || t("Unassigned")}
                     {s.reason && (
                       <span className="ml-2 text-gray-500">“{s.reason}”</span>
                     )}
@@ -258,24 +270,24 @@ export function RequestDetailPage() {
               ))}
               {(!history || history.steps.length === 0) && (
                 <li className="text-sm text-gray-500">
-                  No review steps yet — submit the request to route it.
+                  {t("No review steps yet — submit the request to route it.")}
                 </li>
               )}
             </ul>
 
             {/* Timeline */}
-            <h2 className="mt-6 text-lg font-semibold">History</h2>
+            <h2 className="mt-6 text-lg font-semibold">{t("History")}</h2>
             <ul className="mt-2 space-y-2">
               {history?.events.map((e, i) => (
                 <li
                   key={i}
                   className="rounded-md border-l-4 border-brand-300 bg-white px-3 py-2 text-sm"
                 >
-                  <span className="font-medium">{e.event_type}</span>
+                  <span className="font-medium">{t(e.event_type)}</span>
                   {e.actor_name || e.actor_email ? (
                     <span className="text-gray-600">
                       {" "}
-                      by {e.actor_name || e.actor_email}
+                      {t("by")} {e.actor_name || e.actor_email}
                     </span>
                   ) : null}
                   {e.reason && (
@@ -295,7 +307,7 @@ export function RequestDetailPage() {
                   to={`/requests/${req.id}/edit`}
                   className="rounded-md border px-3 py-1.5 text-sm hover:bg-gray-50"
                 >
-                  Edit draft
+                  {t("Edit draft")}
                 </Link>
                 <button
                   type="button"
@@ -307,41 +319,41 @@ export function RequestDetailPage() {
                   className="rounded-md bg-brand-700 px-4 py-1.5 text-sm font-medium text-white disabled:opacity-60"
                 >
                   {submit.isPending
-                    ? "Submitting…"
+                    ? t("Submitting…")
                     : req.cycle === 0
-                      ? "Submit for review"
-                      : "Resubmit"}
+                      ? t("Submit for review")
+                      : t("Resubmit")}
                 </button>
               </div>
             )}
 
             {/* Reviewer actions */}
             {isReviewer && req.current_step && (
-              <div className="mt-6 flex items-center gap-3 rounded-md border border-amber-200 bg-amber-50 p-3">
-                <span className="text-sm font-medium text-amber-900">
-                  This request awaits your decision.
+              <div className="mt-6 flex items-center gap-3 rounded-md border border-amber-200 bg-amber-50 p-3 dark:border-amber-800/60 dark:bg-amber-950/50 dark:text-amber-200">
+                <span className="text-sm font-medium text-amber-900 dark:text-amber-100">
+                  {t("This request awaits your decision.")}
                 </span>
-                <div className="ml-auto flex gap-2">
+                <div className="ms-auto flex gap-2">
                   <button
                     type="button"
                     onClick={() => setConfirmApprove(true)}
                     className="rounded-md bg-green-700 px-3 py-1.5 text-sm font-medium text-white"
                   >
-                    Approve
+                    {t("Approve")}
                   </button>
                   <button
                     type="button"
                     onClick={() => setReasonAction("return")}
                     className="rounded-md bg-amber-600 px-3 py-1.5 text-sm font-medium text-white"
                   >
-                    Return
+                    {t("Return")}
                   </button>
                   <button
                     type="button"
                     onClick={() => setReasonAction("reject")}
                     className="rounded-md bg-red-700 px-3 py-1.5 text-sm font-medium text-white"
                   >
-                    Reject
+                    {t("Reject")}
                   </button>
                 </div>
               </div>
@@ -359,14 +371,11 @@ export function RequestDetailPage() {
             )}
             <ConfirmDialog
               open={confirmApprove}
-              title="Approve request"
-              body={`Approve “${req.title}”${
-                req.current_step?.required_role === "manager" &&
-                req.type_name
-                  ? ""
-                  : ""
-              }? This decision is final for this step.`}
-              confirmLabel="Approve"
+              title={t("Approve request")}
+              body={t("Approve “{title}”? This decision is final for this step.", {
+                title: req.title,
+              })}
+              confirmLabel={t("Approve")}
               onConfirm={() => decide.mutate({ action: "approve" })}
               onCancel={() => setConfirmApprove(false)}
             />

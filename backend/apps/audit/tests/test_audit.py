@@ -146,3 +146,36 @@ class TestScopedReads:
         row = authed_client(hr_user).get(AUDIT).json()["results"][0]
         assert "password" not in str(row).lower()
         assert "token" not in str(row).lower()
+
+
+@pytest.mark.django_db
+class TestOrdering:
+    """Allowlisted column ordering for the audit table (DataTable headers
+    send ?ordering=<id>); unknown fields are rejected."""
+
+    def test_allowlisted_orderings(self, org, hr_user, employee):
+        AuditEvent.objects.create(
+            organization=org, actor=employee, action="beta",
+            target_type="t", target_id=org.id,
+        )
+        AuditEvent.objects.create(
+            organization=org, actor=hr_user, action="alpha",
+            target_type="t", target_id=org.id,
+        )
+        c = authed_client(hr_user)
+        # Logging in itself writes a "login" event — assert the relative
+        # order of our two actions rather than the raw head of the list.
+        resp = c.get(f"{AUDIT}?ordering=action")
+        actions = [r["action"] for r in resp.json()["results"]]
+        assert actions == sorted(actions)
+        resp = c.get(f"{AUDIT}?ordering=-action")
+        actions = [r["action"] for r in resp.json()["results"]]
+        assert actions == sorted(actions, reverse=True)
+        resp = c.get(f"{AUDIT}?ordering=occurred_at")
+        assert resp.status_code == 200
+        resp = c.get(f"{AUDIT}?ordering=actor")
+        assert resp.status_code == 200
+
+    def test_unknown_ordering_rejected(self, org, hr_user):
+        resp = authed_client(hr_user).get(f"{AUDIT}?ordering=target_id")
+        assert resp.status_code == 400

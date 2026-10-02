@@ -3,8 +3,10 @@ import { useForm } from "react-hook-form";
 import { Link } from "react-router-dom";
 
 import { requestPasswordReset } from "../../api/auth";
+import { useLanguage } from "../../app/LanguageProvider";
 
 export function RequestResetPage() {
+  const { t } = useLanguage();
   const [sent, setSent] = useState(false);
   const {
     register,
@@ -21,14 +23,13 @@ export function RequestResetPage() {
   if (sent) {
     return (
       <main className="mx-auto max-w-md p-6">
-        <h1 className="text-2xl font-semibold">Check your email</h1>
+        <h1 className="text-2xl font-semibold">{t("Check your email")}</h1>
         <p className="mt-2">
-          If that email is registered, a recovery link is on its way. It expires
-          in 30 minutes.
+          {t("If that email is registered, a recovery link is on its way. It expires in 30 minutes.")}
         </p>
         <p className="mt-4">
-          <Link to="/login" className="text-brand-700 underline">
-            Back to sign in
+          <Link to="/login" className="workspace-link">
+            {t("Back to sign in")}
           </Link>
         </p>
       </main>
@@ -37,7 +38,7 @@ export function RequestResetPage() {
 
   return (
     <main className="mx-auto flex min-h-screen max-w-md flex-col justify-center p-6">
-      <h1 className="text-2xl font-semibold">Reset your password</h1>
+      <h1 className="text-2xl font-semibold">{t("Reset your password")}</h1>
       <form
         onSubmit={handleSubmit(onSubmit)}
         className="mt-6 flex flex-col gap-4"
@@ -45,7 +46,7 @@ export function RequestResetPage() {
       >
         <div>
           <label htmlFor="email" className="block text-sm font-medium">
-            Email
+            {t("Email")}
           </label>
           <input
             id="email"
@@ -53,7 +54,7 @@ export function RequestResetPage() {
             autoComplete="email"
             className="mt-1 w-full rounded border border-gray-300 p-2"
             aria-invalid={!!errors.email}
-            {...register("email", { required: "Email is required." })}
+            {...register("email", { required: t("Email is required.") })}
           />
           {errors.email && (
             <p role="alert" className="mt-1 text-sm text-red-700">
@@ -66,7 +67,7 @@ export function RequestResetPage() {
           disabled={isSubmitting}
           className="rounded bg-brand-700 p-2 font-medium text-white disabled:opacity-60"
         >
-          {isSubmitting ? "Sending…" : "Send recovery link"}
+          {isSubmitting ? t("Sending…") : t("Send recovery link")}
         </button>
       </form>
     </main>

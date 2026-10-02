@@ -84,6 +84,7 @@ AUTH_USER_MODEL = "accounts.User"
 
 STATIC_URL = "static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
+MEDIA_ROOT = BASE_DIR / "media"
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 # Session policy (D-009): 2h idle / 24h absolute, enforced by middleware in T009.
@@ -129,6 +130,7 @@ SPECTACULAR_SETTINGS = {
             "apps.organizations.serializers.EmployeeProvisionSerializer.preferred_locale",
             "apps.organizations.serializers.EmployeeUpdateSerializer.preferred_locale",
         ],
+        "TimesheetStatusEnum": "apps.timesheets.models.Timesheet.Status",
     },
 }
 

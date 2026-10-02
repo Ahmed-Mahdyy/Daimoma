@@ -10,6 +10,8 @@ vi.mock("../../api/auth", async (importOriginal) => {
 });
 
 import { login } from "../../api/auth";
+import { LanguageProvider } from "../../app/LanguageProvider";
+import { ThemeProvider } from "../../app/ThemeProvider";
 import { AuthProvider } from "./AuthProvider";
 import { LoginPage } from "./LoginPage";
 
@@ -19,11 +21,15 @@ function renderLogin() {
   });
   return render(
     <QueryClientProvider client={qc}>
+      <ThemeProvider>
+      <LanguageProvider>
       <AuthProvider>
         <MemoryRouter initialEntries={["/login"]}>
           <LoginPage />
         </MemoryRouter>
       </AuthProvider>
+      </LanguageProvider>
+      </ThemeProvider>
     </QueryClientProvider>,
   );
 }
@@ -38,6 +44,13 @@ describe("LoginPage", () => {
     expect(
       screen.getByRole("button", { name: /sign in/i }),
     ).toBeInTheDocument();
+  });
+
+  it("prefills only the synthetic account email for a chosen role", async () => {
+    renderLogin();
+    await userEvent.click(screen.getByRole("button", { name: "Choose Manager demo account" }));
+    expect(screen.getByRole("textbox", { name: "Email" })).toHaveValue("manager-e2e@acme.test");
+    expect(screen.getByLabelText(/password/i)).toHaveValue("");
   });
 
   it("shows validation errors on empty submit", async () => {

@@ -22,6 +22,8 @@ import {
 import { Alert } from "../../components/ui/Alert";
 import { AsyncState } from "../../components/ui/AsyncState";
 import { ConfirmDialog } from "../../components/ui/ConfirmDialog";
+import { useLanguage } from "../../app/LanguageProvider";
+import { formatDateTime } from "../../lib/dates";
 import { useAuth } from "../../features/auth/auth-context";
 import {
   formatMinutes,
@@ -62,6 +64,7 @@ function EntryDialog({
   onClose: () => void;
   onSaved: () => void;
 }) {
+  const { t } = useLanguage();
   const isEdit = entry !== null;
   const [workDate] = useState(entry?.work_date ?? defaultDate);
   const toLocal = (iso: string) => {
@@ -140,7 +143,7 @@ function EntryDialog({
         setFieldErrors(fe);
         setFormError(Object.keys(fe).length ? null : e.message);
       } else {
-        setFormError("Something went wrong. Please try again.");
+        setFormError(t("Something went wrong. Please try again."));
       }
     },
   });
@@ -166,10 +169,10 @@ function EntryDialog({
         onClick={(e) => e.stopPropagation()}
       >
         <h2 id="entry-title" className="text-lg font-semibold">
-          {isEdit ? "Edit entry" : "Add entry"} — {workDate}
+          {isEdit ? t("Edit entry") : t("Add entry")} — {workDate}
         </h2>
         <p className="mt-1 text-xs text-gray-500">
-          Times are entered in {sheet.timezone} and stored in UTC.
+          {t("Times are entered in {tz} and stored in UTC.", { tz: sheet.timezone })}
         </p>
         {formError && (
           <div className="mt-3">
@@ -178,7 +181,7 @@ function EntryDialog({
         )}
         <div className="mt-3 grid grid-cols-2 gap-3">
           <label className="block text-sm font-medium">
-            Start
+            {t("Start")}
             <input
               type="datetime-local"
               value={start}
@@ -188,7 +191,7 @@ function EntryDialog({
             {err("start_at")}
           </label>
           <label className="block text-sm font-medium">
-            End
+            {t("End")}
             <input
               type="datetime-local"
               value={end}
@@ -198,7 +201,7 @@ function EntryDialog({
             {err("end_at")}
           </label>
           <label className="block text-sm font-medium">
-            Break (minutes)
+            {t("Break (minutes)")}
             <input
               type="number"
               min={0}
@@ -210,19 +213,19 @@ function EntryDialog({
             {err("segment_breaks")}
           </label>
           <label className="block text-sm font-medium">
-            Window reason
+            {t("Window reason")}
             <input
               type="text"
               value={windowReason}
               onChange={(e) => setWindowReason(e.target.value)}
-              placeholder="Required if outside working window"
+              placeholder={t("Required if outside working window")}
               className={input}
             />
             {err("window_reason")}
           </label>
         </div>
         <label className="mt-3 block text-sm font-medium">
-          Description
+          {t("Description")}
           <input
             type="text"
             value={description}
@@ -233,7 +236,7 @@ function EntryDialog({
         </label>
         {localDate(start) !== localDate(end) && (
           <p className="mt-2 text-xs text-amber-700">
-            This interval crosses midnight — it will be split across days.
+            {t("This interval crosses midnight — it will be split across days.")}
           </p>
         )}
         <div className="mt-4 flex justify-end gap-2">
@@ -242,7 +245,7 @@ function EntryDialog({
             onClick={onClose}
             className="rounded-md border px-3 py-1.5 text-sm"
           >
-            Cancel
+            {t("Cancel")}
           </button>
           <button
             type="button"
@@ -250,7 +253,7 @@ function EntryDialog({
             onClick={() => save.mutate()}
             className="rounded-md bg-brand-700 px-3 py-1.5 text-sm font-medium text-white disabled:opacity-60"
           >
-            {save.isPending ? "Saving…" : isEdit ? "Save" : "Add"}
+            {save.isPending ? t("Saving…") : isEdit ? t("Save") : t("Add")}
           </button>
         </div>
       </div>
@@ -269,6 +272,7 @@ function ReasonDialog({
   onConfirm: (reason: string) => void;
   onCancel: () => void;
 }) {
+  const { t } = useLanguage();
   const [reason, setReason] = useState("");
   const [err, setErr] = useState("");
   return (
@@ -287,7 +291,7 @@ function ReasonDialog({
           {title}
         </h2>
         <label htmlFor="ts-reason" className="mt-3 block text-sm font-medium">
-          Reason <span className="text-red-600">(required)</span>
+          {t("Reason")} <span className="text-red-600">{t("(required)")}</span>
         </label>
         <textarea
           id="ts-reason"
@@ -311,21 +315,21 @@ function ReasonDialog({
             onClick={onCancel}
             className="rounded-md border px-3 py-1.5 text-sm"
           >
-            Cancel
+            {t("Cancel")}
           </button>
           <button
             type="button"
             disabled={busy}
             onClick={() => {
               if (!reason.trim()) {
-                setErr("A reason is required.");
+                setErr(t("A reason is required."));
                 return;
               }
               onConfirm(reason.trim());
             }}
             className="rounded-md bg-amber-600 px-3 py-1.5 text-sm font-medium text-white disabled:opacity-60"
           >
-            {busy ? "Working…" : "Confirm"}
+            {busy ? t("Working…") : t("Confirm")}
           </button>
         </div>
       </div>
@@ -340,6 +344,7 @@ type ReasonAction = "reject" | "return" | "reopen";
  * Mutations send expected_version — 409 refreshes rather than guessing. */
 export function TimesheetDetailPage() {
   const { id } = useParams<{ id: string }>();
+  const { t, lang } = useLanguage();
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [serverError, setServerError] = useState<string | null>(null);
@@ -375,12 +380,12 @@ export function TimesheetDetailPage() {
     if (e instanceof ApiError) {
       setServerError(
         e.status === 409
-          ? "This timesheet changed since you loaded it — the page has been refreshed."
+          ? t("This timesheet changed since you loaded it — the page has been refreshed.")
           : e.message,
       );
       if (e.status === 409) refresh();
     } else {
-      setServerError("Something went wrong. Please try again.");
+      setServerError(t("Something went wrong. Please try again."));
     }
   };
 
@@ -452,19 +457,19 @@ export function TimesheetDetailPage() {
   return (
     <div>
       <p className="mb-2 text-sm">
-        <Link to="/timesheets" className="text-brand-700 hover:underline">
-          ← Timesheets
+        <Link to="/timesheets" className="workspace-link-quiet">
+          ← {t("Timesheets")}
         </Link>
       </p>
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h1 className="text-2xl font-semibold">
-            Week {sheet.period_start} – {sheet.period_end}
+            {t("Week {from} – {to}", { from: sheet.period_start, to: sheet.period_end })}
           </h1>
           <p className="mt-1 text-sm text-gray-600">
             {sheet.employee_name || sheet.employee_email} ·{" "}
-            {sheet.timezone} · cycle {sheet.cycle} · total{" "}
-            {formatMinutes(sheet.total_minutes)}
+            {sheet.timezone} · {t("cycle {n}", { n: sheet.cycle })} · {t("total")}{" "}
+            {formatMinutes(sheet.total_minutes, lang)}
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -472,7 +477,7 @@ export function TimesheetDetailPage() {
           {(sheet.status === "pending_manager" ||
             sheet.status === "pending_hr") && (
             <span className="text-sm text-gray-600">
-              reviewer: {sheet.reviewer_name ?? sheet.reviewer_email}
+              {t("reviewer:")} {sheet.reviewer_name ?? sheet.reviewer_email}
             </span>
           )}
         </div>
@@ -505,10 +510,19 @@ export function TimesheetDetailPage() {
             >
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div className="flex items-center gap-2">
-                  <h2 className="font-medium">{d}</h2>
+                  <h2 className="font-medium">
+                    {lang === "ar"
+                      ? new Date(`${d}T00:00:00`).toLocaleDateString("ar", {
+                          weekday: "long",
+                          day: "numeric",
+                          month: "long",
+                          year: "numeric",
+                        })
+                      : d}
+                  </h2>
                   {day && <DayStatusBadge status={day.status} />}
                   <span className="text-sm text-gray-500">
-                    {day ? formatMinutes(day.total_minutes) : "0h 00m"}
+                    {formatMinutes(day?.total_minutes ?? 0, lang)}
                   </span>
                 </div>
                 <div className="flex items-center gap-2">
@@ -520,7 +534,7 @@ export function TimesheetDetailPage() {
                       }
                       className="rounded-md border px-2 py-1 text-sm hover:bg-gray-50"
                     >
-                      Add entry
+                      {t("Add entry")}
                     </button>
                   )}
                   {canSubmitDay && (
@@ -532,7 +546,7 @@ export function TimesheetDetailPage() {
                       disabled={act.isPending}
                       className="rounded-md bg-brand-700 px-2 py-1 text-sm font-medium text-white disabled:opacity-60"
                     >
-                      Submit day
+                      {t("Submit day")}
                     </button>
                   )}
                 </div>
@@ -550,10 +564,10 @@ export function TimesheetDetailPage() {
                         {formatTimeInZone(e.start_at, sheet.timezone)}–
                         {formatTimeInZone(e.end_at, sheet.timezone)}
                       </span>
-                      <span>{formatMinutes(e.duration_minutes)}</span>
+                      <span>{formatMinutes(e.duration_minutes, lang)}</span>
                       {e.break_minutes > 0 && (
                         <span className="text-gray-500">
-                          break {e.break_minutes}m
+                          {t("break {n}m", { n: e.break_minutes })}
                         </span>
                       )}
                       {e.window_flag && (
@@ -561,7 +575,7 @@ export function TimesheetDetailPage() {
                           className="rounded bg-amber-100 px-1.5 py-0.5 text-xs text-amber-800"
                           title={e.window_reason}
                         >
-                          outside window
+                          {t("outside window")}
                         </span>
                       )}
                       {e.description && (
@@ -574,16 +588,16 @@ export function TimesheetDetailPage() {
                             onClick={() =>
                               setEntryDialog({ entry: e, date: d })
                             }
-                            className="text-brand-700 hover:underline"
+                            className="rounded-md border border-border px-2.5 py-1 text-xs font-medium transition-colors hover:bg-accent"
                           >
-                            Edit
+                            {t("Edit")}
                           </button>
                           <button
                             type="button"
                             onClick={() => setVoidTarget(e)}
-                            className="text-red-700 hover:underline"
+                            className="rounded-md border border-red-300 px-2.5 py-1 text-xs font-medium text-red-700 transition-colors hover:bg-red-50 dark:border-red-800/60 dark:text-red-300 dark:hover:bg-red-950/40"
                           >
-                            Void
+                            {t("Void")}
                           </button>
                         </span>
                       )}
@@ -603,7 +617,7 @@ export function TimesheetDetailPage() {
             onClick={() => setConfirmSubmit(true)}
             className="rounded-md bg-brand-700 px-3 py-1.5 text-sm font-medium text-white"
           >
-            Submit week
+            {t("Submit week")}
           </button>
         )}
         {isReviewer && (
@@ -613,21 +627,21 @@ export function TimesheetDetailPage() {
               onClick={() => setConfirmApprove(true)}
               className="rounded-md bg-green-700 px-3 py-1.5 text-sm font-medium text-white"
             >
-              Approve
+              {t("Approve")}
             </button>
             <button
               type="button"
               onClick={() => setReasonAction("return")}
               className="rounded-md bg-amber-600 px-3 py-1.5 text-sm font-medium text-white"
             >
-              Return
+              {t("Return")}
             </button>
             <button
               type="button"
               onClick={() => setReasonAction("reject")}
               className="rounded-md bg-red-700 px-3 py-1.5 text-sm font-medium text-white"
             >
-              Reject
+              {t("Reject")}
             </button>
           </>
         )}
@@ -637,7 +651,7 @@ export function TimesheetDetailPage() {
             onClick={() => setReasonAction("reopen")}
             className="rounded-md border border-amber-600 px-3 py-1.5 text-sm font-medium text-amber-700"
           >
-            Reopen
+            {t("Reopen")}
           </button>
         )}
         <button
@@ -645,33 +659,33 @@ export function TimesheetDetailPage() {
           onClick={() => setShowHistory((v) => !v)}
           className="rounded-md border px-3 py-1.5 text-sm"
         >
-          {showHistory ? "Hide history" : "History"}
+          {showHistory ? t("Hide history") : t("History")}
         </button>
       </div>
       {sheetEditable && (
         <p className="mt-2 text-xs text-gray-500">
-          Submitting the week requires at least one submitted day
+          {t("Submitting the week requires at least one submitted day")}
           {draftWithEntries > 0
-            ? ` — ${draftWithEntries} day(s) still hold unsubmitted entries.`
+            ? t(" — {n} day(s) still hold unsubmitted entries.", { n: draftWithEntries })
             : submittedDays === 0
               ? "."
-              : ` (${submittedDays} submitted).`}
+              : t(" ({n} submitted).", { n: submittedDays })}
         </p>
       )}
 
       {showHistory && history && (
-        <section className="mt-4 rounded-md border bg-white p-4" aria-label="History">
-          <h2 className="font-medium">History</h2>
+        <section className="mt-4 rounded-md border bg-white p-4" aria-label={t("History")}>
+          <h2 className="font-medium">{t("History")}</h2>
           <ol className="mt-2 space-y-2 text-sm">
             {history.map((ev, i) => (
               <li key={i} className="flex flex-wrap gap-2">
                 <span className="text-gray-500">
-                  {new Date(ev.occurred_at).toLocaleString()}
+                  {formatDateTime(ev.occurred_at)}
                 </span>
-                <span className="font-medium">{ev.event_type}</span>
-                {ev.actor_name && <span>by {ev.actor_name}</span>}
+                <span className="font-medium">{t(ev.event_type)}</span>
+                {ev.actor_name && <span>{t("by")} {ev.actor_name}</span>}
                 <span className="text-gray-500">
-                  {ev.previous_state} → {ev.new_state} (cycle {ev.cycle})
+                  {t(ev.previous_state)} → {t(ev.new_state)} ({t("cycle {n}", { n: ev.cycle })})
                 </span>
                 {ev.reason && (
                   <span className="text-gray-600">“{ev.reason}”</span>
@@ -679,7 +693,7 @@ export function TimesheetDetailPage() {
               </li>
             ))}
             {history.length === 0 && (
-              <li className="text-gray-500">No events yet.</li>
+              <li className="text-gray-500">{t("No events yet.")}</li>
             )}
           </ol>
         </section>
@@ -699,10 +713,10 @@ export function TimesheetDetailPage() {
         <ReasonDialog
           title={
             reasonAction === "reject"
-              ? "Reject timesheet"
+              ? t("Reject timesheet")
               : reasonAction === "return"
-                ? "Return week for correction"
-                : "Reopen timesheet"
+                ? t("Return week for correction")
+                : t("Reopen timesheet")
           }
           busy={act.isPending}
           onCancel={() => setReasonAction(null)}
@@ -718,13 +732,16 @@ export function TimesheetDetailPage() {
       {confirmApprove && (
         <ConfirmDialog
           open
-          title="Approve timesheet"
-          body={`Approve this week (${formatMinutes(sheet.total_minutes)})${
-            sheet.status === "pending_manager"
-              ? "? It will move to HR review."
-              : "?"
-          }`}
-          confirmLabel="Approve"
+          title={t("Approve timesheet")}
+          body={
+            t("Approve this week ({total})", {
+              total: formatMinutes(sheet.total_minutes, lang),
+            }) +
+            (sheet.status === "pending_manager"
+              ? t("? It will move to HR review.")
+              : "?")
+          }
+          confirmLabel={t("Approve")}
           onConfirm={() =>
             act.mutate(
               { kind: "approve" },
@@ -738,9 +755,12 @@ export function TimesheetDetailPage() {
       {confirmSubmit && (
         <ConfirmDialog
           open
-          title="Submit week"
-          body={`Submit this week for review? ${submittedDays} day(s) submitted, ${formatMinutes(sheet.total_minutes)} total.`}
-          confirmLabel="Submit"
+          title={t("Submit week")}
+          body={t("Submit this week for review? {days} day(s) submitted, {total} total.", {
+            days: submittedDays,
+            total: formatMinutes(sheet.total_minutes, lang),
+          })}
+          confirmLabel={t("Submit")}
           onConfirm={() =>
             act.mutate(
               { kind: "submit" },
@@ -755,9 +775,12 @@ export function TimesheetDetailPage() {
         <ConfirmDialog
           open
           danger
-          title="Void entry"
-          body={`Void the ${formatTimeInZone(voidTarget.start_at, sheet.timezone)}–${formatTimeInZone(voidTarget.end_at, sheet.timezone)} entry? It stays in history but no longer counts toward totals.`}
-          confirmLabel="Void"
+          title={t("Void entry")}
+          body={t("Void the {start}–{end} entry? It stays in history but no longer counts toward totals.", {
+            start: formatTimeInZone(voidTarget.start_at, sheet.timezone),
+            end: formatTimeInZone(voidTarget.end_at, sheet.timezone),
+          })}
+          confirmLabel={t("Void")}
           onConfirm={() =>
             act.mutate(
               { kind: "void", entry: voidTarget },

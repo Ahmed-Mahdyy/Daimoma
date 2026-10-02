@@ -84,7 +84,9 @@ describe("NotificationsPage", () => {
     });
     renderPage();
     await screen.findByText(/request was approved/i);
-    await userEvent.click(screen.getByRole("button", { name: "Open" }));
+    await userEvent.click(
+      screen.getByRole("button", { name: /request was approved/i }),
+    );
     await waitFor(() =>
       expect(vi.mocked(resolveNotificationTarget).mock.calls[0]?.[0]).toBe(
         "n1",
@@ -99,7 +101,9 @@ describe("NotificationsPage", () => {
     );
     renderPage();
     await screen.findByText(/request was approved/i);
-    await userEvent.click(screen.getByRole("button", { name: "Open" }));
+    await userEvent.click(
+      screen.getByRole("button", { name: /request was approved/i }),
+    );
     expect(
       await screen.findByText(/no longer accessible/i),
     ).toBeInTheDocument();

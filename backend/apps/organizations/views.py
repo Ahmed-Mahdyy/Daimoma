@@ -1,3 +1,4 @@
+from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import extend_schema, inline_serializer
 from rest_framework import serializers as drf_serializers
 from rest_framework import status
@@ -129,6 +130,30 @@ class EmployeeDetailView(APIView):
         version = attrs.pop("version", None)
         profile = update_employee(request.user, profile, attrs, expected_version=version)
         return Response(EmployeeSummarySerializer(profile).data)
+
+
+class EmployeePhotoView(APIView):
+    """GET /api/v1/employees/{id}/photo/ — streams the employee's photo under
+    the same scoped visibility as the detail endpoint; out-of-scope ids and
+    missing photos are both 404 (non-enumerating)."""
+
+    permission_classes = [IsActiveAuthenticated]
+    http_method_names = ["get", "head", "options"]
+
+    @extend_schema(
+        responses={(200, "image/*"): OpenApiTypes.BINARY},
+        description="Returns photo bytes; 404 when out of scope or unset.",
+    )
+    def get(self, request, pk):
+        from django.http import FileResponse
+
+        profile = get_visible_profile(request.user, pk)  # 404 when out of scope
+        if not profile.photo:
+            raise NotFound
+        return FileResponse(
+            profile.photo.open("rb"),
+            content_type=profile.photo_content_type or "application/octet-stream",
+        )
 
 
 class _HRAction(APIView):

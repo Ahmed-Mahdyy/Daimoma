@@ -1,6 +1,6 @@
 # Tasks: Dashboards, Reporting, Notifications
 
-**Status**: Not implemented. Tests mandatory; IDs local to 005.
+**Status**: Implemented, verified, and **accepted 2026-10-02 (owner)**. Mandatory tests; IDs local to 005.
 
 ## Setup and Foundational
 
@@ -36,7 +36,7 @@ Goal: safe notification history and no stale identity/scope data. Independent te
 
 - [x] T013 Add OpenAPI/type drift and bounded-query tests in `backend/apps/reporting/tests/`; profile before adding indexes/caches (FR-003, FR-008).
 - [x] T014 Add cross-role dashboard/report/inbox browser journeys in `tests/e2e/reporting.spec.ts` including filter errors, reopening, logout, and network failure (FR-001, FR-002, FR-005, FR-006, FR-007, FR-008).
-- [ ] T015 Record actual reconciliation/export/query/viewport evidence in `docs/evidence/005-reporting.md`; reconcile contracts and obtain review (FR-002, FR-004, FR-008).
+- [x] T015 Record actual reconciliation/export/query/viewport evidence in `docs/evidence/005-dashboard-reporting.md`; reconcile contracts and obtain review (FR-002, FR-004, FR-008). **Accepted 2026-10-02 (owner).** Open defects retained: none. Recorded limitations: inbox paginator uses global page size 25 (approved 50 untuned); `?department=` report filter is API-only; CDS copyright headers removed per owner instruction — not applicable to this non-Odoo project.
 
 ## Dependencies and Strategy
 

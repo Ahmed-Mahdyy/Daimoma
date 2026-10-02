@@ -1,21 +1,30 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Check, CheckCheck } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
+import { ApiError } from "../../api/client";
+import { useLanguage } from "../../app/LanguageProvider";
+import { formatDateTime } from "../../lib/dates";
 import {
   getUnreadCount,
   listNotifications,
   markAllNotificationsRead,
   markNotificationRead,
+  resolveNotificationTarget,
 } from "../../api/notifications";
 
 /** Notification bell with unread badge + dropdown list. The badge polls the
  * cheap unread-count endpoint every 60s (D-009) and pauses while the tab is
- * hidden; the full list only fetches when the dropdown opens. */
+ * hidden; the full list only fetches when the dropdown opens. Clicking an
+ * item resolves its target server-side and navigates to the exact record. */
 export function NotificationBell() {
+  const { t } = useLanguage();
   const [open, setOpen] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const ref = useRef<HTMLDivElement>(null);
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
 
   const { data: count } = useQuery({
     queryKey: ["notifications", "unread-count"],
@@ -25,7 +34,7 @@ export function NotificationBell() {
 
   const { data } = useQuery({
     queryKey: ["notifications"],
-    queryFn: () => listNotifications(false),
+    queryFn: () => listNotifications(),
     enabled: open,
   });
 
@@ -40,6 +49,22 @@ export function NotificationBell() {
   const readAllMutation = useMutation({
     mutationFn: markAllNotificationsRead,
     onSuccess: invalidate,
+  });
+  const followMutation = useMutation({
+    mutationFn: resolveNotificationTarget,
+    onSuccess: ({ url }, id) => {
+      setError(null);
+      setOpen(false);
+      readMutation.mutate(id);
+      navigate(url);
+    },
+    onError: (e) => {
+      setError(
+        e instanceof ApiError && e.status === 404
+          ? t("That item is no longer accessible.")
+          : t("Could not open the notification."),
+      );
+    },
   });
 
   useEffect(() => {
@@ -65,10 +90,10 @@ export function NotificationBell() {
     <div ref={ref} className="relative">
       <button
         type="button"
-        aria-label={`Notifications, ${unread} unread`}
+        aria-label={t("Notifications, {count} unread", { count: unread })}
         aria-expanded={open}
         onClick={() => setOpen((v) => !v)}
-        className="relative rounded-md p-2 text-gray-700 hover:bg-gray-100"
+        className="relative rounded-lg border border-transparent p-2 text-slate-600 transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 dark:border-slate-500/60 dark:text-slate-300 dark:hover:bg-white/10 dark:hover:text-white"
       >
         <svg
           aria-hidden="true"
@@ -90,56 +115,79 @@ export function NotificationBell() {
       {open && (
         <div
           role="menu"
-          className="absolute right-0 z-30 mt-1 w-80 rounded-lg border bg-white shadow-lg"
+          className="absolute right-0 z-30 mt-1 w-80 rounded-lg border bg-popover text-popover-foreground shadow-lg ring-1 ring-foreground/10"
         >
           <div className="flex items-center justify-between border-b px-3 py-2">
-            <span className="text-sm font-semibold">Notifications</span>
+            <span className="text-sm font-semibold">{t("Notifications")}</span>
             {unread > 0 && (
               <button
                 type="button"
-                className="text-xs text-brand-700 underline"
+                aria-label={t("Mark all read")}
+                title={t("Mark all read")}
+                className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
                 onClick={() => readAllMutation.mutate()}
               >
-                Mark all read
+                <CheckCheck className="size-4" aria-hidden="true" />
               </button>
             )}
           </div>
-          <ul className="max-h-96 overflow-y-auto">
+          <ul className="max-h-96 overflow-y-auto p-1">
             {items.length === 0 && (
-              <li className="p-3 text-sm text-gray-500">No notifications.</li>
+              <li className="p-3 text-sm text-muted-foreground">{t("No notifications.")}</li>
             )}
             {items.map((n) => (
               <li
                 key={n.id}
-                className={`border-b px-3 py-2 text-sm last:border-0 ${
-                  n.is_read ? "text-gray-500" : "font-medium"
-                }`}
+                className="flex items-start gap-1 border-b px-1 py-1 last:border-0"
               >
-                <div className="flex items-start justify-between gap-2">
-                  <span>{n.summary}</span>
-                  {!n.is_read && (
-                    <button
-                      type="button"
-                      className="shrink-0 text-xs text-brand-700 underline"
-                      onClick={() => readMutation.mutate(n.id)}
+                <button
+                  type="button"
+                  onClick={() => followMutation.mutate(n.id)}
+                  className="flex min-w-0 flex-1 items-start gap-2 rounded-md px-1.5 py-1.5 text-start text-sm transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+                >
+                  <span
+                    aria-hidden="true"
+                    className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${n.is_read ? "bg-transparent" : "bg-brand-500"}`}
+                  />
+                  <span className="min-w-0 flex-1">
+                    <span
+                      className={
+                        n.is_read ? "text-muted-foreground" : "font-medium"
+                      }
                     >
-                      Mark read
-                    </button>
-                  )}
-                </div>
-                <time className="text-xs text-gray-400">
-                  {new Date(n.created_at).toLocaleString()}
-                </time>
+                      {n.summary}
+                    </span>
+                    <time className="block text-xs text-muted-foreground">
+                      {formatDateTime(n.created_at)}
+                    </time>
+                  </span>
+                </button>
+                {!n.is_read && (
+                  <button
+                    type="button"
+                    aria-label={t("Mark read")}
+                    title={t("Mark read")}
+                    className="mt-1.5 shrink-0 rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+                    onClick={() => readMutation.mutate(n.id)}
+                  >
+                    <Check className="size-3.5" aria-hidden="true" />
+                  </button>
+                )}
               </li>
             ))}
           </ul>
+          {error && (
+            <p role="alert" className="border-t px-3 py-2 text-xs text-destructive">
+              {error}
+            </p>
+          )}
           <div className="border-t px-3 py-2 text-center">
             <Link
               to="/notifications"
-              className="text-xs text-brand-700 underline"
+              className="workspace-link text-xs"
               onClick={() => setOpen(false)}
             >
-              View all notifications
+              {t("View all notifications")}
             </Link>
           </div>
         </div>

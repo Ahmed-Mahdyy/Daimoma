@@ -6,7 +6,8 @@ draft visibility rule."""
 import uuid
 from datetime import date
 
-from django.db.models import Q
+from django.db.models import Q, Sum
+from django.db.models.functions import Coalesce
 from rest_framework.exceptions import ValidationError
 
 from apps.accounts.permissions import is_hr, is_manager
@@ -19,6 +20,15 @@ ORDERING_ALLOWLIST = {
     "-submitted_at",
     "status",
     "-status",
+    "employee",
+    "-employee",
+    "total_minutes",
+    "-total_minutes",
+}
+
+ORDERING_FIELD_MAP = {
+    "employee": "employee__display_name",
+    "-employee": "-employee__display_name",
 }
 
 
@@ -43,8 +53,24 @@ def scoped_timesheets(user):
 def timesheet_queryset(user, params):
     """Scoped list with bounded filters/ordering. Params: status, employee,
     period_start (YYYY-MM-DD = period containing that date), ordering."""
-    qs = scoped_timesheets(user).select_related(
-        "employee", "employee__user", "employee__department", "current_reviewer"
+    qs = (
+        scoped_timesheets(user)
+        .select_related(
+            "employee",
+            "employee__user",
+            "employee__department",
+            "current_reviewer",
+            "current_reviewer__profile",
+        )
+        .annotate(
+            total_minutes=Coalesce(
+                Sum(
+                    "days__entries__duration_minutes",
+                    filter=Q(days__entries__voided_at__isnull=True),
+                ),
+                0,
+            )
+        )
     )
 
     if status := params.get("status"):
@@ -68,7 +94,8 @@ def timesheet_queryset(user, params):
     ordering = params.get("ordering", "-period_start")
     if ordering not in ORDERING_ALLOWLIST:
         raise ValidationError({"ordering": ["Unsupported ordering field."]})
-    return qs.order_by(ordering, "id")
+    field = ORDERING_FIELD_MAP.get(ordering, ordering)
+    return qs.order_by(field, "id")
 
 
 def sheet_for(user, sheet_id):

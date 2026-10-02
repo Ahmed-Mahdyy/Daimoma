@@ -20,4 +20,8 @@ export default tseslint.config([
       globals: globals.browser,
     },
   },
+  {
+    files: ["src/components/ui/{button,badge}.tsx", "src/app/ThemeProvider.tsx", "src/app/LanguageProvider.tsx"],
+    rules: { "react-refresh/only-export-components": "off" },
+  },
 ]);

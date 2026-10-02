@@ -131,6 +131,52 @@ class TimesheetSerializer(serializers.ModelSerializer):
         return WorkDaySerializer(days, many=True).data
 
 
+class TimesheetListSerializer(serializers.ModelSerializer):
+    """List rows omit nested days — total_minutes comes from the queryset
+    annotation, so a page of sheets costs constant queries."""
+
+    employee_name = serializers.CharField(
+        source="employee.display_name", read_only=True, default=""
+    )
+    employee_email = serializers.EmailField(source="employee.user.email", read_only=True)
+    employee_code = serializers.CharField(source="employee.employee_code", read_only=True)
+    reviewer_name = serializers.SerializerMethodField()
+    reviewer_email = serializers.SerializerMethodField()
+    total_minutes = serializers.IntegerField(read_only=True)
+    status = serializers.ChoiceField(choices=Timesheet.Status.choices, read_only=True)
+
+    class Meta:
+        model = Timesheet
+        fields = [
+            "id",
+            "employee",
+            "employee_name",
+            "employee_email",
+            "employee_code",
+            "period_start",
+            "period_end",
+            "timezone",
+            "status",
+            "current_reviewer",
+            "reviewer_name",
+            "reviewer_email",
+            "cycle",
+            "version",
+            "submitted_at",
+            "total_minutes",
+            "created_at",
+            "updated_at",
+        ]
+        read_only_fields = fields
+
+    def get_reviewer_name(self, sheet) -> str | None:
+        profile = getattr(sheet.current_reviewer, "profile", None)
+        return profile.display_name if profile else None
+
+    def get_reviewer_email(self, sheet) -> str | None:
+        return sheet.current_reviewer.email if sheet.current_reviewer else None
+
+
 class TimesheetCreateSerializer(serializers.Serializer):
     """Only an anchor date — period bounds + timezone are server-derived."""
 

@@ -1,4 +1,5 @@
 import type { RequestStatus, StepStatus } from "../../api/requests";
+import { useLanguage } from "../../app/LanguageProvider";
 
 const STATUS_STYLES: Record<string, { label: string; className: string }> = {
   draft: { label: "Draft", className: "bg-gray-100 text-gray-700" },
@@ -12,6 +13,7 @@ const STATUS_STYLES: Record<string, { label: string; className: string }> = {
 };
 
 export function StatusBadge({ status }: { status: RequestStatus | StepStatus }) {
+  const { t } = useLanguage();
   const style = STATUS_STYLES[status] ?? {
     label: status,
     className: "bg-gray-100 text-gray-700",
@@ -20,7 +22,7 @@ export function StatusBadge({ status }: { status: RequestStatus | StepStatus }) 
     <span
       className={`inline-block rounded-full px-2 py-0.5 text-xs font-medium ${style.className}`}
     >
-      {style.label}
+      {t(style.label)}
     </span>
   );
 }

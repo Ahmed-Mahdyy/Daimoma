@@ -30,6 +30,13 @@ def general_type(org):
 
 
 @pytest.fixture
+def early_leave_type(org):
+    return RequestType.objects.create(
+        organization=org, code="EARLY", name="Early leave", category="early_leave"
+    )
+
+
+@pytest.fixture
 def inactive_type(org):
     return RequestType.objects.create(
         organization=org,

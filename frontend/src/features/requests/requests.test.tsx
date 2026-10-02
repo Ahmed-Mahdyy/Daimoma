@@ -75,6 +75,8 @@ const DRAFT = {
   description: "Two weeks off",
   start_date: "2026-07-01",
   end_date: "2026-07-14",
+  start_time: null,
+  end_time: null,
   equipment_item: "",
   quantity: null,
   status: "draft" as const,

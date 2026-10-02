@@ -1,5 +1,6 @@
 # Dev/test dependencies — exact pins.
 -r requirements.txt
-pytest==8.4.2
+pytest==9.0.3
 pytest-django==4.11.1
 ruff==0.13.2
+pip-audit==2.10.1

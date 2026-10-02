@@ -3,7 +3,8 @@ changes run in services.py; views only parse, scope, and serialize."""
 
 from datetime import date as date_type
 
-from drf_spectacular.utils import extend_schema
+from drf_spectacular.utils import extend_schema, inline_serializer
+from rest_framework import serializers as drf_serializers
 from rest_framework import status as http_status
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -16,6 +17,7 @@ from apps.timesheets.serializers import (
     TimeEntryWriteSerializer,
     TimesheetCreateSerializer,
     TimesheetEventSerializer,
+    TimesheetListSerializer,
     TimesheetSerializer,
 )
 
@@ -36,14 +38,14 @@ def _detail(sheet):
 
 
 class TimesheetListView(APIView):
-    @extend_schema(responses=TimesheetSerializer(many=True))
+    @extend_schema(responses=TimesheetListSerializer(many=True))
     def get(self, request):
         qs = selectors.timesheet_queryset(request.user, request.query_params)
         from apps.accounts.pagination import DefaultPagination
 
         paginator = DefaultPagination()
         page = paginator.paginate_queryset(qs, request)
-        return paginator.get_paginated_response(TimesheetSerializer(page, many=True).data)
+        return paginator.get_paginated_response(TimesheetListSerializer(page, many=True).data)
 
     @extend_schema(
         request=TimesheetCreateSerializer,
@@ -128,6 +130,65 @@ class EntryVoidView(APIView):
             expected_version=ser.validated_data.get("expected_version"),
         )
         return Response(status=http_status.HTTP_204_NO_CONTENT)
+
+
+class PunchView(APIView):
+    """Quick check-in/out state for the caller. GET reports the open punch;
+    POST opens one; DELETE cancels it. Entries are only ever written at
+    check-out through the normal entry service."""
+
+    @extend_schema(
+        responses=inline_serializer(
+            name="PunchStatus",
+            fields={
+                "open": drf_serializers.BooleanField(),
+                "started_at": drf_serializers.DateTimeField(allow_null=True),
+            },
+        )
+    )
+    def get(self, request):
+        punch = services.punch_status(request.user)
+        return Response(
+            {"open": punch is not None, "started_at": punch.started_at if punch else None}
+        )
+
+    @extend_schema(
+        request=None,
+        responses=inline_serializer(
+            name="PunchOpened",
+            fields={"started_at": drf_serializers.DateTimeField()},
+        ),
+    )
+    def post(self, request):
+        punch = services.check_in(request.user)
+        return Response({"started_at": punch.started_at}, status=http_status.HTTP_201_CREATED)
+
+    @extend_schema(responses={204: None})
+    def delete(self, request):
+        services.cancel_check_in(request.user)
+        return Response(status=http_status.HTTP_204_NO_CONTENT)
+
+
+class PunchCheckoutView(APIView):
+    @extend_schema(
+        request=None,
+        responses=inline_serializer(
+            name="PunchCheckoutResult",
+            fields={
+                "timesheet": drf_serializers.UUIDField(),
+                "entries": TimeEntrySerializer(many=True),
+            },
+        ),
+    )
+    def post(self, request):
+        sheet, entries = services.check_out(request.user)
+        return Response(
+            {
+                "timesheet": sheet.id,
+                "entries": TimeEntrySerializer(entries, many=True).data,
+            },
+            status=http_status.HTTP_201_CREATED,
+        )
 
 
 class DaySubmitView(APIView):

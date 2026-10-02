@@ -1,18 +1,31 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { type ColumnDef } from "@tanstack/react-table";
 import { useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 
+import { Button } from "@/components/ui/button";
+import { DataTable } from "@/components/ui/data-table";
+import {
+  applySortingUpdater,
+  orderingToSorting,
+  sortingToOrdering,
+} from "@/lib/table-sorting";
+import { FilterBar, FilterSelect } from "@/components/ui/filter-bar";
+import { Input } from "@/components/ui/input";
 import {
   getOrCreateTimesheet,
   listTimesheets,
+  type Timesheet,
 } from "../../api/timesheets";
+import { apiErrorMessage } from "../../api/client";
+import { useLanguage } from "../../app/LanguageProvider";
 import { AsyncState } from "../../components/ui/AsyncState";
 import { PaginationControls } from "../../components/ui/PaginationControls";
 import { formatMinutes } from "./timezone";
 import { TimesheetStatusBadge } from "./TimesheetStatusBadge";
 
 const STATUS_OPTIONS = [
-  { value: "", label: "All statuses" },
+  { value: "", label: "All" },
   { value: "collecting", label: "Collecting" },
   { value: "pending_manager", label: "Pending manager" },
   { value: "pending_hr", label: "Pending HR" },
@@ -21,11 +34,61 @@ const STATUS_OPTIONS = [
   { value: "rejected", label: "Rejected" },
 ];
 
-const ORDERING_OPTIONS = [
-  { value: "-period_start", label: "Newest week" },
-  { value: "period_start", label: "Oldest week" },
-  { value: "status", label: "Status" },
-  { value: "-status", label: "Status (desc)" },
+/** Local "today" for the week picker — UTC slicing would drift near midnight. */
+function localToday() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
+const columns = (
+  t: (key: string, params?: Record<string, string | number>) => string,
+  lang: "en" | "ar",
+): ColumnDef<Timesheet, unknown>[] => [
+  {
+    accessorKey: "period_start",
+    header: t("Week"),
+    cell: ({ row }) => (
+      <Link
+        to={`/timesheets/${row.original.id}`}
+        className="font-medium workspace-link-quiet"
+      >
+        {row.original.period_start} – {row.original.period_end}
+      </Link>
+    ),
+  },
+  {
+    id: "employee",
+    header: t("Employee"),
+    cell: ({ row }) =>
+      row.original.employee_name || row.original.employee_email,
+  },
+  {
+    accessorKey: "status",
+    header: t("Status"),
+    cell: ({ row }) => (
+      <>
+        <TimesheetStatusBadge status={row.original.status} />
+        {row.original.cycle > 1 && (
+          <span className="ms-1 text-xs text-gray-500">
+            {t("cycle {n}", { n: row.original.cycle })}
+          </span>
+        )}
+      </>
+    ),
+  },
+  {
+    accessorKey: "total_minutes",
+    header: t("Total"),
+    cell: ({ row }) => formatMinutes(row.original.total_minutes, lang),
+  },
+  {
+    id: "reviewer",
+    header: t("Reviewer"),
+    enableSorting: false,
+    cell: ({ row }) => (
+      <span className="text-gray-600">{row.original.reviewer_name ?? "—"}</span>
+    ),
+  },
 ];
 
 /** Scoped timesheet list — the server scopes by role: employees see their
@@ -34,6 +97,7 @@ export function TimesheetsPage() {
   const [params, setParams] = useSearchParams();
   const navigate = useNavigate();
   const qc = useQueryClient();
+  const { t, lang } = useLanguage();
 
   const filters = {
     status: params.get("status") ?? "",
@@ -48,9 +112,12 @@ export function TimesheetsPage() {
     placeholderData: (prev) => prev,
   });
 
-  const [anchorDate, setAnchorDate] = useState(
-    new Date().toISOString().slice(0, 10),
-  );
+  const [anchorDate, setAnchorDate] = useState(() => {
+    const candidate = params.get("date") ?? "";
+    return /^\d{4}-\d{2}-\d{2}$/.test(candidate) && !Number.isNaN(Date.parse(candidate))
+      ? candidate
+      : new Date().toISOString().slice(0, 10);
+  });
 
   const openWeek = useMutation({
     mutationFn: (date: string) => getOrCreateTimesheet(date),
@@ -60,6 +127,8 @@ export function TimesheetsPage() {
     },
   });
 
+  const sorting = orderingToSorting(filters.ordering);
+
   const setParam = (key: string, value: string) => {
     const next = new URLSearchParams(params);
     if (value) next.set(key, value);
@@ -68,130 +137,74 @@ export function TimesheetsPage() {
     setParams(next, { replace: true });
   };
 
-  const input = "rounded-md border border-gray-300 px-2 py-1.5 text-sm";
-
   return (
     <div>
       <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
-        <h1 className="text-2xl font-semibold">Timesheets</h1>
+        <div><span className="text-xs font-bold uppercase tracking-widest text-brand-700">{t("WORKSPACE / TIME")}</span><h1 className="mt-1 text-3xl font-bold">{t("Timesheets")}</h1><p className="mt-1 text-sm text-slate-600">{t("Record time and follow each week's progress.")}</p></div>
         <div className="flex items-center gap-2">
           <label className="text-sm text-gray-600">
-            <span className="sr-only">Week containing date</span>
-            <input
+            <span className="sr-only">{t("Week containing date")}</span>
+            <Input
               type="date"
               value={anchorDate}
+              max={localToday()}
               onChange={(e) => setAnchorDate(e.target.value)}
               className="rounded-md border border-gray-300 px-2 py-1.5 text-sm"
             />
           </label>
-          <button
-            type="button"
-            onClick={() => openWeek.mutate(anchorDate)}
-            disabled={openWeek.isPending}
-            className="rounded-md bg-brand-700 px-3 py-1.5 text-sm font-medium text-white hover:bg-brand-600 disabled:opacity-50"
-          >
-            Open week
-          </button>
+          <Button type="button" onClick={() => openWeek.mutate(anchorDate)} disabled={openWeek.isPending}>
+            {t("Open week")}
+          </Button>
         </div>
       </div>
       {openWeek.isError && (
         <p role="alert" className="mb-3 text-sm text-red-700">
-          Could not open that week. Please try again.
+          {apiErrorMessage(openWeek.error)}
         </p>
       )}
 
-      <div className="mb-4 flex flex-wrap items-center gap-2">
-        <label className="text-sm">
-          <span className="sr-only">Status</span>
-          <select
-            className={input}
-            value={filters.status}
-            onChange={(e) => setParam("status", e.target.value)}
-          >
-            {STATUS_OPTIONS.map((o) => (
-              <option key={o.value} value={o.value}>
-                {o.label}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="text-sm">
-          <span className="sr-only">Ordering</span>
-          <select
-            className={input}
-            value={filters.ordering}
-            onChange={(e) => setParam("ordering", e.target.value)}
-          >
-            {ORDERING_OPTIONS.map((o) => (
-              <option key={o.value} value={o.value}>
-                {o.label}
-              </option>
-            ))}
-          </select>
-        </label>
-      </div>
+      <FilterBar>
+        <FilterSelect
+          label={t("Status")}
+          value={filters.status}
+          onChange={(v) => setParam("status", v)}
+        >
+          {STATUS_OPTIONS.map((o) => (
+            <option key={o.value} value={o.value}>
+              {t(o.label)}
+            </option>
+          ))}
+        </FilterSelect>
+      </FilterBar>
 
       <AsyncState isLoading={isLoading} error={error}>
         {data && data.results.length === 0 ? (
           <p className="rounded-md border border-dashed p-6 text-center text-sm text-gray-500">
-            No timesheets found.
+            {t("No timesheets found.")}
           </p>
         ) : (
-          <div className="overflow-x-auto rounded-md border bg-white">
-            <table className="min-w-full divide-y divide-gray-200 text-sm">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-4 py-2 text-start font-medium">Week</th>
-                  <th className="px-4 py-2 text-start font-medium">Employee</th>
-                  <th className="px-4 py-2 text-start font-medium">Status</th>
-                  <th className="px-4 py-2 text-start font-medium">Total</th>
-                  <th className="px-4 py-2 text-start font-medium">Reviewer</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
-                {data?.results.map((sheet) => (
-                  <tr key={sheet.id}>
-                    <td className="px-4 py-2">
-                      <Link
-                        to={`/timesheets/${sheet.id}`}
-                        className="font-medium text-brand-700 hover:underline"
-                      >
-                        {sheet.period_start} – {sheet.period_end}
-                      </Link>
-                    </td>
-                    <td className="px-4 py-2">
-                      {sheet.employee_name || sheet.employee_email}
-                    </td>
-                    <td className="px-4 py-2">
-                      <TimesheetStatusBadge status={sheet.status} />
-                      {sheet.cycle > 1 && (
-                        <span className="ms-1 text-xs text-gray-500">
-                          cycle {sheet.cycle}
-                        </span>
-                      )}
-                    </td>
-                    <td className="px-4 py-2">
-                      {formatMinutes(sheet.total_minutes)}
-                    </td>
-                    <td className="px-4 py-2 text-gray-600">
-                      {sheet.reviewer_name ?? "—"}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <DataTable<Timesheet>
+            columns={columns(t, lang)}
+            data={data?.results ?? []}
+            manualSorting
+            sorting={sorting}
+            onSortingChange={(u) =>
+              setParam("ordering", sortingToOrdering(applySortingUpdater(u, sorting)))
+            }
+            emptyText={t("No timesheets found.")}
+            footer={
+              data && (
+                <PaginationControls
+                  page={filters.page}
+                  count={data.count}
+                  pageSize={filters.page_size}
+                  onPage={(p) => setParam("page", String(p))}
+                />
+              )
+            }
+          />
         )}
       </AsyncState>
-
-      {data && (
-        <PaginationControls
-          page={filters.page}
-          count={data.count}
-          pageSize={filters.page_size}
-          onPage={(p) => setParam("page", String(p))}
-        />
-      )}
     </div>
   );
 }

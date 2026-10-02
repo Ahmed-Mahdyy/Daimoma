@@ -40,10 +40,15 @@ class NotificationListView(APIView):
     @extend_schema(responses={200: PagedNotifications}, operation_id="notifications_list")
     def get(self, request):
         qs = Notification.objects.filter(recipient=request.user)
-        if request.query_params.get("unread") == "true":
+        unread_param = request.query_params.get("unread")
+        if unread_param == "true":
             qs = qs.filter(read_at__isnull=True)
+        elif unread_param == "false":
+            qs = qs.filter(read_at__isnull=False)
         if kind := request.query_params.get("kind"):
             qs = qs.filter(kind=kind)
+        if request.query_params.get("ordering") == "created_at":
+            qs = qs.order_by("created_at")
         unread = Notification.objects.filter(recipient=request.user, read_at__isnull=True).count()
         paginator = InboxPagination()
         page = paginator.paginate_queryset(qs, request, view=self)

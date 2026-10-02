@@ -3,6 +3,7 @@ import { useState } from "react";
 
 import { managerChoices } from "../../api/employees";
 import { getOrgSettings, updateOrgSettings } from "../../api/organization";
+import { useLanguage } from "../../app/LanguageProvider";
 import { Alert } from "../../components/ui/Alert";
 import { AsyncState } from "../../components/ui/AsyncState";
 
@@ -21,6 +22,7 @@ const TIMEZONES = ["UTC", "Africa/Cairo", "Asia/Dubai", "Europe/London"];
 /** HR-only organization settings: display name, IANA timezone, week start,
  * and the fallback reviewer (must be an active HR member). */
 export function OrgSettingsPage() {
+  const { t } = useLanguage();
   const queryClient = useQueryClient();
   const { data, isLoading, error } = useQuery({
     queryKey: ["orgSettings"],
@@ -44,10 +46,10 @@ export function OrgSettingsPage() {
     mutationFn: updateOrgSettings,
     onSuccess: (updated) => {
       setForm(null);
-      setNotice("Settings saved.");
+      setNotice(t("Settings saved."));
       queryClient.setQueryData(["orgSettings"], updated);
     },
-    onError: (e) => setSaveError(e instanceof Error ? e.message : "Failed."),
+    onError: (e) => setSaveError(e instanceof Error ? e.message : t("Failed.")),
   });
 
   const hrChoices = (choices?.results ?? []).filter((c) =>
@@ -55,8 +57,8 @@ export function OrgSettingsPage() {
   );
 
   return (
-    <div className="max-w-xl">
-      <h1 className="text-xl font-semibold">Organization settings</h1>
+    <div>
+      <h1 className="text-xl font-semibold">{t("Organization settings")}</h1>
       <AsyncState isLoading={isLoading} error={error}>
         {data && (
           <>
@@ -71,14 +73,14 @@ export function OrgSettingsPage() {
               </div>
             )}
             <form
-              className="mt-4 grid gap-3 rounded-lg border bg-white p-4"
+              className="workspace-panel mt-4 grid grid-cols-1 gap-4 p-5 sm:grid-cols-2"
               onSubmit={(e) => {
                 e.preventDefault();
                 if (form) mutation.mutate(form);
               }}
             >
               <label className="text-sm">
-                Organization name
+                {t("Organization name")}
                 <input
                   className={input}
                   value={form?.name ?? data.name}
@@ -88,7 +90,7 @@ export function OrgSettingsPage() {
                 />
               </label>
               <label className="text-sm">
-                Timezone
+                {t("Timezone")}
                 <select
                   className={input}
                   value={form?.timezone ?? data.timezone}
@@ -104,7 +106,7 @@ export function OrgSettingsPage() {
                 </select>
               </label>
               <label className="text-sm">
-                Week starts on
+                {t("Week starts on")}
                 <select
                   className={input}
                   value={form?.week_start ?? data.week_start}
@@ -117,13 +119,13 @@ export function OrgSettingsPage() {
                 >
                   {WEEK_DAYS.map((d, i) => (
                     <option key={i} value={i}>
-                      {d}
+                      {t(d)}
                     </option>
                   ))}
                 </select>
               </label>
               <label className="text-sm">
-                Fallback reviewer (active HR member)
+                {t("Fallback reviewer (active HR member)")}
                 <select
                   className={input}
                   value={form?.fallback_reviewer ?? data.fallback_reviewer ?? ""}
@@ -134,7 +136,7 @@ export function OrgSettingsPage() {
                     }))
                   }
                 >
-                  <option value="">None</option>
+                  <option value="">{t("None")}</option>
                   {hrChoices.map((c) => (
                     <option key={c.user_id} value={c.user_id}>
                       {c.display_name || c.employee_code}
@@ -142,16 +144,18 @@ export function OrgSettingsPage() {
                   ))}
                 </select>
                 <span className="text-xs text-gray-500">
-                  Used when a request has no eligible manager.
+                  {t("Used when a request has no eligible manager.")}
                 </span>
               </label>
-              <button
-                type="submit"
-                disabled={!form || mutation.isPending}
-                className="mt-2 rounded-md bg-brand-600 px-4 py-2 text-sm text-white disabled:opacity-40"
-              >
-                {mutation.isPending ? "Saving…" : "Save settings"}
-              </button>
+              <div className="sm:col-span-2">
+                <button
+                  type="submit"
+                  disabled={!form || mutation.isPending}
+                  className="rounded-md bg-brand-600 px-4 py-2 text-sm text-white disabled:opacity-40"
+                >
+                  {mutation.isPending ? t("Saving…") : t("Save settings")}
+                </button>
+              </div>
             </form>
           </>
         )}

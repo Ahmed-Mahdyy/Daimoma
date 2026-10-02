@@ -4,6 +4,11 @@ export interface Department {
   id: string;
   name: string;
   is_active: boolean;
+  created_at: string;
+}
+
+export function getDepartment(id: string) {
+  return apiFetch<Department>(`/api/v1/departments/${id}/`);
 }
 
 export function listDepartments() {

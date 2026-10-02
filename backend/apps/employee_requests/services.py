@@ -51,6 +51,8 @@ def create_draft(user, data):
         description=data.get("description", ""),
         start_date=data.get("start_date"),
         end_date=data.get("end_date"),
+        start_time=data.get("start_time"),
+        end_time=data.get("end_time"),
         equipment_item=data.get("equipment_item", ""),
         quantity=data.get("quantity"),
     )
@@ -75,6 +77,8 @@ def update_draft(request_obj, user, data):
             "description": data.get("description", req.description),
             "start_date": data.get("start_date", req.start_date),
             "end_date": data.get("end_date", req.end_date),
+            "start_time": data.get("start_time", req.start_time),
+            "end_time": data.get("end_time", req.end_time),
             "equipment_item": data.get("equipment_item", req.equipment_item),
             "quantity": data.get("quantity", req.quantity),
         }
@@ -112,11 +116,15 @@ def _eligible_hr(user):
 
 def _resolve_route(req):
     """D-004 reviewer resolution, evaluated under the request lock:
-    - requester's active manager reviews first (never the requester)
-    - missing/ineligible/self manager -> eligible non-self HR
-    - requires_hr adds a second HR step only when a manager reviewed first;
-      an HR fallback completes even an HR-required request in one step
-    - no eligible reviewer -> block submission (no unowned queue)"""
+    - requires_manager=True -> requester's active manager reviews first
+      (never the requester); missing/ineligible/self manager -> eligible
+      non-self HR completes the cycle in one step
+    - requires_hr=True adds a second HR step after a manager review; an HR
+      fallback completes even an HR-required request in one step
+    - requires_manager=False + requires_hr=True -> straight to HR (no
+      manager stage at all)
+    - no eligible reviewer for the configured route -> block submission
+      (no unowned queue)"""
     owner = req.employee.user
     manager_user = None
     mgr_profile = req.employee.manager
@@ -127,17 +135,18 @@ def _resolve_route(req):
     hr_reviewer = _eligible_hr(owner)
     if manager_user is None and hr_reviewer is None:
         return None
-    steps = []
-    if manager_user is not None:
-        steps.append((1, "manager", manager_user, "pending"))
+    if req.type.requires_manager and manager_user is not None:
+        steps = [(1, "manager", manager_user, "pending")]
         if req.type.requires_hr:
             if hr_reviewer is None:
                 return None
             steps.append((2, "hr", hr_reviewer, "waiting"))
-    else:
-        # Fallback HR decision completes even an HR-required request (D-004).
-        steps.append((1, "hr", hr_reviewer, "pending"))
-    return steps
+        return steps
+    # HR-only type, or a manager-first type with no eligible manager: an
+    # eligible non-self HR reviewer completes the cycle in one step (D-004).
+    if hr_reviewer is None:
+        return None
+    return [(1, "hr", hr_reviewer, "pending")]
 
 
 def submit_request(request_obj, user, expected_version=None):
@@ -187,6 +196,7 @@ def submit_request(request_obj, user, expected_version=None):
             for seq, role, reviewer, status_ in route
         ]
         req.route_snapshot = {
+            "requires_manager": req.type.requires_manager,
             "requires_hr": req.type.requires_hr,
             "reviewer_id": str(route[0][2].pk),
             "steps": [

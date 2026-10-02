@@ -1,6 +1,7 @@
 from django.contrib.auth import logout, update_session_auth_hash
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import ensure_csrf_cookie
+from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import extend_schema, inline_serializer
 from rest_framework import serializers as drf_serializers
 from rest_framework.permissions import AllowAny
@@ -153,3 +154,87 @@ class MeView(APIView):
         serializer.is_valid(raise_exception=True)
         serializer.save()
         return Response(serializer.data)
+
+
+PHOTO_MIME_TYPES = {"image/png", "image/jpeg", "image/webp"}
+PHOTO_MAX_BYTES = 2 * 1024 * 1024
+
+
+class MePhotoView(APIView):
+    """GET /api/v1/me/photo/ — stream the caller's profile photo (auth-gated;
+    private media is never served as an open static file).
+    POST /api/v1/me/photo/ — multipart upload; PNG/JPEG/WebP up to 2 MiB.
+    DELETE /api/v1/me/photo/ — remove the current photo."""
+
+    permission_classes = [IsActiveAuthenticated]
+
+    @extend_schema(
+        responses={(200, "image/*"): OpenApiTypes.BINARY},
+        description="Returns the photo bytes (image/png, image/jpeg or "
+        "image/webp). 404 when no photo is set.",
+    )
+    def get(self, request):
+        from django.http import FileResponse, Http404
+
+        profile = request.user.profile
+        if not profile.photo:
+            raise Http404
+        return FileResponse(
+            profile.photo.open("rb"),
+            content_type=profile.photo_content_type or "application/octet-stream",
+        )
+
+    @extend_schema(
+        request={
+            "multipart/form-data": {
+                "type": "object",
+                "properties": {"photo": {"type": "string", "format": "binary"}},
+                "required": ["photo"],
+            }
+        },
+        responses={200: MeSerializer},
+    )
+    def post(self, request):
+        import io
+
+        from PIL import Image
+        from rest_framework.exceptions import ValidationError
+
+        upload = request.FILES.get("photo")
+        if upload is None:
+            raise ValidationError({"photo": ["Choose an image file."]})
+        if upload.size > PHOTO_MAX_BYTES:
+            raise ValidationError(
+                {"photo": ["Photo must be smaller than 2 MiB."]}
+            )
+        if upload.content_type not in PHOTO_MIME_TYPES:
+            raise ValidationError(
+                {"photo": ["Use a PNG, JPEG, or WebP image."]}
+            )
+        try:
+            # verify() detects truncated/spoofed content; context_type alone
+            # is user-controlled and cannot be trusted.
+            Image.open(io.BytesIO(upload.read())).verify()
+            upload.seek(0)
+        except Exception:
+            raise ValidationError(
+                {"photo": ["That file is not a valid image."]}
+            ) from None
+
+        profile = request.user.profile
+        profile.photo = upload
+        profile.photo_content_type = upload.content_type
+        profile.save(update_fields=["photo", "photo_content_type", "updated_at"])
+        return Response(MeSerializer(profile).data)
+
+    @extend_schema(responses={200: MeSerializer})
+    def delete(self, request):
+        profile = request.user.profile
+        if profile.photo:
+            profile.photo.delete(save=False)
+            profile.photo = ""
+            profile.photo_content_type = ""
+            profile.save(
+                update_fields=["photo", "photo_content_type", "updated_at"]
+            )
+        return Response(MeSerializer(profile).data)

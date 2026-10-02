@@ -41,7 +41,7 @@ test("HR sees admin navigation and the org-wide directory", async ({
 }) => {
   await loginAs(page, "hr-e2e@acme.test");
   await expect(
-    page.getByRole("link", { name: "Departments" }),
+    page.getByRole("navigation", { name: "Main" }).getByRole("link", { name: "Departments", exact: true }),
   ).toBeVisible();
   await expect(page.getByRole("link", { name: "Audit" })).toBeVisible();
 
@@ -51,16 +51,19 @@ test("HR sees admin navigation and the org-wide directory", async ({
   await expect(table.getByText("Edu Employee")).toBeVisible();
 });
 
-test("employee sees a self-only directory and no admin navigation", async ({
+test("employee has no directory nav link; direct URL stays self-scoped", async ({
   page,
 }) => {
   await loginAs(page, "employee-e2e@acme.test");
+  const nav = page.getByRole("navigation", { name: "Main" });
   await expect(
-    page.getByRole("link", { name: "Departments" }),
+    nav.getByRole("link", { name: "Departments", exact: true }),
   ).not.toBeVisible();
+  await expect(nav.getByRole("link", { name: "Employees" })).not.toBeVisible();
   await expect(page.getByRole("link", { name: "Audit" })).not.toBeVisible();
 
-  await page.getByRole("link", { name: "Employees" }).click();
+  // The route remains reachable; the API self-scopes the directory.
+  await page.goto("/employees");
   const table = page.getByRole("table");
   await expect(table.getByText("Edu Employee")).toBeVisible();
   await expect(table.getByText("Harriet HR")).not.toBeVisible();
@@ -70,7 +73,7 @@ test("manager sees only direct reports in the directory", async ({ page }) => {
   await loginAs(page, "manager-e2e@acme.test");
   await expect(page.getByRole("link", { name: "Audit" })).toBeVisible();
   await expect(
-    page.getByRole("link", { name: "Departments" }),
+    page.getByRole("navigation", { name: "Main" }).getByRole("link", { name: "Departments", exact: true }),
   ).not.toBeVisible();
 
   await page.getByRole("link", { name: "Employees" }).click();

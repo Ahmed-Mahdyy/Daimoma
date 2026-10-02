@@ -1,6 +1,6 @@
 # Quality Gate Contract
 
-Status: proposed execution gate; owner approves operating limits and environment before measurement.
+Status: **approved 2026-10-02 (owner)** — workload/budget figures recorded in AGENTS.md D-009: 500 employees / 52 weeks (~130k entries) / ~5k requests / ~20k notifications; 25 concurrent users; p95 reads <300ms, writes <500ms, reports <1s, export <10s, errors <0.1%; bundle <500KB gzipped; measured on the dev docker-compose stack with hardware documented (development-hardware measurement, not production SLA).
 
 | Gate | Required evidence | Failure behavior |
 | --- | --- | --- |

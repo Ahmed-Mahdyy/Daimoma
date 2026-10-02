@@ -1,7 +1,7 @@
 # Implementation Plan: Release Hardening
 
 **Feature**: 006-release-hardening | **Date**: 2026-09-20 | **Spec**: [spec.md](spec.md)
-**Status**: Provisional; no application test evidence exists yet.
+**Status**: Executed 2026-10-02; evidence under docs/evidence/006-*.md — owner acceptance pending.
 
 ## Technical Context and Structure
 

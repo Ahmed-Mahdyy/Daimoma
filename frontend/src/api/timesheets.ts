@@ -190,3 +190,24 @@ export const reopenTimesheet = (id: string, v: number, reason: string) =>
 export function getTimesheetHistory(id: string): Promise<TimesheetEvent[]> {
   return apiFetch(`/api/v1/timesheets/${id}/history/`);
 }
+
+export interface PunchStatus {
+  open: boolean;
+  started_at: string | null;
+}
+
+export function getPunchStatus(): Promise<PunchStatus> {
+  return apiFetch("/api/v1/timesheets/punch/");
+}
+
+export function checkIn(): Promise<{ started_at: string }> {
+  return apiFetch("/api/v1/timesheets/punch/", { method: "POST" });
+}
+
+export function checkOut(): Promise<{ timesheet: string; entries: TimeEntry[] }> {
+  return apiFetch("/api/v1/timesheets/punch/checkout/", { method: "POST" });
+}
+
+export function cancelCheckIn(): Promise<void> {
+  return apiFetch("/api/v1/timesheets/punch/", { method: "DELETE" });
+}

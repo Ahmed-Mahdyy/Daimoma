@@ -61,6 +61,7 @@ class MeSerializer(serializers.ModelSerializer):
 
     email = serializers.EmailField(source="user.email", read_only=True)
     roles = serializers.SerializerMethodField()
+    photo_url = serializers.SerializerMethodField()
     department = serializers.UUIDField(read_only=True)
     manager = serializers.UUIDField(read_only=True)
     version = serializers.IntegerField(min_value=1, required=False)
@@ -75,6 +76,7 @@ class MeSerializer(serializers.ModelSerializer):
             "display_name",
             "phone",
             "preferred_locale",
+            "photo_url",
             "job_title",
             "department",
             "manager",
@@ -85,6 +87,7 @@ class MeSerializer(serializers.ModelSerializer):
             "email",
             "roles",
             "employee_code",
+            "photo_url",
             "job_title",
             "department",
             "manager",
@@ -92,6 +95,12 @@ class MeSerializer(serializers.ModelSerializer):
 
     def get_roles(self, profile) -> list[str]:
         return sorted(profile.user.groups.values_list("name", flat=True))
+
+    def get_photo_url(self, profile) -> str:
+        """Auth-gated photo URL; the `v` param busts caches after upload."""
+        if not profile.photo:
+            return ""
+        return f"/api/v1/me/photo/?v={int(profile.updated_at.timestamp())}"
 
     def to_internal_value(self, data):
         rejected = set(data) - self.WRITABLE

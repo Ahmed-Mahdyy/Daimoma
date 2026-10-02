@@ -17,15 +17,18 @@ async function loginAs(page: Page, email: string) {
 }
 
 async function signOut(page: Page) {
-  await page.getByRole("button", { name: /sign out/i }).click();
+  const sidebarSignOut = page.locator("aside").getByRole("button", { name: /sign out/i, includeHidden: true });
+  if (!(await sidebarSignOut.isVisible())) await page.getByRole("button", { name: "Open menu" }).click();
+  await sidebarSignOut.click();
   await expect(page).toHaveURL(/\/login/);
 }
 
 test.describe.serial("request lifecycle", () => {
   test("employee drafts and submits a leave request", async ({ page }) => {
     await loginAs(page, "employee-e2e@acme.test");
-    await page.getByRole("link", { name: "Requests" }).click();
-    await page.getByRole("link", { name: /new request/i }).click();
+    await page.getByRole("navigation", { name: "Main" }).getByRole("link", { name: "Requests", exact: true }).click();
+    await expect(page.getByRole("heading", { name: "Requests", level: 1 })).toBeVisible();
+    await page.getByRole("link", { name: "New request", exact: true }).click();
 
     await page.getByLabel(/request type/i).selectOption({ label: "Annual leave" });
     await page.getByLabel(/^title$/i).fill(TITLE);
@@ -113,8 +116,10 @@ test.describe.serial("request lifecycle", () => {
 test("mobile viewport: request form is usable at 360px", async ({ page }) => {
   await page.setViewportSize({ width: 360, height: 800 });
   await loginAs(page, "employee-e2e@acme.test");
-  await page.getByRole("link", { name: "Requests" }).click();
-  await page.getByRole("link", { name: /new request/i }).click();
+  await page.getByRole("button", { name: "Open menu" }).click();
+  await page.getByRole("navigation", { name: "Main" }).getByRole("link", { name: "Requests", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "Requests", level: 1 })).toBeVisible();
+  await page.getByRole("link", { name: "New request", exact: true }).click();
   await expect(page.getByLabel(/request type/i)).toBeVisible();
   await expect(page.getByLabel(/^title$/i)).toBeVisible();
 });

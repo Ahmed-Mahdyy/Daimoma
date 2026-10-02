@@ -2,7 +2,7 @@
 
 **Feature**: 006-release-hardening
 **Created**: 2026-09-20
-**Status**: Draft; integrated application and approved operating policies required before execution.
+**Status**: Approved policies recorded (T001); executed 2026-10-02; owner release acceptance pending.
 **Source**: Brief sections 9-15, 19-24. This phase verifies earlier quality work; it does not postpone security/testing until the end.
 
 ## User Scenarios & Testing

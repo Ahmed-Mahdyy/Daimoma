@@ -1,0 +1,3421 @@
+openapi: 3.0.3
+info:
+  title: Daimoma API
+  version: 0.1.0
+paths:
+  /api/v1/audit-events/:
+    get:
+      operationId: audit_events_list
+      description: |-
+        GET /api/v1/audit-events/ — paginated, scoped audit history.
+
+        HR: all organization events. Managers: events affecting current direct
+        reports only. Employees: 403. Append-only — no detail/patch/delete.
+      tags:
+      - audit-events
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PagedAuditEvents'
+          description: ''
+  /api/v1/auth/csrf/:
+    get:
+      operationId: auth_csrf_retrieve
+      description: |-
+        GET /api/v1/auth/csrf/ — sets the csrftoken cookie so the SPA can send
+        the X-CSRFToken header on unsafe requests. Returns no personal data.
+      tags:
+      - auth
+      security:
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DetailResponse'
+          description: ''
+  /api/v1/auth/invitations/accept/:
+    post:
+      operationId: auth_invitations_accept_create
+      description: |-
+        POST /api/v1/auth/invitations/accept/ — single-use 48h token + new
+        password. Replay, expiry, and policy violations all rejected.
+      tags:
+      - auth
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TokenPassword'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/TokenPassword'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/TokenPassword'
+        required: true
+      security:
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DetailResponse'
+          description: ''
+  /api/v1/auth/login/:
+    post:
+      operationId: auth_login_create
+      description: |-
+        POST /api/v1/auth/login/ — email/password. Explicitly CSRF-protected
+        even for anonymous callers; bounded failures; generic error.
+      tags:
+      - auth
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Login'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Login'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Login'
+        required: true
+      security:
+      - csrfCookieAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserSummary'
+          description: ''
+  /api/v1/auth/logout/:
+    post:
+      operationId: auth_logout_create
+      description: POST /api/v1/auth/logout/ — ends the current session only.
+      tags:
+      - auth
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DetailResponse'
+          description: ''
+  /api/v1/auth/password-reset/:
+    post:
+      operationId: auth_password_reset_create
+      description: |-
+        POST /api/v1/auth/password-reset/ — generic acknowledgement; never
+        reveals whether the email maps to an account.
+      tags:
+      - auth
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PasswordResetRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PasswordResetRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PasswordResetRequest'
+        required: true
+      security:
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DetailResponse'
+          description: ''
+  /api/v1/auth/password-reset/confirm/:
+    post:
+      operationId: auth_password_reset_confirm_create
+      description: |-
+        POST /api/v1/auth/password-reset/confirm/ — 30-min single-use token;
+        on success all existing sessions are invalidated.
+      tags:
+      - auth
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TokenPassword'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/TokenPassword'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/TokenPassword'
+        required: true
+      security:
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DetailResponse'
+          description: ''
+  /api/v1/choices/managers/:
+    get:
+      operationId: choices_managers_retrieve
+      description: |-
+        GET /api/v1/choices/managers/ — HR-only scoped options for the
+        reporting-line field: active profiles inside the caller's organization.
+        Never exposes global user lists.
+      tags:
+      - choices
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ManagerChoices'
+          description: ''
+  /api/v1/dashboards/organization/:
+    get:
+      operationId: dashboards_organization_retrieve
+      parameters:
+      - in: query
+        name: from
+        schema:
+          type: string
+          format: date
+        description: Inclusive local start date
+      - in: query
+        name: to
+        schema:
+          type: string
+          format: date
+        description: Inclusive local end date
+      tags:
+      - dashboards
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Dashboard'
+          description: ''
+  /api/v1/dashboards/personal/:
+    get:
+      operationId: dashboards_personal_retrieve
+      parameters:
+      - in: query
+        name: from
+        schema:
+          type: string
+          format: date
+        description: Inclusive local start date
+      - in: query
+        name: to
+        schema:
+          type: string
+          format: date
+        description: Inclusive local end date
+      tags:
+      - dashboards
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Dashboard'
+          description: ''
+  /api/v1/dashboards/team/:
+    get:
+      operationId: dashboards_team_retrieve
+      description: |-
+        Manager: current direct reports. HR: organization-wide (their whole
+        'team').
+      parameters:
+      - in: query
+        name: from
+        schema:
+          type: string
+          format: date
+        description: Inclusive local start date
+      - in: query
+        name: to
+        schema:
+          type: string
+          format: date
+        description: Inclusive local end date
+      tags:
+      - dashboards
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Dashboard'
+          description: ''
+  /api/v1/departments/:
+    get:
+      operationId: departments_list
+      tags:
+      - departments
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PagedDepartments'
+          description: ''
+    post:
+      operationId: departments_create
+      tags:
+      - departments
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Department'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Department'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Department'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Department'
+          description: ''
+  /api/v1/departments/{id}/:
+    get:
+      operationId: departments_retrieve
+      description: PATCH only — departments are deactivated, never deleted.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - departments
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Department'
+          description: ''
+    patch:
+      operationId: departments_partial_update
+      description: PATCH only — departments are deactivated, never deleted.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - departments
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedDepartment'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedDepartment'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedDepartment'
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Department'
+          description: ''
+  /api/v1/employees/:
+    get:
+      operationId: employees_list
+      description: |-
+        GET — scoped directory: employee sees self, manager sees current
+        direct reports, HR sees the organization (no general directory).
+        POST — HR provisioning only.
+      tags:
+      - employees
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PagedEmployees'
+          description: ''
+    post:
+      operationId: employees_create
+      description: |-
+        GET — scoped directory: employee sees self, manager sees current
+        direct reports, HR sees the organization (no general directory).
+        POST — HR provisioning only.
+      tags:
+      - employees
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EmployeeProvision'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/EmployeeProvision'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/EmployeeProvision'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmployeeSummary'
+          description: ''
+  /api/v1/employees/{id}/:
+    get:
+      operationId: employees_retrieve
+      description: |-
+        GET — same scoped-visibility rules as the list; out-of-scope ids are
+        404 (non-enumerating). PATCH — HR only.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - employees
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmployeeSummary'
+          description: ''
+    patch:
+      operationId: employees_partial_update
+      description: |-
+        GET — same scoped-visibility rules as the list; out-of-scope ids are
+        404 (non-enumerating). PATCH — HR only.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - employees
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedEmployeeUpdate'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedEmployeeUpdate'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedEmployeeUpdate'
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmployeeSummary'
+          description: ''
+  /api/v1/employees/{id}/deactivate/:
+    post:
+      operationId: employees_deactivate_create
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - employees
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Reason'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Reason'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Reason'
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrgDetailResponse'
+          description: ''
+  /api/v1/employees/{id}/photo/:
+    get:
+      operationId: employees_photo_retrieve
+      description: Returns photo bytes; 404 when out of scope or unset.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - employees
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            image/*:
+              schema:
+                type: string
+                format: binary
+          description: ''
+  /api/v1/employees/{id}/reactivate/:
+    post:
+      operationId: employees_reactivate_create
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - employees
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Reason'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Reason'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Reason'
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrgDetailResponse'
+          description: ''
+  /api/v1/employees/{id}/resend-invitation/:
+    post:
+      operationId: employees_resend_invitation_create
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - employees
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrgDetailResponse'
+          description: ''
+  /api/v1/me/:
+    get:
+      operationId: me_retrieve
+      description: |-
+        GET /api/v1/me/ — own profile summary.
+        PATCH /api/v1/me/ — allowlisted self-service fields only.
+      tags:
+      - me
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Me'
+          description: ''
+    patch:
+      operationId: me_partial_update
+      description: |-
+        GET /api/v1/me/ — own profile summary.
+        PATCH /api/v1/me/ — allowlisted self-service fields only.
+      tags:
+      - me
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedMe'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedMe'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedMe'
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Me'
+          description: ''
+  /api/v1/me/password/:
+    post:
+      operationId: me_password_create
+      description: |-
+        POST /api/v1/me/password/ — requires the current password; ends all
+        other sessions while keeping the caller's session alive.
+      tags:
+      - me
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PasswordChange'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PasswordChange'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PasswordChange'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DetailResponse'
+          description: ''
+  /api/v1/me/photo/:
+    get:
+      operationId: me_photo_retrieve
+      description: Returns the photo bytes (image/png, image/jpeg or image/webp).
+        404 when no photo is set.
+      tags:
+      - me
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            image/*:
+              schema:
+                type: string
+                format: binary
+          description: ''
+    post:
+      operationId: me_photo_create
+      description: |-
+        GET /api/v1/me/photo/ — stream the caller's profile photo (auth-gated;
+        private media is never served as an open static file).
+        POST /api/v1/me/photo/ — multipart upload; PNG/JPEG/WebP up to 2 MiB.
+        DELETE /api/v1/me/photo/ — remove the current photo.
+      tags:
+      - me
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                photo:
+                  type: string
+                  format: binary
+              required:
+              - photo
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Me'
+          description: ''
+    delete:
+      operationId: me_photo_destroy
+      description: |-
+        GET /api/v1/me/photo/ — stream the caller's profile photo (auth-gated;
+        private media is never served as an open static file).
+        POST /api/v1/me/photo/ — multipart upload; PNG/JPEG/WebP up to 2 MiB.
+        DELETE /api/v1/me/photo/ — remove the current photo.
+      tags:
+      - me
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Me'
+          description: ''
+  /api/v1/notifications/:
+    get:
+      operationId: notifications_list
+      description: |-
+        GET /api/v1/notifications/ — recipient-only, paginated (50/page),
+        `?unread=true` and `?kind=` filters; the envelope always carries
+        `unread_count` for the bell.
+      tags:
+      - notifications
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PagedNotifications'
+          description: ''
+  /api/v1/notifications/{id}/read/:
+    post:
+      operationId: notifications_read_create
+      description: |-
+        POST /api/v1/notifications/{id}/read/ — recipient-only; others' ids
+        are 404 (non-enumerating). Idempotent.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - notifications
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Notification'
+          description: ''
+  /api/v1/notifications/{id}/target/:
+    get:
+      operationId: notifications_target_retrieve
+      description: |-
+        GET /api/v1/notifications/{id}/target/ — resolve the stored target to
+        a frontend path, rechecked against CURRENT authorization. Inaccessible
+        or stale targets are indistinguishable 404s.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - notifications
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotificationTarget'
+          description: ''
+  /api/v1/notifications/read-all/:
+    post:
+      operationId: notifications_read_all_create
+      description: |-
+        POST /api/v1/notifications/read-all/ — marks every unread row for the
+        caller; never touches other recipients.
+      tags:
+      - notifications
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotificationDetail'
+          description: ''
+  /api/v1/notifications/unread-count/:
+    get:
+      operationId: notifications_unread_count_retrieve
+      description: |-
+        GET /api/v1/notifications/unread-count/ — the 60s badge-poll
+        endpoint (D-009); intentionally cheap.
+      tags:
+      - notifications
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UnreadCount'
+          description: ''
+  /api/v1/organization/settings/:
+    get:
+      operationId: organization_settings_retrieve
+      tags:
+      - organization
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrgSettings'
+          description: ''
+    patch:
+      operationId: organization_settings_partial_update
+      tags:
+      - organization
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedOrgSettings'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedOrgSettings'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedOrgSettings'
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrgSettings'
+          description: ''
+  /api/v1/reports/requests/:
+    get:
+      operationId: reports_requests_retrieve
+      description: |-
+        GET reports/requests/ — scoped submitted requests (drafts excluded),
+        date basis = submitted_at (D-009).
+      parameters:
+      - in: query
+        name: employee
+        schema:
+          type: string
+          format: uuid
+      - in: query
+        name: from
+        schema:
+          type: string
+          format: date
+        description: Inclusive local start date
+      - in: query
+        name: ordering
+        schema:
+          type: string
+      - in: query
+        name: status
+        schema:
+          type: string
+      - in: query
+        name: to
+        schema:
+          type: string
+          format: date
+        description: Inclusive local end date
+      tags:
+      - reports
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/reports/requests/export/:
+    get:
+      operationId: reports_requests_export_retrieve
+      description: GET reports/requests/export/ — manager/HR bounded CSV (D-009).
+      parameters:
+      - in: query
+        name: employee
+        schema:
+          type: string
+          format: uuid
+      - in: query
+        name: from
+        schema:
+          type: string
+          format: date
+        description: Inclusive local start date
+      - in: query
+        name: ordering
+        schema:
+          type: string
+      - in: query
+        name: status
+        schema:
+          type: string
+      - in: query
+        name: to
+        schema:
+          type: string
+          format: date
+        description: Inclusive local end date
+      tags:
+      - reports
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: string
+                format: binary
+          description: ''
+  /api/v1/reports/working-hours/:
+    get:
+      operationId: reports_working_hours_retrieve
+      description: |-
+        GET reports/working-hours/ — scoped employee x work_date minutes.
+        `status` selects the sheet's CURRENT status (default approved).
+      parameters:
+      - in: query
+        name: employee
+        schema:
+          type: string
+          format: uuid
+      - in: query
+        name: from
+        schema:
+          type: string
+          format: date
+        description: Inclusive local start date
+      - in: query
+        name: ordering
+        schema:
+          type: string
+      - in: query
+        name: status
+        schema:
+          type: string
+      - in: query
+        name: to
+        schema:
+          type: string
+          format: date
+        description: Inclusive local end date
+      tags:
+      - reports
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+  /api/v1/reports/working-hours/export/:
+    get:
+      operationId: reports_working_hours_export_retrieve
+      description: GET reports/working-hours/export/ — manager/HR bounded CSV (D-009).
+      parameters:
+      - in: query
+        name: employee
+        schema:
+          type: string
+          format: uuid
+      - in: query
+        name: from
+        schema:
+          type: string
+          format: date
+        description: Inclusive local start date
+      - in: query
+        name: ordering
+        schema:
+          type: string
+      - in: query
+        name: status
+        schema:
+          type: string
+      - in: query
+        name: to
+        schema:
+          type: string
+          format: date
+        description: Inclusive local end date
+      tags:
+      - reports
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: string
+                format: binary
+          description: ''
+  /api/v1/request-types/:
+    get:
+      operationId: request_types_list
+      tags:
+      - request-types
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/RequestType'
+          description: ''
+    post:
+      operationId: request_types_create
+      tags:
+      - request-types
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RequestTypeWrite'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/RequestTypeWrite'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/RequestTypeWrite'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RequestType'
+          description: ''
+  /api/v1/request-types/{id}/:
+    patch:
+      operationId: request_types_partial_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - request-types
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedRequestTypeWrite'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedRequestTypeWrite'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedRequestTypeWrite'
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RequestType'
+          description: ''
+  /api/v1/requests/:
+    get:
+      operationId: requests_list
+      tags:
+      - requests
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/EmployeeRequest'
+          description: ''
+    post:
+      operationId: requests_create
+      tags:
+      - requests
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RequestDraft'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/RequestDraft'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/RequestDraft'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmployeeRequest'
+          description: ''
+  /api/v1/requests/{id}/:
+    get:
+      operationId: requests_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - requests
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmployeeRequest'
+          description: ''
+    patch:
+      operationId: requests_partial_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - requests
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedRequestDraft'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedRequestDraft'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedRequestDraft'
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmployeeRequest'
+          description: ''
+  /api/v1/requests/{id}/approve/:
+    post:
+      operationId: requests_approve_create
+      description: Approve/reject/return the current pending step.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - requests
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RequestReview'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/RequestReview'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/RequestReview'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmployeeRequest'
+          description: ''
+  /api/v1/requests/{id}/history/:
+    get:
+      operationId: requests_history_retrieve
+      description: Immutable per-request history — events + all steps across cycles.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - requests
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RequestHistory'
+          description: ''
+  /api/v1/requests/{id}/reject/:
+    post:
+      operationId: requests_reject_create
+      description: Approve/reject/return the current pending step.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - requests
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RequestReview'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/RequestReview'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/RequestReview'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmployeeRequest'
+          description: ''
+  /api/v1/requests/{id}/return/:
+    post:
+      operationId: requests_return_create
+      description: Approve/reject/return the current pending step.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - requests
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RequestReview'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/RequestReview'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/RequestReview'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmployeeRequest'
+          description: ''
+  /api/v1/requests/{id}/submit/:
+    post:
+      operationId: requests_submit_create
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - requests
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RequestReview'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/RequestReview'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/RequestReview'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmployeeRequest'
+          description: ''
+  /api/v1/timesheets/:
+    get:
+      operationId: timesheets_list
+      tags:
+      - timesheets
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TimesheetList'
+          description: ''
+    post:
+      operationId: timesheets_create
+      tags:
+      - timesheets
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TimesheetCreate'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/TimesheetCreate'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/TimesheetCreate'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Timesheet'
+          description: ''
+  /api/v1/timesheets/{id}/:
+    get:
+      operationId: timesheets_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - timesheets
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Timesheet'
+          description: ''
+    delete:
+      operationId: timesheets_destroy
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - timesheets
+      security:
+      - cookieAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/v1/timesheets/{id}/approve/:
+    post:
+      operationId: timesheets_approve_create
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - timesheets
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SheetTransition'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/SheetTransition'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/SheetTransition'
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Timesheet'
+          description: ''
+  /api/v1/timesheets/{id}/days/{work_date}/submit/:
+    post:
+      operationId: timesheets_days_submit_create
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      - in: path
+        name: work_date
+        schema:
+          type: string
+        required: true
+      tags:
+      - timesheets
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Timesheet'
+          description: ''
+  /api/v1/timesheets/{id}/entries/:
+    post:
+      operationId: timesheets_entries_create
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - timesheets
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TimeEntryWrite'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/TimeEntryWrite'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/TimeEntryWrite'
+      security:
+      - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TimeEntry'
+          description: ''
+  /api/v1/timesheets/{id}/entries/{entry_pk}/:
+    patch:
+      operationId: timesheets_entries_partial_update
+      parameters:
+      - in: path
+        name: entry_pk
+        schema:
+          type: string
+          format: uuid
+        required: true
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - timesheets
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedTimeEntryWrite'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedTimeEntryWrite'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedTimeEntryWrite'
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TimeEntry'
+          description: ''
+  /api/v1/timesheets/{id}/entries/{entry_pk}/void/:
+    post:
+      operationId: timesheets_entries_void_create
+      parameters:
+      - in: path
+        name: entry_pk
+        schema:
+          type: string
+          format: uuid
+        required: true
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - timesheets
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SheetTransition'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/SheetTransition'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/SheetTransition'
+      security:
+      - cookieAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/v1/timesheets/{id}/history/:
+    get:
+      operationId: timesheets_history_list
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - timesheets
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TimesheetEvent'
+          description: ''
+  /api/v1/timesheets/{id}/reject/:
+    post:
+      operationId: timesheets_reject_create
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - timesheets
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SheetTransition'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/SheetTransition'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/SheetTransition'
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Timesheet'
+          description: ''
+  /api/v1/timesheets/{id}/reopen/:
+    post:
+      operationId: timesheets_reopen_create
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - timesheets
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SheetTransition'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/SheetTransition'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/SheetTransition'
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Timesheet'
+          description: ''
+  /api/v1/timesheets/{id}/return/:
+    post:
+      operationId: timesheets_return_create
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - timesheets
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SheetTransition'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/SheetTransition'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/SheetTransition'
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Timesheet'
+          description: ''
+  /api/v1/timesheets/{id}/submit/:
+    post:
+      operationId: timesheets_submit_create
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - timesheets
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SheetTransition'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/SheetTransition'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/SheetTransition'
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Timesheet'
+          description: ''
+  /api/v1/timesheets/punch/:
+    get:
+      operationId: timesheets_punch_retrieve
+      description: |-
+        Quick check-in/out state for the caller. GET reports the open punch;
+        POST opens one; DELETE cancels it. Entries are only ever written at
+        check-out through the normal entry service.
+      tags:
+      - timesheets
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PunchStatus'
+          description: ''
+    post:
+      operationId: timesheets_punch_create
+      description: |-
+        Quick check-in/out state for the caller. GET reports the open punch;
+        POST opens one; DELETE cancels it. Entries are only ever written at
+        check-out through the normal entry service.
+      tags:
+      - timesheets
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PunchOpened'
+          description: ''
+    delete:
+      operationId: timesheets_punch_destroy
+      description: |-
+        Quick check-in/out state for the caller. GET reports the open punch;
+        POST opens one; DELETE cancels it. Entries are only ever written at
+        check-out through the normal entry service.
+      tags:
+      - timesheets
+      security:
+      - cookieAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/v1/timesheets/punch/checkout/:
+    post:
+      operationId: timesheets_punch_checkout_create
+      tags:
+      - timesheets
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PunchCheckoutResult'
+          description: ''
+components:
+  schemas:
+    ApprovalStep:
+      type: object
+      properties:
+        cycle:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+        sequence:
+          type: integer
+          maximum: 32767
+          minimum: 0
+        required_role:
+          $ref: '#/components/schemas/RequiredRoleEnum'
+        reviewer:
+          type: string
+          format: uuid
+          nullable: true
+        reviewer_name:
+          type: string
+          readOnly: true
+        reviewer_email:
+          type: string
+          format: email
+          readOnly: true
+        status:
+          $ref: '#/components/schemas/ApprovalStepStatusEnum'
+        reason:
+          type: string
+        decided_at:
+          type: string
+          format: date-time
+          nullable: true
+      required:
+      - cycle
+      - required_role
+      - reviewer_email
+      - reviewer_name
+      - sequence
+    ApprovalStepStatusEnum:
+      enum:
+      - waiting
+      - pending
+      - approved
+      - rejected
+      - returned
+      type: string
+      description: |-
+        * `waiting` - Waiting
+        * `pending` - Pending
+        * `approved` - Approved
+        * `rejected` - Rejected
+        * `returned` - Returned
+    AuditEvent:
+      type: object
+      description: |-
+        Read-only safe audit shape: no actor internals, no secrets (metadata
+        is already redacted at write time).
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        action:
+          type: string
+          maxLength: 80
+        actor_email:
+          type: string
+          format: email
+          readOnly: true
+        actor_name:
+          type: string
+          readOnly: true
+        target_type:
+          type: string
+          maxLength: 80
+        target_id:
+          type: string
+          format: uuid
+        metadata: {}
+        occurred_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - action
+      - actor_email
+      - actor_name
+      - id
+      - occurred_at
+      - target_id
+      - target_type
+    CategoryEnum:
+      enum:
+      - leave
+      - equipment
+      - hr_service
+      - work_from_home
+      - early_leave
+      - general
+      type: string
+      description: |-
+        * `leave` - Leave
+        * `equipment` - Equipment
+        * `hr_service` - HR service
+        * `work_from_home` - Work from home
+        * `early_leave` - Early leave
+        * `general` - General
+    Dashboard:
+      type: object
+      properties:
+        period:
+          $ref: '#/components/schemas/DashboardPeriod'
+        scope:
+          type: string
+        requests:
+          type: object
+          additionalProperties: {}
+        timesheets:
+          type: object
+          additionalProperties: {}
+        approved_minutes:
+          type: integer
+        pending_review:
+          type: integer
+      required:
+      - approved_minutes
+      - pending_review
+      - period
+      - requests
+      - scope
+      - timesheets
+    DashboardPeriod:
+      type: object
+      properties:
+        from:
+          type: string
+          format: date
+        to:
+          type: string
+          format: date
+        timezone:
+          type: string
+      required:
+      - from
+      - timezone
+      - to
+    Department:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        name:
+          type: string
+          maxLength: 120
+        is_active:
+          type: boolean
+      required:
+      - id
+      - name
+    DetailResponse:
+      type: object
+      properties:
+        detail:
+          type: string
+      required:
+      - detail
+    EmployeeProvision:
+      type: object
+      description: |-
+        HR provisioning input — organization and privileges are assigned
+        server-side; the allowlist contains no is_staff/is_superuser/password.
+      properties:
+        email:
+          type: string
+          format: email
+        employee_code:
+          type: string
+          maxLength: 40
+        display_name:
+          type: string
+          default: ''
+          maxLength: 150
+        phone:
+          type: string
+          default: ''
+          maxLength: 40
+        job_title:
+          type: string
+          default: ''
+          maxLength: 150
+        preferred_locale:
+          allOf:
+          - $ref: '#/components/schemas/PreferredLocaleEnum'
+          default: en
+        department:
+          type: string
+          format: uuid
+          nullable: true
+        manager:
+          type: string
+          format: uuid
+          nullable: true
+        roles:
+          type: array
+          items:
+            type: string
+      required:
+      - email
+      - employee_code
+    EmployeeRequest:
+      type: object
+      description: |-
+        Read shape for scoped lists/details — organization, owner, status and
+        workflow fields are server-owned and never writable through this API.
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        employee:
+          type: string
+          format: uuid
+          readOnly: true
+        employee_name:
+          type: string
+          readOnly: true
+        employee_email:
+          type: string
+          format: email
+          readOnly: true
+        employee_code:
+          type: string
+          readOnly: true
+        type:
+          type: string
+          format: uuid
+          readOnly: true
+        type_name:
+          type: string
+          readOnly: true
+        type_category:
+          type: string
+          readOnly: true
+        title:
+          type: string
+          readOnly: true
+        description:
+          type: string
+          readOnly: true
+        start_date:
+          type: string
+          format: date
+          readOnly: true
+          nullable: true
+        end_date:
+          type: string
+          format: date
+          readOnly: true
+          nullable: true
+        start_time:
+          type: string
+          format: time
+          readOnly: true
+          nullable: true
+        end_time:
+          type: string
+          format: time
+          readOnly: true
+          nullable: true
+        equipment_item:
+          type: string
+          readOnly: true
+        quantity:
+          type: integer
+          readOnly: true
+          nullable: true
+        status:
+          allOf:
+          - $ref: '#/components/schemas/EmployeeRequestStatusEnum'
+          readOnly: true
+        cycle:
+          type: integer
+          readOnly: true
+        version:
+          type: integer
+          readOnly: true
+        submitted_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+        current_step:
+          type: object
+          additionalProperties: {}
+          nullable: true
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - created_at
+      - current_step
+      - cycle
+      - description
+      - employee
+      - employee_code
+      - employee_email
+      - employee_name
+      - end_date
+      - end_time
+      - equipment_item
+      - id
+      - quantity
+      - start_date
+      - start_time
+      - status
+      - submitted_at
+      - title
+      - type
+      - type_category
+      - type_name
+      - updated_at
+      - version
+    EmployeeRequestStatusEnum:
+      enum:
+      - draft
+      - pending_manager
+      - pending_hr
+      - approved
+      - returned
+      - rejected
+      type: string
+      description: |-
+        * `draft` - Draft
+        * `pending_manager` - Pending manager
+        * `pending_hr` - Pending HR
+        * `approved` - Approved
+        * `returned` - Returned
+        * `rejected` - Rejected
+    EmployeeSummary:
+      type: object
+      description: Safe directory fields — never exposes auth internals.
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        email:
+          type: string
+          format: email
+          readOnly: true
+        is_active:
+          type: boolean
+          readOnly: true
+        roles:
+          type: array
+          items:
+            type: string
+          readOnly: true
+        employee_code:
+          type: string
+          maxLength: 40
+        display_name:
+          type: string
+          maxLength: 150
+        phone:
+          type: string
+          maxLength: 40
+        job_title:
+          type: string
+          maxLength: 150
+        preferred_locale:
+          $ref: '#/components/schemas/PreferredLocaleEnum'
+        department:
+          type: string
+          format: uuid
+          nullable: true
+        department_name:
+          type: string
+          readOnly: true
+        manager:
+          type: string
+          format: uuid
+          nullable: true
+        manager_name:
+          type: string
+          readOnly: true
+        photo_url:
+          type: string
+          description: Scoped photo endpoint; `v` busts caches after a re-upload.
+          readOnly: true
+        version:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+      required:
+      - department_name
+      - email
+      - employee_code
+      - id
+      - is_active
+      - manager_name
+      - photo_url
+      - roles
+    Login:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          writeOnly: true
+      required:
+      - email
+      - password
+    ManagerChoice:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        user_id:
+          type: string
+          format: uuid
+        display_name:
+          type: string
+        employee_code:
+          type: string
+        roles:
+          type: array
+          items:
+            type: string
+      required:
+      - display_name
+      - employee_code
+      - id
+      - roles
+      - user_id
+    ManagerChoices:
+      type: object
+      properties:
+        count:
+          type: integer
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/ManagerChoice'
+      required:
+      - count
+      - results
+    Me:
+      type: object
+      description: |-
+        Read/write serializer for GET/PATCH /api/v1/me/.
+
+        Explicit allowlist: only display_name, phone, preferred_locale are
+        writable. Any other key in the payload — including privilege fields —
+        is rejected with validation_error (no silent drops). `version` carries
+        the optimistic-lock value and is never written directly.
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        email:
+          type: string
+          format: email
+          readOnly: true
+        roles:
+          type: array
+          items:
+            type: string
+          readOnly: true
+        employee_code:
+          type: string
+          readOnly: true
+        display_name:
+          type: string
+          maxLength: 150
+        phone:
+          type: string
+          maxLength: 40
+        preferred_locale:
+          $ref: '#/components/schemas/PreferredLocaleEnum'
+        photo_url:
+          type: string
+          description: Auth-gated photo URL; the `v` param busts caches after upload.
+          readOnly: true
+        job_title:
+          type: string
+          readOnly: true
+        department:
+          type: string
+          format: uuid
+          readOnly: true
+        manager:
+          type: string
+          format: uuid
+          readOnly: true
+        version:
+          type: integer
+          minimum: 1
+      required:
+      - department
+      - email
+      - employee_code
+      - id
+      - job_title
+      - manager
+      - photo_url
+      - roles
+    Notification:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        event_key:
+          type: string
+          readOnly: true
+        kind:
+          type: string
+          readOnly: true
+        summary:
+          type: string
+          readOnly: true
+        target_type:
+          type: string
+          readOnly: true
+        target_id:
+          type: string
+          format: uuid
+          readOnly: true
+          nullable: true
+        is_read:
+          type: boolean
+          readOnly: true
+        read_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - created_at
+      - event_key
+      - id
+      - is_read
+      - kind
+      - read_at
+      - summary
+      - target_id
+      - target_type
+    NotificationDetail:
+      type: object
+      properties:
+        detail:
+          type: string
+      required:
+      - detail
+    NotificationTarget:
+      type: object
+      properties:
+        url:
+          type: string
+      required:
+      - url
+    OrgDetailResponse:
+      type: object
+      properties:
+        detail:
+          type: string
+      required:
+      - detail
+    OrgSettings:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        name:
+          type: string
+          maxLength: 160
+        timezone:
+          type: string
+          maxLength: 64
+        week_start:
+          type: integer
+          maximum: 32767
+          minimum: 0
+        fallback_reviewer:
+          type: string
+          format: uuid
+          nullable: true
+          description: Eligible non-self HR reviewer used when no manager can review
+            (D-004).
+      required:
+      - id
+      - name
+    PagedAuditEvents:
+      type: object
+      properties:
+        count:
+          type: integer
+        next:
+          type: string
+          format: uri
+          nullable: true
+        previous:
+          type: string
+          format: uri
+          nullable: true
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/AuditEvent'
+      required:
+      - count
+      - next
+      - previous
+      - results
+    PagedDepartments:
+      type: object
+      properties:
+        count:
+          type: integer
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Department'
+      required:
+      - count
+      - results
+    PagedEmployees:
+      type: object
+      properties:
+        count:
+          type: integer
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/EmployeeSummary'
+      required:
+      - count
+      - results
+    PagedNotifications:
+      type: object
+      properties:
+        count:
+          type: integer
+        next:
+          type: string
+          format: uri
+          nullable: true
+        previous:
+          type: string
+          format: uri
+          nullable: true
+        unread_count:
+          type: integer
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Notification'
+      required:
+      - count
+      - next
+      - previous
+      - results
+      - unread_count
+    PasswordChange:
+      type: object
+      properties:
+        current_password:
+          type: string
+          writeOnly: true
+        new_password:
+          type: string
+          writeOnly: true
+      required:
+      - current_password
+      - new_password
+    PasswordResetRequest:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+      required:
+      - email
+    PatchedDepartment:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        name:
+          type: string
+          maxLength: 120
+        is_active:
+          type: boolean
+    PatchedEmployeeUpdate:
+      type: object
+      description: |-
+        Explicit allowlist for PATCH employees/{id}/ — everything else,
+        including privilege fields, is rejected outright.
+      properties:
+        email:
+          type: string
+          format: email
+        employee_code:
+          type: string
+          maxLength: 40
+        display_name:
+          type: string
+          maxLength: 150
+        phone:
+          type: string
+          maxLength: 40
+        job_title:
+          type: string
+          maxLength: 150
+        preferred_locale:
+          $ref: '#/components/schemas/PreferredLocaleEnum'
+        department:
+          type: string
+          format: uuid
+          nullable: true
+        manager:
+          type: string
+          format: uuid
+          nullable: true
+        roles:
+          type: array
+          items:
+            type: string
+        version:
+          type: integer
+          minimum: 1
+    PatchedMe:
+      type: object
+      description: |-
+        Read/write serializer for GET/PATCH /api/v1/me/.
+
+        Explicit allowlist: only display_name, phone, preferred_locale are
+        writable. Any other key in the payload — including privilege fields —
+        is rejected with validation_error (no silent drops). `version` carries
+        the optimistic-lock value and is never written directly.
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        email:
+          type: string
+          format: email
+          readOnly: true
+        roles:
+          type: array
+          items:
+            type: string
+          readOnly: true
+        employee_code:
+          type: string
+          readOnly: true
+        display_name:
+          type: string
+          maxLength: 150
+        phone:
+          type: string
+          maxLength: 40
+        preferred_locale:
+          $ref: '#/components/schemas/PreferredLocaleEnum'
+        photo_url:
+          type: string
+          description: Auth-gated photo URL; the `v` param busts caches after upload.
+          readOnly: true
+        job_title:
+          type: string
+          readOnly: true
+        department:
+          type: string
+          format: uuid
+          readOnly: true
+        manager:
+          type: string
+          format: uuid
+          readOnly: true
+        version:
+          type: integer
+          minimum: 1
+    PatchedOrgSettings:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        name:
+          type: string
+          maxLength: 160
+        timezone:
+          type: string
+          maxLength: 64
+        week_start:
+          type: integer
+          maximum: 32767
+          minimum: 0
+        fallback_reviewer:
+          type: string
+          format: uuid
+          nullable: true
+          description: Eligible non-self HR reviewer used when no manager can review
+            (D-004).
+    PatchedRequestDraft:
+      type: object
+      description: |-
+        Draft input allowlist — category-typed fields only; ownership/status/
+        workflow fields are rejected (mass-assignment protection).
+      properties:
+        type:
+          type: string
+          format: uuid
+        title:
+          type: string
+          maxLength: 200
+        description:
+          type: string
+          default: ''
+          maxLength: 5000
+        start_date:
+          type: string
+          format: date
+          nullable: true
+        end_date:
+          type: string
+          format: date
+          nullable: true
+        start_time:
+          type: string
+          format: time
+          nullable: true
+        end_time:
+          type: string
+          format: time
+          nullable: true
+        equipment_item:
+          type: string
+          default: ''
+          maxLength: 120
+        quantity:
+          type: integer
+          minimum: 1
+          nullable: true
+        version:
+          type: integer
+          minimum: 1
+    PatchedRequestTypeWrite:
+      type: object
+      description: HR type configuration — organization assigned server-side.
+      properties:
+        code:
+          type: string
+          maxLength: 40
+        name:
+          type: string
+          maxLength: 120
+        category:
+          $ref: '#/components/schemas/CategoryEnum'
+        help_text:
+          type: string
+          default: ''
+        requires_manager:
+          type: boolean
+          default: true
+        requires_hr:
+          type: boolean
+          default: false
+        is_active:
+          type: boolean
+          default: true
+    PatchedTimeEntryWrite:
+      type: object
+      description: |-
+        Create/update payload. start_at/end_at must carry explicit UTC
+        offsets (ISO-8601 with offset).
+      properties:
+        work_date:
+          type: string
+          format: date
+        start_at:
+          type: string
+          format: date-time
+        end_at:
+          type: string
+          format: date-time
+        break_minutes:
+          type: integer
+          minimum: 0
+        segment_breaks:
+          type: array
+          items:
+            type: integer
+            minimum: 0
+          description: Explicit per-day break allocation when the interval crosses
+            local midnight.
+        description:
+          type: string
+          maxLength: 1000
+        window_reason:
+          type: string
+          maxLength: 500
+        expected_version:
+          type: integer
+          minimum: 1
+    PreferredLocaleEnum:
+      enum:
+      - en
+      - ar
+      type: string
+      description: |-
+        * `en` - English
+        * `ar` - Arabic
+    PunchCheckoutResult:
+      type: object
+      properties:
+        timesheet:
+          type: string
+          format: uuid
+        entries:
+          type: array
+          items:
+            $ref: '#/components/schemas/TimeEntry'
+      required:
+      - entries
+      - timesheet
+    PunchOpened:
+      type: object
+      properties:
+        started_at:
+          type: string
+          format: date-time
+      required:
+      - started_at
+    PunchStatus:
+      type: object
+      properties:
+        open:
+          type: boolean
+        started_at:
+          type: string
+          format: date-time
+          nullable: true
+      required:
+      - open
+      - started_at
+    Reason:
+      type: object
+      properties:
+        reason:
+          type: string
+          default: ''
+          maxLength: 300
+        note:
+          type: string
+          default: ''
+          maxLength: 300
+    RequestDraft:
+      type: object
+      description: |-
+        Draft input allowlist — category-typed fields only; ownership/status/
+        workflow fields are rejected (mass-assignment protection).
+      properties:
+        type:
+          type: string
+          format: uuid
+        title:
+          type: string
+          maxLength: 200
+        description:
+          type: string
+          default: ''
+          maxLength: 5000
+        start_date:
+          type: string
+          format: date
+          nullable: true
+        end_date:
+          type: string
+          format: date
+          nullable: true
+        start_time:
+          type: string
+          format: time
+          nullable: true
+        end_time:
+          type: string
+          format: time
+          nullable: true
+        equipment_item:
+          type: string
+          default: ''
+          maxLength: 120
+        quantity:
+          type: integer
+          minimum: 1
+          nullable: true
+        version:
+          type: integer
+          minimum: 1
+      required:
+      - title
+      - type
+    RequestEvent:
+      type: object
+      properties:
+        event_type:
+          type: string
+          maxLength: 40
+        actor:
+          type: string
+          format: uuid
+          nullable: true
+        actor_name:
+          type: string
+          readOnly: true
+        actor_email:
+          type: string
+          format: email
+          readOnly: true
+        previous_status:
+          type: string
+          maxLength: 20
+        new_status:
+          type: string
+          maxLength: 20
+        cycle:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+        version:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+        reason:
+          type: string
+        snapshot: {}
+        occurred_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - actor_email
+      - actor_name
+      - event_type
+      - occurred_at
+      - version
+    RequestHistory:
+      type: object
+      properties:
+        events:
+          type: array
+          items:
+            $ref: '#/components/schemas/RequestEvent'
+        steps:
+          type: array
+          items:
+            $ref: '#/components/schemas/ApprovalStep'
+      required:
+      - events
+      - steps
+    RequestReview:
+      type: object
+      description: Approve/reject/return input — expected version guards stale clients.
+      properties:
+        reason:
+          type: string
+          default: ''
+          maxLength: 2000
+        version:
+          type: integer
+          minimum: 1
+      required:
+      - version
+    RequestType:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        code:
+          type: string
+          maxLength: 40
+        name:
+          type: string
+          maxLength: 120
+        category:
+          $ref: '#/components/schemas/CategoryEnum'
+        help_text:
+          type: string
+        requires_manager:
+          type: boolean
+        requires_hr:
+          type: boolean
+        is_active:
+          type: boolean
+      required:
+      - category
+      - code
+      - id
+      - name
+    RequestTypeWrite:
+      type: object
+      description: HR type configuration — organization assigned server-side.
+      properties:
+        code:
+          type: string
+          maxLength: 40
+        name:
+          type: string
+          maxLength: 120
+        category:
+          $ref: '#/components/schemas/CategoryEnum'
+        help_text:
+          type: string
+          default: ''
+        requires_manager:
+          type: boolean
+          default: true
+        requires_hr:
+          type: boolean
+          default: false
+        is_active:
+          type: boolean
+          default: true
+      required:
+      - category
+      - code
+      - name
+    RequiredRoleEnum:
+      enum:
+      - manager
+      - hr
+      type: string
+      description: |-
+        * `manager` - Manager
+        * `hr` - HR
+    SheetTransition:
+      type: object
+      properties:
+        reason:
+          type: string
+          maxLength: 2000
+        expected_version:
+          type: integer
+          minimum: 1
+    TimeEntry:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        work_date:
+          type: string
+          format: date
+          readOnly: true
+        start_at:
+          type: string
+          format: date-time
+          readOnly: true
+        end_at:
+          type: string
+          format: date-time
+          readOnly: true
+        break_minutes:
+          type: integer
+          readOnly: true
+        duration_minutes:
+          type: integer
+          readOnly: true
+        description:
+          type: string
+          readOnly: true
+        window_flag:
+          type: boolean
+          readOnly: true
+        window_reason:
+          type: string
+          readOnly: true
+        voided_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+      required:
+      - break_minutes
+      - description
+      - duration_minutes
+      - end_at
+      - id
+      - start_at
+      - voided_at
+      - window_flag
+      - window_reason
+      - work_date
+    TimeEntryWrite:
+      type: object
+      description: |-
+        Create/update payload. start_at/end_at must carry explicit UTC
+        offsets (ISO-8601 with offset).
+      properties:
+        work_date:
+          type: string
+          format: date
+        start_at:
+          type: string
+          format: date-time
+        end_at:
+          type: string
+          format: date-time
+        break_minutes:
+          type: integer
+          minimum: 0
+        segment_breaks:
+          type: array
+          items:
+            type: integer
+            minimum: 0
+          description: Explicit per-day break allocation when the interval crosses
+            local midnight.
+        description:
+          type: string
+          maxLength: 1000
+        window_reason:
+          type: string
+          maxLength: 500
+        expected_version:
+          type: integer
+          minimum: 1
+    Timesheet:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        employee:
+          type: string
+          format: uuid
+          readOnly: true
+        employee_name:
+          type: string
+          readOnly: true
+          default: ''
+        employee_email:
+          type: string
+          format: email
+          readOnly: true
+        employee_code:
+          type: string
+          readOnly: true
+        period_start:
+          type: string
+          format: date
+          readOnly: true
+        period_end:
+          type: string
+          format: date
+          readOnly: true
+        timezone:
+          type: string
+          readOnly: true
+        status:
+          allOf:
+          - $ref: '#/components/schemas/TimesheetStatusEnum'
+          readOnly: true
+        current_reviewer:
+          type: string
+          format: uuid
+          readOnly: true
+          nullable: true
+        reviewer_name:
+          type: string
+          nullable: true
+          readOnly: true
+        reviewer_email:
+          type: string
+          nullable: true
+          readOnly: true
+        cycle:
+          type: integer
+          readOnly: true
+        version:
+          type: integer
+          readOnly: true
+        submitted_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+        total_minutes:
+          type: integer
+          readOnly: true
+        days:
+          type: array
+          items:
+            $ref: '#/components/schemas/WorkDay'
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - created_at
+      - current_reviewer
+      - cycle
+      - days
+      - employee
+      - employee_code
+      - employee_email
+      - employee_name
+      - id
+      - period_end
+      - period_start
+      - reviewer_email
+      - reviewer_name
+      - status
+      - submitted_at
+      - timezone
+      - total_minutes
+      - updated_at
+      - version
+    TimesheetCreate:
+      type: object
+      description: Only an anchor date — period bounds + timezone are server-derived.
+      properties:
+        period_start:
+          type: string
+          format: date
+      required:
+      - period_start
+    TimesheetEvent:
+      type: object
+      properties:
+        event_type:
+          type: string
+        actor_email:
+          type: string
+          nullable: true
+          readOnly: true
+        actor_name:
+          type: string
+          nullable: true
+          readOnly: true
+        previous_state:
+          type: string
+        new_state:
+          type: string
+        cycle:
+          type: integer
+        version:
+          type: integer
+        reason:
+          type: string
+        snapshot: {}
+        occurred_at:
+          type: string
+          format: date-time
+      required:
+      - actor_email
+      - actor_name
+      - cycle
+      - event_type
+      - new_state
+      - occurred_at
+      - previous_state
+      - reason
+      - snapshot
+      - version
+    TimesheetList:
+      type: object
+      description: |-
+        List rows omit nested days — total_minutes comes from the queryset
+        annotation, so a page of sheets costs constant queries.
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        employee:
+          type: string
+          format: uuid
+          readOnly: true
+        employee_name:
+          type: string
+          readOnly: true
+          default: ''
+        employee_email:
+          type: string
+          format: email
+          readOnly: true
+        employee_code:
+          type: string
+          readOnly: true
+        period_start:
+          type: string
+          format: date
+          readOnly: true
+        period_end:
+          type: string
+          format: date
+          readOnly: true
+        timezone:
+          type: string
+          readOnly: true
+        status:
+          allOf:
+          - $ref: '#/components/schemas/TimesheetStatusEnum'
+          readOnly: true
+        current_reviewer:
+          type: string
+          format: uuid
+          readOnly: true
+          nullable: true
+        reviewer_name:
+          type: string
+          nullable: true
+          readOnly: true
+        reviewer_email:
+          type: string
+          nullable: true
+          readOnly: true
+        cycle:
+          type: integer
+          readOnly: true
+        version:
+          type: integer
+          readOnly: true
+        submitted_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+        total_minutes:
+          type: integer
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - created_at
+      - current_reviewer
+      - cycle
+      - employee
+      - employee_code
+      - employee_email
+      - employee_name
+      - id
+      - period_end
+      - period_start
+      - reviewer_email
+      - reviewer_name
+      - status
+      - submitted_at
+      - timezone
+      - total_minutes
+      - updated_at
+      - version
+    TimesheetStatusEnum:
+      enum:
+      - collecting
+      - pending_manager
+      - pending_hr
+      - approved
+      - returned
+      - rejected
+      type: string
+      description: |-
+        * `collecting` - Collecting
+        * `pending_manager` - Pending manager
+        * `pending_hr` - Pending HR
+        * `approved` - Approved
+        * `returned` - Returned
+        * `rejected` - Rejected
+    TokenPassword:
+      type: object
+      description: Shared shape for invitation acceptance and recovery confirmation.
+      properties:
+        token:
+          type: string
+          writeOnly: true
+        password:
+          type: string
+          writeOnly: true
+      required:
+      - password
+      - token
+    UnreadCount:
+      type: object
+      properties:
+        unread_count:
+          type: integer
+      required:
+      - unread_count
+    UserSummary:
+      type: object
+      description: Safe user summary — never exposes password, tokens, or staff flags.
+      properties:
+        id:
+          type: string
+          format: uuid
+        email:
+          type: string
+          format: email
+        display_name:
+          type: string
+          readOnly: true
+        roles:
+          type: array
+          items:
+            type: string
+          readOnly: true
+      required:
+      - display_name
+      - email
+      - id
+      - roles
+    WorkDay:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        work_date:
+          type: string
+          format: date
+          readOnly: true
+        status:
+          allOf:
+          - $ref: '#/components/schemas/WorkDayStatusEnum'
+          readOnly: true
+        submitted_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+        version:
+          type: integer
+          readOnly: true
+        total_minutes:
+          type: integer
+          readOnly: true
+        entries:
+          type: array
+          items:
+            $ref: '#/components/schemas/TimeEntry'
+          readOnly: true
+      required:
+      - entries
+      - id
+      - status
+      - submitted_at
+      - total_minutes
+      - version
+      - work_date
+    WorkDayStatusEnum:
+      enum:
+      - draft
+      - submitted
+      - returned
+      - approved
+      type: string
+      description: |-
+        * `draft` - Draft
+        * `submitted` - Submitted
+        * `returned` - Returned
+        * `approved` - Approved
+  securitySchemes:
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: sessionid
+    csrfCookieAuth:
+      type: apiKey
+      in: cookie
+      name: sessionid

@@ -9,6 +9,7 @@ vi.mock("../../api/notifications", () => ({
   getUnreadCount: vi.fn(),
   markNotificationRead: vi.fn(),
   markAllNotificationsRead: vi.fn(),
+  resolveNotificationTarget: vi.fn(),
 }));
 
 import {

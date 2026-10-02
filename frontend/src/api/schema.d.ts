@@ -316,6 +316,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/employees/{id}/photo/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Returns photo bytes; 404 when out of scope or unset. */
+        get: operations["employees_photo_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/employees/{id}/reactivate/": {
         parameters: {
             query?: never;
@@ -387,6 +404,35 @@ export interface paths {
          */
         post: operations["me_password_create"];
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/photo/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Returns the photo bytes (image/png, image/jpeg or image/webp). 404 when no photo is set. */
+        get: operations["me_photo_retrieve"];
+        put?: never;
+        /**
+         * @description GET /api/v1/me/photo/ — stream the caller's profile photo (auth-gated;
+         *     private media is never served as an open static file).
+         *     POST /api/v1/me/photo/ — multipart upload; PNG/JPEG/WebP up to 2 MiB.
+         *     DELETE /api/v1/me/photo/ — remove the current photo.
+         */
+        post: operations["me_photo_create"];
+        /**
+         * @description GET /api/v1/me/photo/ — stream the caller's profile photo (auth-gated;
+         *     private media is never served as an open static file).
+         *     POST /api/v1/me/photo/ — multipart upload; PNG/JPEG/WebP up to 2 MiB.
+         *     DELETE /api/v1/me/photo/ — remove the current photo.
+         */
+        delete: operations["me_photo_destroy"];
         options?: never;
         head?: never;
         patch?: never;
@@ -924,6 +970,53 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/timesheets/punch/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * @description Quick check-in/out state for the caller. GET reports the open punch;
+         *     POST opens one; DELETE cancels it. Entries are only ever written at
+         *     check-out through the normal entry service.
+         */
+        get: operations["timesheets_punch_retrieve"];
+        put?: never;
+        /**
+         * @description Quick check-in/out state for the caller. GET reports the open punch;
+         *     POST opens one; DELETE cancels it. Entries are only ever written at
+         *     check-out through the normal entry service.
+         */
+        post: operations["timesheets_punch_create"];
+        /**
+         * @description Quick check-in/out state for the caller. GET reports the open punch;
+         *     POST opens one; DELETE cancels it. Entries are only ever written at
+         *     check-out through the normal entry service.
+         */
+        delete: operations["timesheets_punch_destroy"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/timesheets/punch/checkout/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["timesheets_punch_checkout_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -974,10 +1067,11 @@ export interface components {
          *     * `equipment` - Equipment
          *     * `hr_service` - HR service
          *     * `work_from_home` - Work from home
+         *     * `early_leave` - Early leave
          *     * `general` - General
          * @enum {string}
          */
-        CategoryEnum: "leave" | "equipment" | "hr_service" | "work_from_home" | "general";
+        CategoryEnum: "leave" | "equipment" | "hr_service" | "work_from_home" | "early_leave" | "general";
         Dashboard: {
             period: components["schemas"]["DashboardPeriod"];
             scope: string;
@@ -1051,6 +1145,10 @@ export interface components {
             readonly start_date: string | null;
             /** Format: date */
             readonly end_date: string | null;
+            /** Format: time */
+            readonly start_time: string | null;
+            /** Format: time */
+            readonly end_time: string | null;
             readonly equipment_item: string;
             readonly quantity: number | null;
             readonly status: components["schemas"]["EmployeeRequestStatusEnum"];
@@ -1095,6 +1193,8 @@ export interface components {
             /** Format: uuid */
             manager?: string | null;
             readonly manager_name: string;
+            /** @description Scoped photo endpoint; `v` busts caches after a re-upload. */
+            readonly photo_url: string;
             version?: number;
         };
         Login: {
@@ -1133,6 +1233,8 @@ export interface components {
             display_name?: string;
             phone?: string;
             preferred_locale?: components["schemas"]["PreferredLocaleEnum"];
+            /** @description Auth-gated photo URL; the `v` param busts caches after upload. */
+            readonly photo_url: string;
             readonly job_title: string;
             /** Format: uuid */
             readonly department: string;
@@ -1252,6 +1354,8 @@ export interface components {
             display_name?: string;
             phone?: string;
             preferred_locale?: components["schemas"]["PreferredLocaleEnum"];
+            /** @description Auth-gated photo URL; the `v` param busts caches after upload. */
+            readonly photo_url?: string;
             readonly job_title?: string;
             /** Format: uuid */
             readonly department?: string;
@@ -1285,6 +1389,10 @@ export interface components {
             start_date?: string | null;
             /** Format: date */
             end_date?: string | null;
+            /** Format: time */
+            start_time?: string | null;
+            /** Format: time */
+            end_time?: string | null;
             /** @default  */
             equipment_item: string;
             quantity?: number | null;
@@ -1297,6 +1405,8 @@ export interface components {
             category?: components["schemas"]["CategoryEnum"];
             /** @default  */
             help_text: string;
+            /** @default true */
+            requires_manager: boolean;
             /** @default false */
             requires_hr: boolean;
             /** @default true */
@@ -1326,6 +1436,20 @@ export interface components {
          * @enum {string}
          */
         PreferredLocaleEnum: "en" | "ar";
+        PunchCheckoutResult: {
+            /** Format: uuid */
+            timesheet: string;
+            entries: components["schemas"]["TimeEntry"][];
+        };
+        PunchOpened: {
+            /** Format: date-time */
+            started_at: string;
+        };
+        PunchStatus: {
+            open: boolean;
+            /** Format: date-time */
+            started_at: string | null;
+        };
         Reason: {
             /** @default  */
             reason: string;
@@ -1346,6 +1470,10 @@ export interface components {
             start_date?: string | null;
             /** Format: date */
             end_date?: string | null;
+            /** Format: time */
+            start_time?: string | null;
+            /** Format: time */
+            end_time?: string | null;
             /** @default  */
             equipment_item: string;
             quantity?: number | null;
@@ -1384,6 +1512,7 @@ export interface components {
             name: string;
             category: components["schemas"]["CategoryEnum"];
             help_text?: string;
+            requires_manager?: boolean;
             requires_hr?: boolean;
             is_active?: boolean;
         };
@@ -1394,6 +1523,8 @@ export interface components {
             category: components["schemas"]["CategoryEnum"];
             /** @default  */
             help_text: string;
+            /** @default true */
+            requires_manager: boolean;
             /** @default false */
             requires_hr: boolean;
             /** @default true */
@@ -1492,6 +1623,40 @@ export interface components {
             snapshot: unknown;
             /** Format: date-time */
             occurred_at: string;
+        };
+        /**
+         * @description List rows omit nested days — total_minutes comes from the queryset
+         *     annotation, so a page of sheets costs constant queries.
+         */
+        TimesheetList: {
+            /** Format: uuid */
+            readonly id: string;
+            /** Format: uuid */
+            readonly employee: string;
+            /** @default  */
+            readonly employee_name: string;
+            /** Format: email */
+            readonly employee_email: string;
+            readonly employee_code: string;
+            /** Format: date */
+            readonly period_start: string;
+            /** Format: date */
+            readonly period_end: string;
+            readonly timezone: string;
+            readonly status: components["schemas"]["TimesheetStatusEnum"];
+            /** Format: uuid */
+            readonly current_reviewer: string | null;
+            readonly reviewer_name: string | null;
+            readonly reviewer_email: string | null;
+            readonly cycle: number;
+            readonly version: number;
+            /** Format: date-time */
+            readonly submitted_at: string | null;
+            readonly total_minutes: number;
+            /** Format: date-time */
+            readonly created_at: string;
+            /** Format: date-time */
+            readonly updated_at: string;
         };
         /**
          * @description * `collecting` - Collecting
@@ -2008,6 +2173,27 @@ export interface operations {
             };
         };
     };
+    employees_photo_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "image/*": string;
+                };
+            };
+        };
+    };
     employees_reactivate_create: {
         parameters: {
             query?: never;
@@ -2121,6 +2307,70 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["DetailResponse"];
+                };
+            };
+        };
+    };
+    me_photo_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "image/*": string;
+                };
+            };
+        };
+    };
+    me_photo_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "multipart/form-data": {
+                    /** Format: binary */
+                    photo: string;
+                };
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Me"];
+                };
+            };
+        };
+    };
+    me_photo_destroy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Me"];
                 };
             };
         };
@@ -2686,7 +2936,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["Timesheet"][];
+                    "application/json": components["schemas"]["TimesheetList"][];
                 };
             };
         };
@@ -3013,6 +3263,81 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Timesheet"];
+                };
+            };
+        };
+    };
+    timesheets_punch_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PunchStatus"];
+                };
+            };
+        };
+    };
+    timesheets_punch_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PunchOpened"];
+                };
+            };
+        };
+    };
+    timesheets_punch_destroy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No response body */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    timesheets_punch_checkout_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PunchCheckoutResult"];
                 };
             };
         };

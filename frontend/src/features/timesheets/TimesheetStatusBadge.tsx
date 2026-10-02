@@ -1,4 +1,5 @@
 import type { TimesheetStatus, WorkDayStatus } from "../../api/timesheets";
+import { useLanguage } from "../../app/LanguageProvider";
 
 const SHEET_STYLES: Record<TimesheetStatus, string> = {
   collecting: "bg-gray-100 text-gray-700",
@@ -33,21 +34,23 @@ const DAY_LABELS: Record<WorkDayStatus, string> = {
 };
 
 export function TimesheetStatusBadge({ status }: { status: TimesheetStatus }) {
+  const { t } = useLanguage();
   return (
     <span
       className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${SHEET_STYLES[status]}`}
     >
-      {SHEET_LABELS[status]}
+      {t(SHEET_LABELS[status])}
     </span>
   );
 }
 
 export function DayStatusBadge({ status }: { status: WorkDayStatus }) {
+  const { t } = useLanguage();
   return (
     <span
       className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${DAY_STYLES[status]}`}
     >
-      {DAY_LABELS[status]}
+      {t(DAY_LABELS[status])}
     </span>
   );
 }

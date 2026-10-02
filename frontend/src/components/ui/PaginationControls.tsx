@@ -1,3 +1,5 @@
+import { useLanguage } from "../../app/LanguageProvider";
+
 interface PaginationControlsProps {
   count: number;
   page: number;
@@ -11,11 +13,12 @@ export function PaginationControls({
   pageSize,
   onPage,
 }: PaginationControlsProps) {
+  const { t } = useLanguage();
   const pages = Math.max(1, Math.ceil(count / pageSize));
   if (pages <= 1) return null;
   return (
     <nav
-      aria-label="Pagination"
+      aria-label={t("Pagination")}
       className="flex items-center justify-between gap-2 p-2 text-sm"
     >
       <button
@@ -24,10 +27,10 @@ export function PaginationControls({
         onClick={() => onPage(page - 1)}
         className="rounded-md border px-3 py-1 disabled:opacity-40"
       >
-        Previous
+        {t("Previous")}
       </button>
       <span aria-live="polite">
-        Page {page} of {pages}
+        {t("Page {page} of {pages}", { page, pages })}
       </span>
       <button
         type="button"
@@ -35,7 +38,7 @@ export function PaginationControls({
         onClick={() => onPage(page + 1)}
         className="rounded-md border px-3 py-1 disabled:opacity-40"
       >
-        Next
+        {t("Next")}
       </button>
     </nav>
   );

@@ -1,3 +1,6 @@
+import { ApiError, apiErrorMessage } from "../../api/client";
+import { useLanguage } from "../../app/LanguageProvider";
+
 interface AsyncStateProps {
   isLoading: boolean;
   error: unknown;
@@ -12,30 +15,37 @@ export function AsyncState({
   isLoading,
   error,
   isEmpty = false,
-  emptyText = "Nothing to show.",
+  emptyText,
   children,
 }: AsyncStateProps) {
+  const { t } = useLanguage();
   if (isLoading) {
     return (
       <p role="status" className="p-4 text-sm text-gray-600">
-        Loading…
+        {t("Loading…")}
       </p>
     );
   }
   if (error) {
     const message =
-      error instanceof Error ? error.message : "Something went wrong.";
+      error instanceof ApiError
+        ? apiErrorMessage(error)
+        : error instanceof Error
+          ? error.message
+          : t("Something went wrong.");
     return (
       <div
         role="alert"
-        className="rounded-md border border-red-300 bg-red-50 p-4 text-sm text-red-800"
+        className="rounded-md border border-red-300 bg-red-50 p-4 text-sm text-red-800 dark:border-red-800/60 dark:bg-red-950/50 dark:text-red-200"
       >
         {message}
       </div>
     );
   }
   if (isEmpty) {
-    return <p className="p-4 text-sm text-gray-500">{emptyText}</p>;
+    return (
+      <p className="p-4 text-sm text-gray-500">{emptyText ?? t("Nothing to show.")}</p>
+    );
   }
   return <>{children}</>;
 }

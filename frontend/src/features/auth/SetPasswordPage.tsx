@@ -4,23 +4,17 @@ import { Link, useSearchParams } from "react-router-dom";
 
 import { ApiError } from "../../api/client";
 import { acceptInvitation, confirmPasswordReset } from "../../api/auth";
+import { useLanguage } from "../../app/LanguageProvider";
 
 interface FormValues {
   password: string;
   confirm: string;
 }
 
-const RULES = {
-  required: "Password is required.",
-  minLength: { value: 12, message: "At least 12 characters." },
-  validate: (v: string) =>
-    (/[a-z]/.test(v) && /[A-Z]/.test(v) && /[0-9]/.test(v)) ||
-    "Needs an uppercase letter, a lowercase letter, and a digit.",
-};
-
 /** Shared set-password form for both invitation acceptance and recovery
  * confirmation — both post {token, password} to their own endpoint. */
 export function SetPasswordPage({ mode }: { mode: "invitation" | "reset" }) {
+  const { t } = useLanguage();
   const [params] = useSearchParams();
   const token = params.get("token") ?? "";
   const [done, setDone] = useState(false);
@@ -40,19 +34,27 @@ export function SetPasswordPage({ mode }: { mode: "invitation" | "reset" }) {
       setDone(true);
     } catch (e) {
       if (e instanceof ApiError && e.code === "invalid_token") {
-        setError("This link is invalid or has expired. Request a new one.");
+        setError(t("This link is invalid or has expired. Request a new one."));
       } else if (e instanceof ApiError && e.fieldErrors?.password) {
-        setError("Password does not meet the requirements.");
+        setError(t("Password does not meet the requirements."));
       } else {
-        setError("Something went wrong. Please try again.");
+        setError(t("Something went wrong. Please try again."));
       }
     }
+  };
+
+  const RULES = {
+    required: t("Password is required."),
+    minLength: { value: 12, message: t("At least 12 characters.") },
+    validate: (v: string) =>
+      (/[a-z]/.test(v) && /[A-Z]/.test(v) && /[0-9]/.test(v)) ||
+      t("Needs an uppercase letter, a lowercase letter, and a digit."),
   };
 
   if (!token) {
     return (
       <main className="mx-auto max-w-md p-6">
-        <p role="alert">This link is missing its token. Check the emailed link.</p>
+        <p role="alert">{t("This link is missing its token. Check the emailed link.")}</p>
       </main>
     );
   }
@@ -60,11 +62,11 @@ export function SetPasswordPage({ mode }: { mode: "invitation" | "reset" }) {
   if (done) {
     return (
       <main className="mx-auto max-w-md p-6">
-        <h1 className="text-2xl font-semibold">Password set</h1>
+        <h1 className="text-2xl font-semibold">{t("Password set")}</h1>
         <p className="mt-2">
-          Your password is saved.{" "}
-          <Link to="/login" className="text-brand-700 underline">
-            Sign in
+          {t("Your password is saved.")}{" "}
+          <Link to="/login" className="workspace-link">
+            {t("Sign in")}
           </Link>
           .
         </p>
@@ -75,11 +77,10 @@ export function SetPasswordPage({ mode }: { mode: "invitation" | "reset" }) {
   return (
     <main className="mx-auto flex min-h-screen max-w-md flex-col justify-center p-6">
       <h1 className="text-2xl font-semibold">
-        {mode === "invitation" ? "Welcome to Daimoma" : "Set a new password"}
+        {mode === "invitation" ? t("Welcome to Daimoma") : t("Set a new password")}
       </h1>
       <p className="mt-2 text-sm text-gray-600">
-        Minimum 12 characters with an uppercase letter, a lowercase letter, and
-        a digit.
+        {t("Minimum 12 characters with an uppercase letter, a lowercase letter, and a digit.")}
       </p>
       <form
         onSubmit={handleSubmit(onSubmit)}
@@ -88,7 +89,7 @@ export function SetPasswordPage({ mode }: { mode: "invitation" | "reset" }) {
       >
         <div>
           <label htmlFor="password" className="block text-sm font-medium">
-            New password
+            {t("New password")}
           </label>
           <input
             id="password"
@@ -106,7 +107,7 @@ export function SetPasswordPage({ mode }: { mode: "invitation" | "reset" }) {
         </div>
         <div>
           <label htmlFor="confirm" className="block text-sm font-medium">
-            Confirm password
+            {t("Confirm password")}
           </label>
           <input
             id="confirm"
@@ -115,8 +116,8 @@ export function SetPasswordPage({ mode }: { mode: "invitation" | "reset" }) {
             className="mt-1 w-full rounded border border-gray-300 p-2"
             aria-invalid={!!errors.confirm}
             {...register("confirm", {
-              required: "Please repeat the password.",
-              validate: (v) => v === getValues("password") || "Passwords must match.",
+              required: t("Please repeat the password."),
+              validate: (v) => v === getValues("password") || t("Passwords must match."),
             })}
           />
           {errors.confirm && (
@@ -126,7 +127,7 @@ export function SetPasswordPage({ mode }: { mode: "invitation" | "reset" }) {
           )}
         </div>
         {error && (
-          <p role="alert" className="rounded bg-red-50 p-2 text-sm text-red-700">
+          <p role="alert" className="rounded-md border border-red-300 bg-red-50 p-2 text-sm text-red-800 dark:border-red-800/60 dark:bg-red-950/50 dark:text-red-200">
             {error}
           </p>
         )}
@@ -135,7 +136,7 @@ export function SetPasswordPage({ mode }: { mode: "invitation" | "reset" }) {
           disabled={isSubmitting}
           className="rounded bg-brand-700 p-2 font-medium text-white disabled:opacity-60"
         >
-          {isSubmitting ? "Saving…" : "Set password"}
+          {isSubmitting ? t("Saving…") : t("Set password")}
         </button>
       </form>
     </main>
