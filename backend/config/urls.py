@@ -21,4 +21,5 @@ urlpatterns = [
     path("api/v1/", include("apps.notifications.urls")),
     path("api/v1/", include("apps.employee_requests.urls")),
     path("api/v1/", include("apps.timesheets.urls")),
+    path("api/v1/", include("apps.reporting.urls")),
 ]

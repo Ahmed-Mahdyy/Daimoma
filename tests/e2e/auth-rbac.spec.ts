@@ -12,7 +12,7 @@ async function loginAs(page: Page, email: string) {
   await page.getByLabel(/email/i).fill(email);
   await page.getByLabel(/password/i).fill(PASSWORD);
   await page.getByRole("button", { name: /sign in/i }).click();
-  await expect(page.getByText(/welcome/i)).toBeVisible();
+  await expect(page.getByText(/my dashboard/i)).toBeVisible();
 }
 
 test("unauthenticated visitors are redirected to login for protected routes", async ({

@@ -1,8 +1,3 @@
-# Copyright (c) 2026 CDS Solutions SRL. (http://cdsegypt.com)
-# Maintainer: Eng.Ramadan Khalil (<ramadan.khalil@cdsegypt.com>),
-#             Eng.Ahmed Mahdy (<ahmed.mahdy@cdsegypt.com>)
-# It is forbidden to publish, distribute, sublicense, or sell copies
-# of the Software or modified copies of the Software.
 """T017 — scoped list filters/ordering/pagination + query budgets.
 Lists/details/history must not scale queries with row count."""
 

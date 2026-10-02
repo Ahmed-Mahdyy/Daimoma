@@ -164,6 +164,58 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/dashboards/organization/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["dashboards_organization_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/dashboards/personal/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["dashboards_personal_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/dashboards/team/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * @description Manager: current direct reports. HR: organization-wide (their whole
+         *     'team').
+         */
+        get: operations["dashboards_team_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/departments/": {
         parameters: {
             query?: never;
@@ -348,8 +400,9 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * @description GET /api/v1/notifications/ — recipient-only, paginated, `?unread=true`
-         *     filter; the envelope always carries `unread_count` for the bell.
+         * @description GET /api/v1/notifications/ — recipient-only, paginated (50/page),
+         *     `?unread=true` and `?kind=` filters; the envelope always carries
+         *     `unread_count` for the bell.
          */
         get: operations["notifications_list"];
         put?: never;
@@ -380,6 +433,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/notifications/{id}/target/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * @description GET /api/v1/notifications/{id}/target/ — resolve the stored target to
+         *     a frontend path, rechecked against CURRENT authorization. Inaccessible
+         *     or stale targets are indistinguishable 404s.
+         */
+        get: operations["notifications_target_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/notifications/read-all/": {
         parameters: {
             query?: never;
@@ -400,6 +474,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/notifications/unread-count/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * @description GET /api/v1/notifications/unread-count/ — the 60s badge-poll
+         *     endpoint (D-009); intentionally cheap.
+         */
+        get: operations["notifications_unread_count_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/organization/settings/": {
         parameters: {
             query?: never;
@@ -414,6 +508,80 @@ export interface paths {
         options?: never;
         head?: never;
         patch: operations["organization_settings_partial_update"];
+        trace?: never;
+    };
+    "/api/v1/reports/requests/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * @description GET reports/requests/ — scoped submitted requests (drafts excluded),
+         *     date basis = submitted_at (D-009).
+         */
+        get: operations["reports_requests_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/reports/requests/export/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description GET reports/requests/export/ — manager/HR bounded CSV (D-009). */
+        get: operations["reports_requests_export_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/reports/working-hours/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * @description GET reports/working-hours/ — scoped employee x work_date minutes.
+         *     `status` selects the sheet's CURRENT status (default approved).
+         */
+        get: operations["reports_working_hours_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/reports/working-hours/export/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description GET reports/working-hours/export/ — manager/HR bounded CSV (D-009). */
+        get: operations["reports_working_hours_export_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/api/v1/request-types/": {
@@ -810,6 +978,25 @@ export interface components {
          * @enum {string}
          */
         CategoryEnum: "leave" | "equipment" | "hr_service" | "work_from_home" | "general";
+        Dashboard: {
+            period: components["schemas"]["DashboardPeriod"];
+            scope: string;
+            requests: {
+                [key: string]: unknown;
+            };
+            timesheets: {
+                [key: string]: unknown;
+            };
+            approved_minutes: number;
+            pending_review: number;
+        };
+        DashboardPeriod: {
+            /** Format: date */
+            from: string;
+            /** Format: date */
+            to: string;
+            timezone: string;
+        };
         Department: {
             /** Format: uuid */
             readonly id: string;
@@ -970,6 +1157,9 @@ export interface components {
         };
         NotificationDetail: {
             detail: string;
+        };
+        NotificationTarget: {
+            url: string;
         };
         OrgDetailResponse: {
             detail: string;
@@ -1318,6 +1508,9 @@ export interface components {
             token: string;
             password: string;
         };
+        UnreadCount: {
+            unread_count: number;
+        };
         /** @description Safe user summary — never exposes password, tokens, or staff flags. */
         UserSummary: {
             /** Format: uuid */
@@ -1528,6 +1721,78 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ManagerChoices"];
+                };
+            };
+        };
+    };
+    dashboards_organization_retrieve: {
+        parameters: {
+            query?: {
+                /** @description Inclusive local start date */
+                from?: string;
+                /** @description Inclusive local end date */
+                to?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Dashboard"];
+                };
+            };
+        };
+    };
+    dashboards_personal_retrieve: {
+        parameters: {
+            query?: {
+                /** @description Inclusive local start date */
+                from?: string;
+                /** @description Inclusive local end date */
+                to?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Dashboard"];
+                };
+            };
+        };
+    };
+    dashboards_team_retrieve: {
+        parameters: {
+            query?: {
+                /** @description Inclusive local start date */
+                from?: string;
+                /** @description Inclusive local end date */
+                to?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Dashboard"];
                 };
             };
         };
@@ -1900,6 +2165,27 @@ export interface operations {
             };
         };
     };
+    notifications_target_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotificationTarget"];
+                };
+            };
+        };
+    };
     notifications_read_all_create: {
         parameters: {
             query?: never;
@@ -1915,6 +2201,25 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["NotificationDetail"];
+                };
+            };
+        };
+    };
+    notifications_unread_count_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UnreadCount"];
                 };
             };
         };
@@ -1959,6 +2264,118 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["OrgSettings"];
+                };
+            };
+        };
+    };
+    reports_requests_retrieve: {
+        parameters: {
+            query?: {
+                employee?: string;
+                /** @description Inclusive local start date */
+                from?: string;
+                ordering?: string;
+                status?: string;
+                /** @description Inclusive local end date */
+                to?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    reports_requests_export_retrieve: {
+        parameters: {
+            query?: {
+                employee?: string;
+                /** @description Inclusive local start date */
+                from?: string;
+                ordering?: string;
+                status?: string;
+                /** @description Inclusive local end date */
+                to?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": string;
+                };
+            };
+        };
+    };
+    reports_working_hours_retrieve: {
+        parameters: {
+            query?: {
+                employee?: string;
+                /** @description Inclusive local start date */
+                from?: string;
+                ordering?: string;
+                status?: string;
+                /** @description Inclusive local end date */
+                to?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    reports_working_hours_export_retrieve: {
+        parameters: {
+            query?: {
+                employee?: string;
+                /** @description Inclusive local start date */
+                from?: string;
+                ordering?: string;
+                status?: string;
+                /** @description Inclusive local end date */
+                to?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": string;
                 };
             };
         };

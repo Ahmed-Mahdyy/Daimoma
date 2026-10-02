@@ -1,6 +1,6 @@
 # Tasks: Timesheets
 
-**Status**: Implemented and verified — pending owner acceptance (T019). Mandatory tests; IDs are local to 004.
+**Status**: Implemented, verified, and **accepted 2026-10-02 (owner)**. Mandatory tests; IDs are local to 004.
 
 ## Setup and Foundational
 
@@ -40,7 +40,7 @@ Goal: exceptional correction retains history and current reporting truth. Indepe
 
 - [x] T017 Expand OpenAPI/generated types in `frontend/src/api/`; add sheet/entry contract drift, pagination, query-count, and populated migration tests (FR-009, FR-010).
 - [x] T018 Add real API mobile/desktop cross-role journeys in `tests/e2e/timesheets.spec.ts` including network/session errors and read-only bypass attempts (FR-003, FR-004, FR-005, FR-006, FR-010). **8/8 pass; full suite 21/21.**
-- [ ] T019 Record actual accuracy/race/permission/migration outcomes in `docs/evidence/004-timesheets.md`; reconcile `spec.md`, contracts, and policy decisions before acceptance (FR-001, FR-002, FR-007, FR-008, FR-010). **Evidence recorded 2026-10-02; awaiting owner acceptance.**
+- [x] T019 Record actual accuracy/race/permission/migration outcomes in `docs/evidence/004-timesheets.md`; reconcile `spec.md`, contracts, and policy decisions before acceptance (FR-001, FR-002, FR-007, FR-008, FR-010). **Accepted 2026-10-02 (owner).** Open defects retained: none.
 
 ## Dependencies and Strategy
 

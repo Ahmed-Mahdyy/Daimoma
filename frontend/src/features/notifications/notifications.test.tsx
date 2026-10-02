@@ -1,15 +1,18 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("../../api/notifications", () => ({
   listNotifications: vi.fn(),
+  getUnreadCount: vi.fn(),
   markNotificationRead: vi.fn(),
   markAllNotificationsRead: vi.fn(),
 }));
 
 import {
+  getUnreadCount,
   listNotifications,
   markAllNotificationsRead,
   markNotificationRead,
@@ -32,13 +35,18 @@ function renderBell() {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
     <QueryClientProvider client={qc}>
-      <NotificationBell />
+      <MemoryRouter>
+        <NotificationBell />
+      </MemoryRouter>
     </QueryClientProvider>,
   );
 }
 
 describe("NotificationBell", () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.mocked(getUnreadCount).mockResolvedValue({ unread_count: 1 });
+  });
 
   it("shows the unread count badge", async () => {
     vi.mocked(listNotifications).mockResolvedValue({

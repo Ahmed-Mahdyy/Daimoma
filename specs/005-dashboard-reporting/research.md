@@ -8,4 +8,4 @@
 | Current hierarchy labels | Historical reporting lines were not modeled | Pretending current manager/department is historically accurate |
 | Durable inbox plus modest visible-tab polling | Meets required notifications with low operational complexity | WebSockets and a new broker without a requirement |
 
-Pending D-003 scope, D-005 date semantics, D-006 confidential categories, D-009 range/row/polling limits and workload. Query plans and measured response times decide optimizations; no benchmark has run yet.
+D-003 scope, D-005 date semantics, and D-006 categories are approved. D-009 reporting limits approved 2026-10-02 (submitted-date basis, drafts excluded, current-team grouping, 366-day range, 10k-row CSV-only exports, 60s badge polling, 50/page inbox). Still pending: D-009 performance workload targets. Query plans and measured response times decide optimizations; no benchmark has run yet.

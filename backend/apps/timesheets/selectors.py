@@ -1,8 +1,3 @@
-# Copyright (c) 2026 CDS Solutions SRL. (http://cdsegypt.com)
-# Maintainer: Eng.Ramadan Khalil (<ramadan.khalil@cdsegypt.com>),
-#             Eng.Ahmed Mahdy (<ahmed.mahdy@cdsegypt.com>)
-# It is forbidden to publish, distribute, sublicense, or sell copies
-# of the Software or modified copies of the Software.
 """Scoped timesheet selectors (T004): role scope applies before any filter,
 count, or pagination. COLLECTING sheets are the employee's private workspace —
 managers and HR only see submitted (non-COLLECTING) sheets, matching D-003's

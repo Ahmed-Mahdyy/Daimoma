@@ -141,4 +141,7 @@ Full suite including earlier specs: **21/21 passed** (7 auth-rbac +
 - Week-boundary overnight entry (Sunday→Monday across sheets): rejected
   by design — a segment must land inside the sheet's period; employees
   split such shifts across two weeks manually. Recorded as a known edge.
-- Owner acceptance pending.
+
+## Acceptance
+
+**Accepted 2026-10-02 (owner).** No open defects retained.

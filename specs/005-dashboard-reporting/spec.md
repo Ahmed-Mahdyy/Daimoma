@@ -2,7 +2,7 @@
 
 **Feature**: 005-dashboard-reporting
 **Created**: 2026-09-20
-**Status**: Draft; reporting limits and visibility decisions await approval.
+**Status**: Approved basis — D-009 reporting limits approved 2026-10-02 (owner): request reports use submitted date and exclude drafts; grouping by current team assignment; report range ≤ 366 days; CSV-only exports ≤ 10,000 rows; notification badge polls every 60s (paused when tab hidden); inbox 50/page; retention indefinite pending a D-008 retention decision; dashboard scopes per D-003.
 **Source**: Brief sections 4-6, 9-12, 15; phase 002 scope and phase 003/004 events.
 
 ## User Scenarios & Testing

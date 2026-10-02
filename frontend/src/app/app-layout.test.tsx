@@ -7,6 +7,7 @@ vi.mock("../features/auth/auth-context", () => ({
   useAuth: vi.fn(),
 }));
 vi.mock("../api/notifications", () => ({
+  getUnreadCount: vi.fn().mockResolvedValue({ unread_count: 0 }),
   listNotifications: vi.fn().mockResolvedValue({
     count: 0,
     next: null,

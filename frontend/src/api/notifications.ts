@@ -16,9 +16,26 @@ export interface NotificationPage extends Paged<NotificationRow> {
   unread_count: number;
 }
 
-export function listNotifications(unreadOnly = false) {
-  const suffix = unreadOnly ? "?unread=true" : "";
+export function listNotifications(unreadOnly = false, kind?: string, page?: number) {
+  const params = new URLSearchParams();
+  if (unreadOnly) params.set("unread", "true");
+  if (kind) params.set("kind", kind);
+  if (page && page > 1) params.set("page", String(page));
+  const suffix = params.size ? `?${params}` : "";
   return apiFetch<NotificationPage>(`/api/v1/notifications/${suffix}`);
+}
+
+/** Cheap poll endpoint for the header badge (D-009: 60s interval). */
+export function getUnreadCount() {
+  return apiFetch<{ unread_count: number }>(
+    "/api/v1/notifications/unread-count/",
+  );
+}
+
+/** Resolve a notification's target — the server rechecks current scope and
+ * returns 404 when the object is no longer accessible. */
+export function resolveNotificationTarget(id: string) {
+  return apiFetch<{ url: string }>(`/api/v1/notifications/${id}/target/`);
 }
 
 export function markNotificationRead(id: string) {

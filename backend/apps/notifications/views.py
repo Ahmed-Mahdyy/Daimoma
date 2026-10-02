@@ -8,7 +8,7 @@ from apps.accounts.pagination import DefaultPagination
 from apps.accounts.permissions import IsActiveAuthenticated
 from apps.notifications.models import Notification
 from apps.notifications.serializers import NotificationSerializer
-from apps.notifications.services import mark_all_read, mark_read
+from apps.notifications.services import mark_all_read, mark_read, resolve_target_url
 
 PagedNotifications = inline_serializer(
     name="PagedNotifications",
@@ -25,9 +25,14 @@ DetailSerializer = inline_serializer(
 )
 
 
+class InboxPagination(DefaultPagination):
+    page_size = 50  # D-009 (2026-10-02)
+
+
 class NotificationListView(APIView):
-    """GET /api/v1/notifications/ — recipient-only, paginated, `?unread=true`
-    filter; the envelope always carries `unread_count` for the bell."""
+    """GET /api/v1/notifications/ — recipient-only, paginated (50/page),
+    `?unread=true` and `?kind=` filters; the envelope always carries
+    `unread_count` for the bell."""
 
     permission_classes = [IsActiveAuthenticated]
     http_method_names = ["get", "head", "options"]
@@ -37,12 +42,61 @@ class NotificationListView(APIView):
         qs = Notification.objects.filter(recipient=request.user)
         if request.query_params.get("unread") == "true":
             qs = qs.filter(read_at__isnull=True)
+        if kind := request.query_params.get("kind"):
+            qs = qs.filter(kind=kind)
         unread = Notification.objects.filter(recipient=request.user, read_at__isnull=True).count()
-        paginator = DefaultPagination()
+        paginator = InboxPagination()
         page = paginator.paginate_queryset(qs, request, view=self)
         data = paginator.get_paginated_response(NotificationSerializer(page, many=True).data).data
         data["unread_count"] = unread
         return Response(data)
+
+
+class UnreadCountView(APIView):
+    """GET /api/v1/notifications/unread-count/ — the 60s badge-poll
+    endpoint (D-009); intentionally cheap."""
+
+    permission_classes = [IsActiveAuthenticated]
+
+    @extend_schema(
+        request=None,
+        responses={
+            200: inline_serializer(
+                name="UnreadCount",
+                fields={"unread_count": drf_serializers.IntegerField()},
+            )
+        },
+    )
+    def get(self, request):
+        count = Notification.objects.filter(recipient=request.user, read_at__isnull=True).count()
+        return Response({"unread_count": count})
+
+
+class NotificationTargetView(APIView):
+    """GET /api/v1/notifications/{id}/target/ — resolve the stored target to
+    a frontend path, rechecked against CURRENT authorization. Inaccessible
+    or stale targets are indistinguishable 404s."""
+
+    permission_classes = [IsActiveAuthenticated]
+
+    @extend_schema(
+        request=None,
+        responses={
+            200: inline_serializer(
+                name="NotificationTarget",
+                fields={"url": drf_serializers.CharField()},
+            )
+        },
+    )
+    def get(self, request, pk):
+        try:
+            notification = Notification.objects.get(pk=pk, recipient=request.user)
+        except Notification.DoesNotExist:
+            raise NotFound from None
+        url = resolve_target_url(notification, request.user)
+        if url is None:
+            raise NotFound
+        return Response({"url": url})
 
 
 class NotificationReadView(APIView):

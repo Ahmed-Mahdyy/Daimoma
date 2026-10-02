@@ -1,8 +1,3 @@
-# Copyright (c) 2026 CDS Solutions SRL. (http://cdsegypt.com)
-# Maintainer: Eng.Ramadan Khalil (<ramadan.khalil@cdsegypt.com>),
-#             Eng.Ahmed Mahdy (<ahmed.mahdy@cdsegypt.com>)
-# It is forbidden to publish, distribute, sublicense, or sell copies
-# of the Software or modified copies of the Software.
 """T014 — HR-only reopening: reason requirement, non-final guard, stale
 versions, history preservation, approved-total exclusion (FR-006, FR-008)."""
 

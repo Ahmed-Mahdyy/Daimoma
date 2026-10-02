@@ -1,8 +1,3 @@
-# Copyright (c) 2026 CDS Solutions SRL. (http://cdsegypt.com)
-# Maintainer: Eng.Ramadan Khalil (<ramadan.khalil@cdsegypt.com>),
-#             Eng.Ahmed Mahdy (<ahmed.mahdy@cdsegypt.com>)
-# It is forbidden to publish, distribute, sublicense, or sell copies
-# of the Software or modified copies of the Software.
 """True multi-connection race tests (plan §Verification): threads with
 separate PostgreSQL connections, not a single rolled-back transaction.
 The employee-before-sheet lock order must serialize competing writers so

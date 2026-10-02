@@ -1,27 +1,37 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
+import { Link } from "react-router-dom";
 
 import {
+  getUnreadCount,
   listNotifications,
   markAllNotificationsRead,
   markNotificationRead,
 } from "../../api/notifications";
 
-/** Notification bell with unread badge + dropdown list. Polls every 30s;
- * keyboard operable, Escape closes. */
+/** Notification bell with unread badge + dropdown list. The badge polls the
+ * cheap unread-count endpoint every 60s (D-009) and pauses while the tab is
+ * hidden; the full list only fetches when the dropdown opens. */
 export function NotificationBell() {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const queryClient = useQueryClient();
 
+  const { data: count } = useQuery({
+    queryKey: ["notifications", "unread-count"],
+    queryFn: getUnreadCount,
+    refetchInterval: 60_000, // pauses when the tab is hidden (default behavior)
+  });
+
   const { data } = useQuery({
     queryKey: ["notifications"],
     queryFn: () => listNotifications(false),
-    refetchInterval: 30_000,
+    enabled: open,
   });
 
-  const invalidate = () =>
-    queryClient.invalidateQueries({ queryKey: ["notifications"] });
+  const invalidate = () => {
+    void queryClient.invalidateQueries({ queryKey: ["notifications"] });
+  };
 
   const readMutation = useMutation({
     mutationFn: markNotificationRead,
@@ -48,7 +58,7 @@ export function NotificationBell() {
     };
   }, [open]);
 
-  const unread = data?.unread_count ?? 0;
+  const unread = count?.unread_count ?? 0;
   const items = data?.results ?? [];
 
   return (
@@ -123,6 +133,15 @@ export function NotificationBell() {
               </li>
             ))}
           </ul>
+          <div className="border-t px-3 py-2 text-center">
+            <Link
+              to="/notifications"
+              className="text-xs text-brand-700 underline"
+              onClick={() => setOpen(false)}
+            >
+              View all notifications
+            </Link>
+          </div>
         </div>
       )}
     </div>

@@ -13,6 +13,7 @@ trigger: always_on
 - Critical workflow, permissions, concurrency, migration, and accessibility tests are mandatory even when an upstream template calls tests optional.
 - Do not commit, push, create remote issues, launch subagents, deploy, reset data, remove existing files, or perform destructive operations without explicit approval.
 - Enforce authorization and state transitions on the server; scope lists, details, aggregates, exports, attachments, notifications, and related-field choices.
+- Do NOT add the CDS Solutions copyright/maintainer header to Python files in this project — that global rule applies to Odoo addon modules only, and this is a standalone Django/React product (owner instruction 2026-10-02).
 - Prefer explicit transactional services, scoped querysets, thin API adapters, strict TypeScript, and accessible shared components; do not introduce speculative abstractions.
 - Use the renamed project root `/home/mahdy/cds-playground/odoo-19/Daimoma` for shell and file operations; do not rely on old absolute paths from the former `CDS Project` directory. Never modify surrounding Odoo repositories.
 - At completion report files changed, actual checks and outcomes, unrun checks, unresolved decisions, and the next approved task. Never fabricate review or testing evidence.

@@ -46,3 +46,36 @@ def mark_all_read(user):
     return Notification.objects.filter(recipient=user, read_at__isnull=True).update(
         read_at=timezone.now()
     )
+
+
+def resolve_target_url(notification, user) -> str | None:
+    """Map a notification's stored target to a frontend path — only when the
+    caller can CURRENTLY access that object (005 FR-005). A stale target
+    (revoked scope, deleted object, foreign org) resolves to None; callers
+    answer 404 so the notification never leaks target content."""
+    tt, tid = notification.target_type, notification.target_id
+    if not tt or tid is None:
+        return None
+    if tt == "timesheets.timesheet":
+        from apps.timesheets.selectors import sheet_for
+
+        return f"/timesheets/{tid}" if sheet_for(user, tid) else None
+    if tt == "employee_requests.employeerequest":
+        from apps.employee_requests.selectors import scoped_requests
+
+        if scoped_requests(user).filter(pk=tid).exists():
+            return f"/requests/{tid}"
+        return None
+    if tt == "accounts.employeeprofile":
+        from apps.accounts.models import EmployeeProfile
+        from apps.accounts.permissions import is_hr
+
+        if (
+            is_hr(user)
+            and EmployeeProfile.objects.filter(
+                pk=tid, organization_id=user.organization_id
+            ).exists()
+        ):
+            return f"/employees/{tid}"
+        return None
+    return None

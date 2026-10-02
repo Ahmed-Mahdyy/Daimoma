@@ -1,8 +1,3 @@
-# Copyright (c) 2026 CDS Solutions SRL. (http://cdsegypt.com)
-# Maintainer: Eng.Ramadan Khalil (<ramadan.khalil@cdsegypt.com>),
-#             Eng.Ahmed Mahdy (<ahmed.mahdy@cdsegypt.com>)
-# It is forbidden to publish, distribute, sublicense, or sell copies
-# of the Software or modified copies of the Software.
 """T002 — reference interval/DST/week-boundary/minute-calculation tests.
 These pin the pure time rules before any domain logic (FR-001, FR-002).
 The backend is authoritative: clients send explicit UTC instants; all local

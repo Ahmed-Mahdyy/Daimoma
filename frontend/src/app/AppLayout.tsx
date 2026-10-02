@@ -34,6 +34,9 @@ export function AppLayout() {
             <NavLink to="/employees" className={linkClass}>
               Employees
             </NavLink>
+            <NavLink to="/reports" className={linkClass}>
+              Reports
+            </NavLink>
             {isHr && (
               <NavLink to="/requests/types" className={linkClass}>
                 Request types

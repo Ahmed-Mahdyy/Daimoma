@@ -13,6 +13,7 @@ import { useAuth } from "../features/auth/auth-context";
 import { LoginPage } from "../features/auth/LoginPage";
 import { RequestResetPage } from "../features/auth/RequestResetPage";
 import { SetPasswordPage } from "../features/auth/SetPasswordPage";
+import { DashboardPage } from "../features/dashboards/DashboardPage";
 import { DepartmentsPage } from "../features/departments/DepartmentsPage";
 import { EmployeeDetailPage } from "../features/employees/EmployeeDetailPage";
 import { EmployeesPage } from "../features/employees/EmployeesPage";
@@ -22,6 +23,8 @@ import { RequestEditPage } from "../features/requests/RequestEditPage";
 import { RequestFormPage } from "../features/requests/RequestFormPage";
 import { RequestsPage } from "../features/requests/RequestsPage";
 import { RequestTypesPage } from "../features/requests/RequestTypesPage";
+import { ReportsPage } from "../features/reports/ReportsPage";
+import { NotificationsPage } from "../features/notifications/NotificationsPage";
 import { OrgSettingsPage } from "../features/settings/OrgSettingsPage";
 import { SettingsPage } from "../features/settings/SettingsPage";
 import { TimesheetDetailPage } from "../features/timesheets/TimesheetDetailPage";
@@ -42,21 +45,6 @@ function RequireAuth() {
   return <Outlet />;
 }
 
-function HomePage() {
-  const { user } = useAuth();
-  return (
-    <div>
-      <h1 className="text-2xl font-semibold">
-        Welcome, {user?.display_name || user?.email}
-      </h1>
-      <p className="mt-2 text-sm text-gray-600">
-        Use the navigation above to manage employees, review your team, or
-        update your settings.
-      </p>
-    </div>
-  );
-}
-
 const router = createBrowserRouter([
   { path: "/login", element: <LoginPage /> },
   { path: "/reset-password", element: <RequestResetPage /> },
@@ -74,7 +62,9 @@ const router = createBrowserRouter([
       {
         element: <AppLayout />,
         children: [
-          { path: "/", element: <HomePage /> },
+          { path: "/", element: <DashboardPage /> },
+          { path: "/reports", element: <ReportsPage /> },
+          { path: "/notifications", element: <NotificationsPage /> },
           { path: "/employees", element: <EmployeesPage /> },
           { path: "/employees/new", element: <ProvisionEmployeePage /> },
           { path: "/employees/:id", element: <EmployeeDetailPage /> },
