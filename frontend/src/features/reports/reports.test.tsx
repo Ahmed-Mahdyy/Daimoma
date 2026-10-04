@@ -28,7 +28,6 @@ vi.mock("../../api/employees", () => ({
         manager_name: null,
         phone: "",
         job_title: "",
-        preferred_locale: "en",
         version: 1,
       },
     ],

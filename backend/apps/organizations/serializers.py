@@ -1,6 +1,12 @@
+from django.utils import timezone
 from rest_framework import serializers
 
-from apps.accounts.models import EmployeeProfile
+from apps.accounts.models import (
+    EMPLOYEE_INFORMATION_FIELDS,
+    EMPLOYEE_WORK_FIELDS,
+    EmployeeProfile,
+)
+from apps.accounts.validators import normalize_egyptian_phone
 from apps.organizations.models import Department, Organization
 
 
@@ -34,7 +40,6 @@ class EmployeeSummarySerializer(serializers.ModelSerializer):
             "display_name",
             "phone",
             "job_title",
-            "preferred_locale",
             "department",
             "department_name",
             "manager",
@@ -57,18 +62,76 @@ class EmployeeSummarySerializer(serializers.ModelSerializer):
         )
 
 
-class EmployeeProvisionSerializer(serializers.Serializer):
+class EmployeeDetailSerializer(EmployeeSummarySerializer):
+    class Meta(EmployeeSummarySerializer.Meta):
+        fields = [*EmployeeSummarySerializer.Meta.fields, *EMPLOYEE_INFORMATION_FIELDS]
+
+    def to_representation(self, instance):
+        """Work/contract details are HR-only: the keys are omitted entirely
+        for employees and managers, never sent as masked values."""
+        data = super().to_representation(instance)
+        if self.context.get("hide_work_info"):
+            for field in EMPLOYEE_WORK_FIELDS:
+                data.pop(field, None)
+        return data
+
+
+class EmployeeInformationFields(serializers.Serializer):
+    birth_date = serializers.DateField(required=False, allow_null=True)
+    address = serializers.CharField(max_length=500, required=False, allow_blank=True)
+    emergency_contact_name = serializers.CharField(max_length=150, required=False, allow_blank=True)
+    emergency_contact_phone = serializers.CharField(max_length=40, required=False, allow_blank=True)
+    highest_qualification = serializers.CharField(max_length=150, required=False, allow_blank=True)
+    institution = serializers.CharField(max_length=150, required=False, allow_blank=True)
+    field_of_study = serializers.CharField(max_length=150, required=False, allow_blank=True)
+    graduation_year = serializers.IntegerField(min_value=1900, required=False, allow_null=True)
+    employment_start_date = serializers.DateField(required=False, allow_null=True)
+    employment_type = serializers.ChoiceField(
+        choices=EmployeeProfile.EmploymentType.choices, required=False, allow_blank=True
+    )
+    work_location = serializers.CharField(max_length=150, required=False, allow_blank=True)
+    contract_start_date = serializers.DateField(required=False, allow_null=True)
+    contract_end_date = serializers.DateField(required=False, allow_null=True)
+
+    def validate(self, attrs):
+        start = attrs.get("contract_start_date")
+        end = attrs.get("contract_end_date")
+        if start and end and end < start:
+            raise serializers.ValidationError(
+                {"contract_end_date": ["Contract end date cannot be before the start date."]}
+            )
+        return attrs
+
+    # Phone fields are declared on the subclasses but share this validator —
+    # numbers are normalized (separators stripped) on every write path.
+    def validate_phone(self, value):
+        return normalize_egyptian_phone(value)
+
+    def validate_emergency_contact_phone(self, value):
+        return normalize_egyptian_phone(value)
+
+    def validate_birth_date(self, value):
+        if value and value > timezone.localdate():
+            raise serializers.ValidationError("Birth date cannot be in the future.")
+        return value
+
+    def validate_graduation_year(self, value):
+        if value and value > timezone.localdate().year:
+            raise serializers.ValidationError("Graduation year cannot be in the future.")
+        return value
+
+
+class EmployeeProvisionSerializer(EmployeeInformationFields):
     """HR provisioning input — organization and privileges are assigned
     server-side; the allowlist contains no is_staff/is_superuser/password."""
 
     email = serializers.EmailField()
     employee_code = serializers.CharField(max_length=40)
-    display_name = serializers.CharField(max_length=150, required=False, default="")
-    phone = serializers.CharField(max_length=40, required=False, default="")
-    job_title = serializers.CharField(max_length=150, required=False, default="")
-    preferred_locale = serializers.ChoiceField(
-        choices=EmployeeProfile.Locale.choices, required=False, default="en"
+    display_name = serializers.CharField(
+        max_length=150, required=False, allow_blank=True, default=""
     )
+    phone = serializers.CharField(max_length=40, required=False, allow_blank=True, default="")
+    job_title = serializers.CharField(max_length=150, required=False, allow_blank=True, default="")
     department = serializers.UUIDField(required=False, allow_null=True)
     manager = serializers.UUIDField(required=False, allow_null=True)
     roles = serializers.ListField(child=serializers.CharField(), required=False, default=list)
@@ -83,7 +146,7 @@ class EmployeeProvisionSerializer(serializers.Serializer):
         return super().to_internal_value(data)
 
 
-class EmployeeUpdateSerializer(serializers.Serializer):
+class EmployeeUpdateSerializer(EmployeeInformationFields):
     """Explicit allowlist for PATCH employees/{id}/ — everything else,
     including privilege fields, is rejected outright."""
 
@@ -93,7 +156,7 @@ class EmployeeUpdateSerializer(serializers.Serializer):
         "display_name",
         "phone",
         "job_title",
-        "preferred_locale",
+        *EMPLOYEE_INFORMATION_FIELDS,
         "department",
         "manager",
         "roles",
@@ -102,12 +165,9 @@ class EmployeeUpdateSerializer(serializers.Serializer):
 
     email = serializers.EmailField(required=False)
     employee_code = serializers.CharField(max_length=40, required=False)
-    display_name = serializers.CharField(max_length=150, required=False)
-    phone = serializers.CharField(max_length=40, required=False)
-    job_title = serializers.CharField(max_length=150, required=False)
-    preferred_locale = serializers.ChoiceField(
-        choices=EmployeeProfile.Locale.choices, required=False
-    )
+    display_name = serializers.CharField(max_length=150, required=False, allow_blank=True)
+    phone = serializers.CharField(max_length=40, required=False, allow_blank=True)
+    job_title = serializers.CharField(max_length=150, required=False, allow_blank=True)
     department = serializers.UUIDField(required=False, allow_null=True)
     manager = serializers.UUIDField(required=False, allow_null=True)
     roles = serializers.ListField(child=serializers.CharField(), required=False)

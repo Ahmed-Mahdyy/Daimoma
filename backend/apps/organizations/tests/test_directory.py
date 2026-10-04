@@ -125,6 +125,57 @@ class TestFiltersAndOrdering:
         body = authed_client(employee).get(EMPLOYEES).json()
         assert [r["id"] for r in body["results"]] == [str(employee.profile.id)]
 
+    def test_detail_limits_personal_fields_to_visible_profiles(
+        self, org, hr_user, manager, employee, other_org
+    ):
+        mine = make_profile(org, make_user(org, "report@x.test"), "R1", manager=manager.profile)
+        outsider = make_profile(org, make_user(org, "stranger@x.test"), "S1")
+        foreign = make_profile(other_org, make_user(other_org, "foreign@x.test"), "F1")
+        for profile in (mine, outsider, foreign, employee.profile):
+            profile.address = "Private address"
+            profile.highest_qualification = "Bachelor's"
+            profile.save()
+        manager_api = authed_client(manager)
+        assert manager_api.get(f"{EMPLOYEES}{mine.pk}/").json()["address"] == "Private address"
+        assert manager_api.get(f"{EMPLOYEES}{manager.profile.pk}/").status_code == 200
+        for profile in (outsider, foreign, employee.profile):
+            assert manager_api.get(f"{EMPLOYEES}{profile.pk}/").status_code == 404
+        own = authed_client(employee).get(f"{EMPLOYEES}{employee.profile.pk}/").json()
+        assert own["address"] == "Private address"
+        assert authed_client(employee).get(f"{EMPLOYEES}{mine.pk}/").status_code == 404
+        hr_detail = hr_client(hr_user).get(f"{EMPLOYEES}{mine.pk}/").json()
+        assert hr_detail["highest_qualification"] == "Bachelor's"
+        assert "address" not in hr_client(hr_user).get(EMPLOYEES).json()["results"][0]
+
+    def test_detail_hides_work_information_from_non_hr(
+        self, org, hr_user, manager, employee
+    ):
+        report = make_profile(
+            org, make_user(org, "rep@x.test"), "RP", manager=manager.profile
+        )
+        report.employment_start_date = "2024-01-01"
+        report.employment_type = "full_time"
+        report.work_location = "HQ"
+        report.contract_start_date = "2024-01-01"
+        report.contract_end_date = "2026-01-01"
+        report.save()
+        work_keys = {
+            "employment_start_date",
+            "employment_type",
+            "work_location",
+            "contract_start_date",
+            "contract_end_date",
+        }
+        # Keys are omitted entirely — masked values would still leak presence.
+        manager_body = authed_client(manager).get(f"{EMPLOYEES}{report.pk}/").json()
+        assert work_keys.isdisjoint(manager_body)
+        assert manager_body["employee_code"] == "RP"
+        own_body = authed_client(employee).get(f"{EMPLOYEES}{employee.profile.pk}/").json()
+        assert work_keys.isdisjoint(own_body)
+        hr_body = hr_client(hr_user).get(f"{EMPLOYEES}{report.pk}/").json()
+        assert hr_body["work_location"] == "HQ"
+        assert hr_body["contract_end_date"] == "2026-01-01"
+
     def test_scope_manager_sees_direct_reports(self, org, manager):
         mine = make_profile(org, make_user(org, "t1@x.test"), "T1", manager=manager.profile)
         make_profile(org, make_user(org, "t2@x.test"), "T2")  # not a direct report

@@ -57,6 +57,55 @@ class TestProvision:
         assert len(mail.outbox) == 1
         assert AuditEvent.objects.filter(action="employee_provisioned", target_id=user.id).exists()
 
+    def test_hr_provisions_employee_information(self, hr_user):
+        payload = {
+            **self.PAYLOAD,
+            "birth_date": "1995-05-20",
+            "address": "Example address",
+            "emergency_contact_name": "Example Contact",
+            "emergency_contact_phone": "+20 100 000 0000",
+            "highest_qualification": "Bachelor's",
+            "institution": "Example University",
+            "field_of_study": "Engineering",
+            "graduation_year": 2017,
+            "employment_start_date": "2025-01-15",
+            "employment_type": "full_time",
+            "work_location": "Cairo",
+            "contract_start_date": "2025-01-15",
+            "contract_end_date": "2027-01-14",
+        }
+        response = hr_client(hr_user).post(EMPLOYEES, payload, format="json")
+        assert response.status_code == 201
+        assert response.json()["highest_qualification"] == "Bachelor's"
+        assert response.json()["work_location"] == "Cairo"
+        profile = User.objects.get(email=self.PAYLOAD["email"]).profile
+        assert profile.birth_date.isoformat() == "1995-05-20"
+        assert profile.contract_end_date.isoformat() == "2027-01-14"
+
+    def test_invalid_employee_information_rejected(self, hr_user):
+        invalid = (("birth_date", "2099-01-01"), ("graduation_year", 1800),
+                   ("employment_type", "unknown"))
+        for field, value in invalid:
+            response = hr_client(hr_user).post(
+                EMPLOYEES, {**self.PAYLOAD, field: value}, format="json"
+            )
+            assert response.status_code == 400
+            assert field in response.json()["field_errors"]
+        assert not User.objects.filter(email=self.PAYLOAD["email"]).exists()
+
+    def test_contract_end_before_start_rejected(self, hr_user):
+        response = hr_client(hr_user).post(
+            EMPLOYEES,
+            {
+                **self.PAYLOAD,
+                "contract_start_date": "2026-02-01",
+                "contract_end_date": "2026-01-01",
+            },
+            format="json",
+        )
+        assert response.status_code == 400
+        assert "contract_end_date" in response.json()["field_errors"]
+
     @pytest.mark.parametrize("role_fixture", ["employee", "manager"])
     def test_non_hr_forbidden(self, role_fixture, request):
         user = request.getfixturevalue(role_fixture)
@@ -101,6 +150,45 @@ class TestAdminUpdate:
         assert employee.profile.job_title == "Lead"
         assert employee.profile.department == dept
         assert employee.profile.display_name == "E"
+
+    def test_hr_updates_information_without_logging_personal_values(self, hr_user, employee):
+        response = self._patch(
+            hr_client(hr_user), employee.profile,
+            {"address": "Private address", "graduation_year": 2020, "employment_type": "part_time"},
+        )
+        assert response.status_code == 200
+        employee.profile.refresh_from_db()
+        assert employee.profile.address == "Private address"
+        assert response.json()["graduation_year"] == 2020
+        event = AuditEvent.objects.filter(action="employee_updated").latest("occurred_at")
+        assert "Private address" not in str(event.metadata)
+
+    def test_contract_range_checked_against_stored_date(self, hr_user, employee):
+        """A partial PATCH carries only one side of the range — the service
+        must compare it against the stored counterpart."""
+        c = hr_client(hr_user)
+        assert self._patch(
+            c, employee.profile, {"contract_start_date": "2026-01-01"}
+        ).status_code == 200
+        response = self._patch(c, employee.profile, {"contract_end_date": "2025-12-31"})
+        assert response.status_code == 400
+        employee.profile.refresh_from_db()
+        assert employee.profile.contract_end_date is None
+        assert self._patch(
+            c, employee.profile, {"contract_end_date": "2027-12-31"}
+        ).status_code == 200
+
+    def test_non_egyptian_phones_rejected(self, hr_user, employee):
+        c = hr_client(hr_user)
+        for field in ("phone", "emergency_contact_phone"):
+            response = self._patch(c, employee.profile, {field: "+1 555 000 0000"})
+            assert response.status_code == 400, field
+            assert field in response.json()["field_errors"]
+        assert self._patch(
+            c, employee.profile, {"phone": "010 1234 5678"}
+        ).status_code == 200
+        employee.profile.refresh_from_db()
+        assert employee.profile.phone == "01012345678"
 
     def test_privilege_fields_never_writable(self, hr_user, employee):
         for field in ["is_staff", "is_superuser", "is_active", "password"]:

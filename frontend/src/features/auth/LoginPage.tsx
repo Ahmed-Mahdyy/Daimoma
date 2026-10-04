@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { Link, useNavigate } from "react-router-dom";
 import { Languages, Moon, Sun } from "lucide-react";
@@ -17,12 +17,21 @@ interface FormValues {
   password: string;
 }
 
+const HERO_SLIDES = [
+  { line: "login.heroLine", sub: "login.heroSub" },
+  { line: "login.hero2Line", sub: "login.hero2Sub" },
+  { line: "login.hero3Line", sub: "login.hero3Sub" },
+] as const;
+// Mirrors E2E_SEED_PASSWORD's default in seed_e2e.py (dev-only panel).
+const DEMO_PASSWORD = "E2ePassw0rd1";
+
 export function LoginPage() {
   const navigate = useNavigate();
   const { refresh } = useAuth();
   const { mode, toggle } = useTheme();
   const { lang, setLang, t } = useLanguage();
   const [error, setError] = useState<string | null>(null);
+  const [slide, setSlide] = useState(0);
   const {
     register,
     handleSubmit,
@@ -30,10 +39,25 @@ export function LoginPage() {
     formState: { errors, isSubmitting },
   } = useForm<FormValues>();
 
-  const onSubmit = async (values: FormValues) => {
+  const [paused, setPaused] = useState(false);
+  useEffect(() => {
+    if (paused) return;
+    if (
+      typeof window.matchMedia !== "function" ||
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches
+    )
+      return;
+    const id = setInterval(
+      () => setSlide((s) => (s + 1) % HERO_SLIDES.length),
+      6000,
+    );
+    return () => clearInterval(id);
+  }, [paused]);
+
+  const doLogin = async (email: string, password: string) => {
     setError(null);
     try {
-      await login(values.email, values.password);
+      await login(email, password);
       await refresh();
       navigate("/", { replace: true });
     } catch (e) {
@@ -49,18 +73,31 @@ export function LoginPage() {
     }
   };
 
+  const onSubmit = (values: FormValues) => doLogin(values.email, values.password);
+
+  const onDemoPick = (email: string) => {
+    // One-click demo sign-in; if a custom seed password is configured the
+    // login fails gracefully and the email stays filled for manual entry.
+    setValue("email", email);
+    void doLogin(email, DEMO_PASSWORD);
+  };
+
   return (
     <main className="login-screen grid min-h-screen bg-[#f4f8f5] lg:grid-cols-2">
       <div className="relative hidden flex-col justify-between overflow-hidden bg-[#103e3a] p-12 text-white lg:flex xl:p-20">
-        <div className="absolute -right-32 -top-32 h-[34rem] w-[34rem] rounded-full border-[70px] border-white/5" aria-hidden="true" />
+        <img src="/brand/logo-icon.png" alt="" aria-hidden="true" className="absolute -right-28 -top-28 h-[30rem] w-auto opacity-[.07]" />
         <div className="absolute bottom-12 right-12 h-64 w-64 rounded-full bg-gold-500/15 blur-3xl" aria-hidden="true" />
-        <div className="relative flex items-center gap-3"><img src="/brand/logo-icon.svg" alt="" className="h-11 w-11 rounded-xl bg-white p-1" /><span className="text-xl font-bold tracking-tight">Daimoma</span></div>
-        <div className="relative max-w-xl"><span className="text-xs font-bold uppercase tracking-[.2em] text-[#b7d9cd]">{t("login.peopleWorkspace")}</span><p className="mt-6 text-4xl font-bold leading-tight tracking-tight xl:text-5xl">{t("login.heroLine")}</p><p className="mt-6 max-w-md text-base leading-7 text-[#c6dfd5]">{t("login.heroSub")}</p><div className="mt-12 flex gap-3"><span className="h-1.5 w-10 rounded-full bg-[#e6bf71]" /><span className="h-1.5 w-3 rounded-full bg-white/30" /><span className="h-1.5 w-3 rounded-full bg-white/30" /></div></div>
+        <div className="relative flex items-center gap-5"><img src="/brand/logo-icon.png" alt="" className="h-24 w-24 rounded-3xl bg-white p-2 shadow-xl shadow-black/15" /><span className="text-5xl font-bold tracking-tight">{t("brand.name")}</span></div>
+        <div className="relative max-w-xl" onMouseEnter={() => setPaused(true)} onMouseLeave={() => setPaused(false)}><span className="text-xs font-bold uppercase tracking-[.2em] text-[#b7d9cd]">{t("login.peopleWorkspace")}</span><div className="mt-6 grid" aria-live="polite">
+          {HERO_SLIDES.map((s, i) => (
+            <div key={s.line} aria-hidden={i !== slide} className={`col-start-1 row-start-1 transition-opacity duration-700 motion-reduce:transition-none motion-reduce:duration-0 ${i === slide ? "opacity-100" : "pointer-events-none opacity-0"}`}><p className="text-4xl font-bold leading-tight tracking-tight xl:text-5xl">{t(s.line)}</p><p className="mt-6 max-w-md text-base leading-7 text-[#c6dfd5]">{t(s.sub)}</p></div>
+          ))}
+        </div><div className="mt-12 flex gap-3">{HERO_SLIDES.map((s, i) => (<button key={s.line} type="button" aria-label={t("login.slide", { n: i + 1 })} aria-current={i === slide} onClick={() => setSlide(i)} className={`h-1.5 rounded-full transition-[width,background-color] ${i === slide ? "w-10 bg-[#e6bf71]" : "w-3 bg-white/30 hover:bg-white/60"}`} />))}</div></div>
         <p className="relative text-xs font-medium text-[#a9c9bd]">{t("login.footer")}</p>
       </div>
       <div className="flex min-w-0 flex-col justify-center px-6 py-12 sm:px-12 lg:px-16 xl:px-24">
         <div className="login-card mx-auto w-full max-w-md rounded-3xl border border-[#e3ebe6] bg-white p-6 shadow-[0_24px_70px_#1b4d3920] sm:p-10">
-      <div className="mb-8 flex items-center gap-3 lg:hidden"><img src="/brand/logo-icon.svg" alt="" className="h-10 w-10" /><span className="text-lg font-bold text-brand-800">Daimoma</span></div>
+      <div className="mb-8 flex items-center justify-center lg:hidden"><img src={lang === "ar" ? "/brand/logo-ar.png" : "/brand/logo-en.png"} alt={t("brand.name")} className="h-28 w-auto" /></div>
       <div className="flex items-center justify-between gap-2"><span className="text-xs font-bold uppercase tracking-[.16em] text-brand-700">{t("login.welcomeBack")}</span><div className="flex items-center gap-1"><Button type="button" size="icon" variant="ghost" aria-label={lang === "en" ? t("shell.languageToArabic") : t("shell.languageToEnglish")} title={lang === "en" ? t("shell.languageToArabic") : t("shell.languageToEnglish")} onClick={() => setLang(lang === "en" ? "ar" : "en")}><Languages className="size-4" /></Button><Button type="button" size="icon" variant="ghost" aria-label={mode === "dark" ? t("shell.themeToLight") : t("shell.themeToDark")} onClick={toggle}>{mode === "dark" ? <Sun /> : <Moon />}</Button></div></div>
       <h1 className="mt-2 text-3xl font-bold tracking-tight text-slate-900">{t("login.signIn")}</h1>
       <p className="mt-2 text-sm text-slate-600">{t("login.tagline")}</p>
@@ -121,14 +158,14 @@ export function LoginPage() {
       {import.meta.env.DEV && (
         <div className="mt-6 rounded-xl border border-brand-100 bg-brand-50/60 p-4">
           <p className="text-xs font-bold uppercase tracking-wider text-brand-800">{t("Local demo accounts")}</p>
-          <p className="mt-1 text-xs text-slate-600">{t("Choose a role to fill the email. Use the password configured for your local seed.")}</p>
+          <p className="mt-1 text-xs text-slate-600">{t("Pick a role to sign in instantly with the local seed password.")}</p>
           <div className="mt-3 flex flex-wrap gap-2">
             {([
               ["Employee", "employee-e2e@acme.test"],
               ["Manager", "manager-e2e@acme.test"],
               ["HR", "hr-e2e@acme.test"],
             ] as const).map(([role, email]) => (
-              <Button key={role} type="button" size="sm" variant="outline" onClick={() => setValue("email", email)} aria-label={t("Choose {role} demo account", { role })}>{role === "HR" ? "HR" : t(role)}</Button>
+              <Button key={role} type="button" size="sm" variant="outline" onClick={() => onDemoPick(email)} aria-label={t("Use {role} demo account", { role })}>{role === "HR" ? "HR" : t(role)}</Button>
             ))}
           </div>
         </div>

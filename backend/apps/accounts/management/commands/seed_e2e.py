@@ -11,7 +11,7 @@ from rest_framework.exceptions import ValidationError
 
 from apps.accounts.models import EmployeeProfile, User
 from apps.accounts.permissions import ROLE_HR, ROLE_MANAGER
-from apps.organizations.models import Organization
+from apps.organizations.models import Department, Organization
 from apps.timesheets.models import TimeEntry
 from apps.timesheets.services import create_entries, get_or_create_sheet
 
@@ -37,9 +37,42 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         if not settings.DEBUG:
             raise CommandError("Synthetic demo seeding is limited to development.")
-        org, _ = Organization.objects.get_or_create(
-            name="E2E Corp", defaults={"timezone": "UTC", "week_start": 0}
-        )
+        # Legacy databases seeded under the old name keep one org — rename it
+        # rather than create a second organization.
+        org = Organization.objects.filter(name="Acme Corporation").first()
+        legacy = Organization.objects.filter(name="E2E Corp").first()
+        if org is None and legacy is not None:
+            legacy.name = "Acme Corporation"
+            legacy.save(update_fields=["name"])
+            org = legacy
+        if org is None:
+            org = Organization.objects.create(
+                name="Acme Corporation", timezone="UTC", week_start=0
+            )
+
+        departments = {
+            name: Department.objects.get_or_create(
+                organization=org, name=name
+            )[0]
+            for name in (
+                "Engineering",
+                "People & Culture",
+                "Finance & Accounting",
+                "Operations",
+            )
+        }
+
+        def assign(profile, **fields):
+            dirty = {
+                k: v
+                for k, v in fields.items()
+                if getattr(profile, k) != v
+            }
+            if dirty:
+                for k, v in dirty.items():
+                    setattr(profile, k, v)
+                profile.save()
+
         hr = upsert_user(org, "hr-e2e@acme.test", [ROLE_HR])
         hr_profile, _ = EmployeeProfile.objects.get_or_create(
             user=hr,
@@ -49,6 +82,7 @@ class Command(BaseCommand):
                 "display_name": "Harriet HR",
             },
         )
+        assign(hr_profile, department=departments["People & Culture"])
         manager = upsert_user(org, "manager-e2e@acme.test", [ROLE_MANAGER])
         mgr_profile, _ = EmployeeProfile.objects.get_or_create(
             user=manager,
@@ -58,8 +92,9 @@ class Command(BaseCommand):
                 "display_name": "Manny Manager",
             },
         )
+        assign(mgr_profile, department=departments["Engineering"])
         employee = upsert_user(org, "employee-e2e@acme.test")
-        EmployeeProfile.objects.get_or_create(
+        emp_profile, _ = EmployeeProfile.objects.get_or_create(
             user=employee,
             defaults={
                 "organization": org,
@@ -67,6 +102,11 @@ class Command(BaseCommand):
                 "display_name": "Edu Employee",
                 "manager": mgr_profile,
             },
+        )
+        assign(
+            emp_profile,
+            department=departments["Engineering"],
+            manager=mgr_profile,
         )
 
         from apps.employee_requests.models import RequestType

@@ -11,7 +11,6 @@ export interface Me {
   employee_code: string;
   display_name: string;
   phone: string;
-  preferred_locale: string;
   photo_url: string;
   job_title: string;
   department: string | null;
@@ -56,7 +55,7 @@ export const confirmPasswordReset = (token: string, password: string) =>
   });
 
 export const updateMe = (
-  patch: Partial<Pick<Me, "display_name" | "phone" | "preferred_locale">> & {
+  patch: Partial<Pick<Me, "display_name" | "phone">> & {
     version?: number;
   },
 ) => apiFetch<Me>("/api/v1/me/", { method: "PATCH", body: patch });

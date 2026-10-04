@@ -1,0 +1,24 @@
+# Proposed Allocation API and UI Contract
+
+**Planning only.** Same-origin authenticated `/api/v1/` requests, session/CSRF protections, organization scoping and safe errors from 002/003. `org`/`employee` on writes are resolved or checked server-side; clients never write `remaining`, commitment disposition or approval status. All grant lists are paginated with allowlisted filters and deterministic ordering; invisible IDs return 404, HR-only changes by non-HR return 403, invalid inputs 400, stale versions 409.
+
+| Route / integration | Input | Response and authorization |
+| --- | --- | --- |
+| GET/PATCH `organizations/settings/` (existing) | HR sets company working weekdays; validated nonempty set of 0=Monday..6=Sunday | HR-only write; read consistent with existing org settings; edits prospective, frozen past commitments unchanged. Existing `week_start` remains distinct. |
+| GET/POST `request-types/`, PATCH `request-types/{id}/` (existing) | `requires_allocation` Boolean, default false | HR write only; eligible categories only; reject incompatible category changes with grants/commitments; active type choices show flag and unit to employee. Approval-stage flags are independent. |
+| GET `allocations/mine/` | Optional page/status filter | Authenticated self only: paginated grants with type, unit, inclusive dates, granted, reserved, used, remaining; no-grant represented explicitly in dashboard choices. Includes expired grants with pending commitments as labeled history. |
+| GET/POST `allocations/` | HR list filters scoped to org; POST employee ID, active type ID, inclusive start/end, positive integer amount, unit derived from type | HR-only org-scoped list/create; no cross-org employee/type, no overlaps for same employee/type; event records grantor/time. |
+| GET `allocations/{id}/` | ID | HR reads scoped org detail; employee reads own detail only. Includes scoped adjustment/commitment summaries, not other employees' free-text requests. |
+| POST `allocations/{id}/adjust/` | signed nonzero delta, reason, expected grant version | HR-only; audited adjustment, version increments, no amount below used+reserved, no negative availability. No direct PATCH on computed amount. |
+| GET `requests/allocation-preview/` | type, category-relevant dates/times/quantity | Employee own estimate and unit, possible grant/remaining or `no_grant`/`insufficient`; does not reserve and is not authoritative at submit; no other employee argument. May be omitted if equivalent scoped request-form data supports a reliable preview. |
+| POST `requests/{id}/submit/` (existing) | expected request version | Recalculate under locks, validate single eligible grant, create one commitment for new cycle; preserve existing reviewer resolution/events/notification. Error includes safe field/detail code, no grant identifiers for others. |
+| POST `requests/{id}/{approve,return,reject}/` (existing) | existing version/reason | Existing reviewer permissions; final approve moves reserved to used, return/reject release; manager approval advancing to HR leaves reservation unchanged. Idempotency/stale semantics unchanged. |
+| GET `dashboards/personal/` (existing) | existing optional date filters | Add `allocations` collection representing *currently relevant* own grants and expired pending grants, each with type, unit, period, granted/reserved/used/remaining and `expired` flag; independent of dashboard request report date window. Team/org responses do **not** include individual allocation values. |
+
+### Semantics and response example
+
+A grant of 10 working days with 3 used and 2 reserved yields `{ "granted": 10, "used": 3, "reserved": 2, "remaining": 5, "unit": "working_day" }`. Dates are inclusive ISO dates evaluated in organization time zone; timestamps carry offsets. Early leave uses integer minutes; equipment uses integer item units. A request interval must fit within one grant; no splitting. Submission date for equipment is the org-local day of the successful submission transaction, not the draft or approval day. Expired pending reservations remain reserved until a decision, but expired grants are unavailable to new requests. Never sum across different units or different grant periods as if they were interchangeable.
+
+### UI and security contract
+
+HR: weekday configuration and type flag; searchable/sortable/paginated employee allocations table, create/adjust dialogs with reason, safe concurrent-update errors and history. Employee: form preview with unit and insufficient-grant feedback, personal dashboard breakdown/empty and expired states. Read-only managers see their own personal balances, not their reports' grants. Protect generated API/schema and browser cache by identity; invalidate personal dashboard after submit/decision/adjustment and clear on logout. EN/AR RTL labels, keyboard controls, 320px reflow and WCAG 2.2 AA checks. Do not show unavailable grant as a zero awarded balance.

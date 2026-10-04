@@ -4,6 +4,7 @@ aggregate queries regardless of dataset size; a report page is one grouped
 query plus pagination overhead — never per-row lookups."""
 
 import pytest
+from django.utils import timezone
 from rest_framework.test import APIClient
 
 from apps.conftest import TEST_PASSWORD, login
@@ -54,6 +55,7 @@ class TestQueryBudgets:
         with django_assert_num_queries(10):
             resp = c.get(
                 "/api/v1/reports/requests/",
-                {"from": "2026-09-01", "to": "2026-10-02"},
+                # The fixture submits at now() — the window must reach today.
+                {"from": "2026-09-01", "to": timezone.localdate().isoformat()},
             )
         assert resp.status_code == 200

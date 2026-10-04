@@ -32,7 +32,6 @@ const EMPLOYEE = {
   display_name: "Ada",
   phone: "",
   job_title: "Lead",
-  preferred_locale: "en",
   department: null,
   department_name: null,
   manager: null,

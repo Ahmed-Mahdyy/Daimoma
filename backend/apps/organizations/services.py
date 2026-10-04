@@ -9,7 +9,7 @@ from django.contrib.auth.models import Group
 from django.db import IntegrityError, transaction
 from rest_framework.exceptions import ValidationError
 
-from apps.accounts.models import EmployeeProfile, User
+from apps.accounts.models import EMPLOYEE_INFORMATION_FIELDS, EmployeeProfile, User
 from apps.accounts.permissions import ROLE_HR, ROLE_MANAGER
 from apps.accounts.services import invalidate_user_sessions, issue_invitation
 from apps.audit.services import record_audit
@@ -92,13 +92,16 @@ def provision_employee(
     display_name="",
     phone="",
     job_title="",
-    preferred_locale="en",
     department=None,
     manager=None,
     roles=(),
+    **information,
 ):
     """Create user (inactive, unusable password) + profile + groups, then
     issue the invitation — all in one transaction."""
+    unknown = set(information) - set(EMPLOYEE_INFORMATION_FIELDS)
+    if unknown:
+        raise ValidationError({field: ["Unsupported employee field."] for field in unknown})
     if User.objects.filter(email__iexact=email).exists():
         raise ValidationError({"email": ["An account with this email already exists."]})
     dept = _resolve_org_department(org, department)
@@ -116,9 +119,9 @@ def provision_employee(
             display_name=display_name,
             phone=phone,
             job_title=job_title,
-            preferred_locale=preferred_locale,
             department=dept,
             manager=mgr,
+            **information,
         )
         profile.full_clean()
         profile.save()
@@ -133,7 +136,7 @@ def provision_employee(
 @transaction.atomic
 def update_employee(actor, profile, attrs, *, expected_version=None):
     """Allowlisted administrative update: job_title, display_name, phone,
-    department, manager, roles, email, preferred_locale, employee_code.
+    department, manager, roles, email, employee_code, employee information.
     Optimistic-lock check happens under select_for_update."""
     profile = EmployeeProfile.objects.select_for_update().get(pk=profile.pk)
     org = profile.organization
@@ -151,10 +154,12 @@ def update_employee(actor, profile, attrs, *, expected_version=None):
     if "employee_code" in attrs:
         profile.employee_code = attrs["employee_code"]
         changes["employee_code"] = attrs["employee_code"]
-    for field in ("display_name", "phone", "job_title", "preferred_locale"):
+    for field in ("display_name", "phone", "job_title", *EMPLOYEE_INFORMATION_FIELDS):
         if field in attrs:
             setattr(profile, field, attrs[field])
-            changes[field] = str(attrs[field])
+            changes[field] = (
+                "updated" if field in EMPLOYEE_INFORMATION_FIELDS else str(attrs[field])
+            )
     if "department" in attrs:
         profile.department = _resolve_org_department(org, attrs["department"])
         changes["department"] = str(attrs["department"] or "")
@@ -179,6 +184,18 @@ def update_employee(actor, profile, attrs, *, expected_version=None):
             _guard_last_hr(profile)
         profile.user.groups.set(new_groups)
         changes["roles"] = sorted(attrs["roles"])
+
+    # Contract range check on the merged record — a partial PATCH may carry
+    # only one side, which the serializer cannot compare against the stored
+    # counterpart.
+    if (
+        profile.contract_start_date
+        and profile.contract_end_date
+        and profile.contract_end_date < profile.contract_start_date
+    ):
+        raise ValidationError(
+            {"contract_end_date": ["Contract end date cannot be before the start date."]}
+        )
 
     profile.version += 1
     try:

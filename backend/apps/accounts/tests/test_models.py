@@ -80,6 +80,21 @@ class TestEmployeeProfile:
             p = EmployeeProfile(organization=other_org, user=user, employee_code="E9")
             p.full_clean()
 
+    def test_existing_profile_has_empty_information_after_upgrade(self, org):
+        from django.db import connection
+
+        profile = make_profile(org, make_user(org, "e@x.test"), "E5")
+        profile.refresh_from_db()
+        assert profile.birth_date is None
+        assert profile.address == ""
+        assert profile.graduation_year is None
+        assert profile.employment_type == ""
+        with connection.cursor() as cursor:
+            columns = {column.name for column in connection.introspection.get_table_description(
+                cursor, EmployeeProfile._meta.db_table
+            )}
+        assert "preferred_locale" not in columns
+
     def test_department_optional(self, org):
         profile = make_profile(org, make_user(org, "e@x.test"), "E5")
         assert profile.department is None
@@ -98,7 +113,7 @@ def test_seed_e2e_creates_role_samples_without_overwriting_them():
 
     assert user.refresh_from_db() is None
     assert user.check_password("ChangedLocally123")
-    org = Organization.objects.get(name="E2E Corp")
+    org = Organization.objects.get(name="Acme Corporation")
     assert Timesheet.objects.filter(organization=org).count() == 3
     assert TimeEntry.objects.filter(organization=org).count() == 3
     assert RequestType.objects.filter(organization=org).count() == 6

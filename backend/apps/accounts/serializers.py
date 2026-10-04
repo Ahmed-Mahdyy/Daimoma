@@ -2,6 +2,7 @@ from config.exceptions import ConflictError
 from rest_framework import serializers
 
 from apps.accounts.models import EmployeeProfile
+from apps.accounts.validators import normalize_egyptian_phone
 
 
 class LoginSerializer(serializers.Serializer):
@@ -52,12 +53,12 @@ class UserSummarySerializer(serializers.Serializer):
 class MeSerializer(serializers.ModelSerializer):
     """Read/write serializer for GET/PATCH /api/v1/me/.
 
-    Explicit allowlist: only display_name, phone, preferred_locale are
+    Explicit allowlist: only display_name and phone are
     writable. Any other key in the payload — including privilege fields —
     is rejected with validation_error (no silent drops). `version` carries
     the optimistic-lock value and is never written directly."""
 
-    WRITABLE = {"display_name", "phone", "preferred_locale", "version"}
+    WRITABLE = {"display_name", "phone", "version"}
 
     email = serializers.EmailField(source="user.email", read_only=True)
     roles = serializers.SerializerMethodField()
@@ -75,7 +76,6 @@ class MeSerializer(serializers.ModelSerializer):
             "employee_code",
             "display_name",
             "phone",
-            "preferred_locale",
             "photo_url",
             "job_title",
             "department",
@@ -101,6 +101,9 @@ class MeSerializer(serializers.ModelSerializer):
         if not profile.photo:
             return ""
         return f"/api/v1/me/photo/?v={int(profile.updated_at.timestamp())}"
+
+    def validate_phone(self, value):
+        return normalize_egyptian_phone(value)
 
     def to_internal_value(self, data):
         rejected = set(data) - self.WRITABLE

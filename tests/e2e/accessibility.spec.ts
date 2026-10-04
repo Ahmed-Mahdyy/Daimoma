@@ -93,6 +93,36 @@ test.describe("accessibility", () => {
     await expectNoSeriousViolations(page, "dark timesheets");
   });
 
+  test("sidebar and brand respond to the theme without changing the approved logo", async ({ page }) => {
+    await loginAs(page, "employee-e2e@acme.test");
+    const sidebar = page.locator(".workspace-sidebar");
+    const brand = page.locator(".workspace-brand");
+    const mark = brand.locator("img");
+    await expect(mark).toHaveAttribute("src", "/brand/logo-icon.png");
+    const light = await sidebar.evaluate((el) => getComputedStyle(el).backgroundColor);
+    const lightBrand = await brand.locator(".workspace-brand-mark").evaluate((el) => getComputedStyle(el).backgroundColor);
+    await page.getByRole("button", { name: "Switch to dark mode" }).click();
+    await expect(sidebar).not.toHaveCSS("background-color", light);
+    await expect(brand.locator(".workspace-brand-mark")).not.toHaveCSS("background-color", lightBrand);
+    await expect(mark).toHaveAttribute("src", "/brand/logo-icon.png");
+    await expectNoSeriousViolations(page, "dark themed sidebar");
+  });
+
+  test("Arabic request detail is readable in dark mode", async ({ page }) => {
+    await loginAs(page, "employee-e2e@acme.test");
+    await page.goto("/requests/new");
+    await page.getByLabel(/request type/i).selectOption({ label: "Annual leave" });
+    await page.getByLabel(/^title$/i).fill(`Contrast check ${Date.now()}`);
+    await page.getByLabel(/start date/i).fill("2027-06-01");
+    await page.getByLabel(/end date/i).fill("2027-06-02");
+    await page.getByRole("button", { name: /save draft/i }).click();
+    await expect(page.locator("dl dt").first()).toBeVisible();
+    await page.getByRole("button", { name: "Switch to dark mode" }).click();
+    await page.getByRole("button", { name: "Switch to Arabic" }).click();
+    await expect(page.locator("html")).toHaveAttribute("dir", "rtl");
+    await expectNoSeriousViolations(page, "Arabic dark request detail");
+  });
+
   test("dark timesheet detail passes axe scan (contrast regression)", async ({
     page,
   }) => {
@@ -117,6 +147,13 @@ test.describe("accessibility", () => {
   }) => {
     await page.goto("/login");
     // Land on a focusable control, tab through the form in order.
+    // The hero's three slide indicators are the first tabbable elements.
+    for (const n of [1, 2, 3]) {
+      await page.keyboard.press("Tab");
+      await expect(
+        page.getByRole("button", { name: `Slide ${n}` }),
+      ).toBeFocused();
+    }
     await page.keyboard.press("Tab");
     await expect(page.getByRole("button", { name: "Switch to Arabic" })).toBeFocused();
     await page.keyboard.press("Tab");

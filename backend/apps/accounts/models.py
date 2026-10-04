@@ -6,6 +6,8 @@ from django.core.exceptions import ValidationError
 from django.db import models
 from django.db.models.functions import Lower
 
+from apps.accounts.validators import egyptian_phone_validator
+
 
 class UserManager(BaseUserManager):
     use_in_migrations = True
@@ -68,13 +70,29 @@ class User(AbstractUser):
         return self.email
 
 
-class EmployeeProfile(models.Model):
-    """Per-user profile. Employee-editable: display_name, phone,
-    preferred_locale. Everything else is HR-controlled (D-003)."""
+# Personal/education fields: visible to the employee, their current manager,
+# and HR on the scoped detail endpoint.
+EMPLOYEE_PERSONAL_FIELDS = (
+    "birth_date", "address", "emergency_contact_name", "emergency_contact_phone",
+    "highest_qualification", "institution", "field_of_study", "graduation_year",
+)
+# Work/contract fields: HR-only — never serialized to employees or managers.
+EMPLOYEE_WORK_FIELDS = (
+    "employment_start_date", "employment_type", "work_location",
+    "contract_start_date", "contract_end_date",
+)
+EMPLOYEE_INFORMATION_FIELDS = EMPLOYEE_PERSONAL_FIELDS + EMPLOYEE_WORK_FIELDS
 
-    class Locale(models.TextChoices):
-        EN = "en", "English"
-        AR = "ar", "Arabic"
+
+class EmployeeProfile(models.Model):
+    """Per-user profile. Employee-editable: display_name and phone.
+    Employment, personal, and education details are HR-controlled (D-003)."""
+
+    class EmploymentType(models.TextChoices):
+        FULL_TIME = "full_time", "Full time"
+        PART_TIME = "part_time", "Part time"
+        CONTRACT = "contract", "Contract"
+        INTERNSHIP = "internship", "Internship"
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     organization = models.ForeignKey(
@@ -100,8 +118,24 @@ class EmployeeProfile(models.Model):
     photo = models.ImageField(upload_to="profile_photos/%Y/%m/", blank=True)
     photo_content_type = models.CharField(max_length=50, blank=True)
     display_name = models.CharField(max_length=150, blank=True)
-    phone = models.CharField(max_length=40, blank=True)
-    preferred_locale = models.CharField(max_length=16, choices=Locale.choices, default=Locale.EN)
+    phone = models.CharField(
+        max_length=40, blank=True, validators=[egyptian_phone_validator]
+    )
+    birth_date = models.DateField(null=True, blank=True)
+    address = models.CharField(max_length=500, blank=True)
+    emergency_contact_name = models.CharField(max_length=150, blank=True)
+    emergency_contact_phone = models.CharField(
+        max_length=40, blank=True, validators=[egyptian_phone_validator]
+    )
+    highest_qualification = models.CharField(max_length=150, blank=True)
+    institution = models.CharField(max_length=150, blank=True)
+    field_of_study = models.CharField(max_length=150, blank=True)
+    graduation_year = models.PositiveSmallIntegerField(null=True, blank=True)
+    employment_start_date = models.DateField(null=True, blank=True)
+    employment_type = models.CharField(max_length=20, choices=EmploymentType.choices, blank=True)
+    work_location = models.CharField(max_length=150, blank=True)
+    contract_start_date = models.DateField(null=True, blank=True)
+    contract_end_date = models.DateField(null=True, blank=True)
     version = models.PositiveIntegerField(default=1)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -135,6 +169,12 @@ class EmployeeProfile(models.Model):
                 errors["manager"] = "Manager must belong to the same organization."
         if self.manager_id and self.manager_id == self.pk:
             errors["manager"] = "An employee cannot manage themselves."
+        if (
+            self.contract_start_date
+            and self.contract_end_date
+            and self.contract_end_date < self.contract_start_date
+        ):
+            errors["contract_end_date"] = "Contract end date cannot be before the start date."
         if errors:
             raise ValidationError(errors)
 

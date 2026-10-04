@@ -1,14 +1,25 @@
 import { useRef, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { Link, useLocation } from "react-router-dom";
 import { Camera } from "lucide-react";
 
 import { ApiError, apiErrorMessage } from "../../api/client";
+import { getEmployee } from "../../api/employees";
 import {
   changePassword,
   updateMe,
   uploadMyPhoto,
 } from "../../api/auth";
+import { formatDate } from "../../lib/dates";
+import {
+  contractDuration,
+  EDUCATION_FIELDS,
+  EGYPT_PHONE_HINT,
+  EGYPT_PHONE_PATTERN,
+  EMPLOYMENT_FIELDS,
+  PERSONAL_FIELDS,
+} from "../employees/fields";
 import { useAuth } from "../auth/auth-context";
 import { useLanguage } from "../../app/LanguageProvider";
 import { Alert } from "../../components/ui/Alert";
@@ -25,7 +36,6 @@ import {
 interface ProfileForm {
   display_name: string;
   phone: string;
-  preferred_locale: string;
 }
 
 interface PasswordForm {
@@ -52,7 +62,6 @@ export function SettingsPage() {
     values: {
       display_name: user?.display_name ?? "",
       phone: user?.phone ?? "",
-      preferred_locale: user?.preferred_locale ?? "en",
     },
   });
   const passwordForm = useForm<PasswordForm>();
@@ -106,6 +115,12 @@ export function SettingsPage() {
     }
   };
 
+  const { data: detail } = useQuery({
+    queryKey: ["employee", user?.id],
+    queryFn: () => getEmployee(user!.id),
+    enabled: !!user,
+  });
+
   if (!user) return null;
 
   const name = user.display_name || user.email;
@@ -123,9 +138,11 @@ export function SettingsPage() {
           so the avatar appears once. */}
       <Card className="overflow-hidden border-brand-100">
         <div className="relative bg-gradient-to-r from-[#103e3a] to-[#14554d] px-6 py-7 text-white">
-          <div
-            className="pointer-events-none absolute -right-8 -top-10 h-44 w-44 rounded-full border-[22px] border-white/10"
+          <img
+            src="/brand/logo-icon.png"
+            alt=""
             aria-hidden="true"
+            className="pointer-events-none absolute -right-8 -top-10 h-44 w-auto opacity-10"
           />
           <div className="relative flex flex-wrap items-center gap-5">
             <div className="relative shrink-0">
@@ -206,24 +223,10 @@ export function SettingsPage() {
                 id="phone"
                 type="tel"
                 className={input}
+                pattern={EGYPT_PHONE_PATTERN}
+                title={t(EGYPT_PHONE_HINT)}
                 {...profileForm.register("phone")}
               />
-            </div>
-            <div>
-              <label
-                htmlFor="preferred_locale"
-                className="block text-sm font-medium"
-              >
-                {t("Language")}
-              </label>
-              <select
-                id="preferred_locale"
-                className={input}
-                {...profileForm.register("preferred_locale")}
-              >
-                <option value="en">English</option>
-                <option value="ar">العربية</option>
-              </select>
             </div>
             <div className="flex items-end sm:col-span-2">
               <Button type="submit">{t("Save profile")}</Button>
@@ -241,6 +244,88 @@ export function SettingsPage() {
           </form>
         </CardContent>
       </Card>
+
+      {detail && (
+        <Card>
+          <CardHeader>
+            <CardTitle>{t("Employee information")}</CardTitle>
+          </CardHeader>
+          <CardContent className="grid grid-cols-1 gap-x-6 gap-y-3 sm:grid-cols-2">
+            <h2 className="text-sm font-semibold text-muted-foreground sm:col-span-2">
+              {t("Personal information")}
+            </h2>
+            {PERSONAL_FIELDS.map(([key, label, type]) => (
+              <div key={key}>
+                <dt className="text-xs text-muted-foreground">{t(label)}</dt>
+                <dd className="text-sm">
+                  {detail[key]
+                    ? type === "date"
+                      ? formatDate(detail[key] as string)
+                      : String(detail[key])
+                    : "—"}
+                </dd>
+              </div>
+            ))}
+            <h2 className="mt-2 text-sm font-semibold text-muted-foreground sm:col-span-2">
+              {t("Education")}
+            </h2>
+            {EDUCATION_FIELDS.map(([key, label]) => (
+              <div key={key}>
+                <dt className="text-xs text-muted-foreground">{t(label)}</dt>
+                <dd className="text-sm">{detail[key] || "—"}</dd>
+              </div>
+            ))}
+            <div>
+              <dt className="text-xs text-muted-foreground">{t("Graduation year")}</dt>
+              <dd className="text-sm">{detail.graduation_year ?? "—"}</dd>
+            </div>
+            {"work_location" in detail && (
+              <>
+                <h2 className="mt-2 text-sm font-semibold text-muted-foreground sm:col-span-2">
+                  {t("Work information")}
+                </h2>
+                {EMPLOYMENT_FIELDS.map(([key, label, type]) => (
+                  <div key={key}>
+                    <dt className="text-xs text-muted-foreground">{t(label)}</dt>
+                    <dd className="text-sm">
+                      {detail[key]
+                        ? type === "date"
+                          ? formatDate(detail[key] as string)
+                          : String(detail[key])
+                        : "—"}
+                    </dd>
+                  </div>
+                ))}
+                <div>
+                  <dt className="text-xs text-muted-foreground">{t("Employment type")}</dt>
+                  <dd className="text-sm">
+                    {detail.employment_type
+                      ? t(
+                          {
+                            full_time: "Full time",
+                            part_time: "Part time",
+                            contract: "Contract",
+                            internship: "Internship",
+                          }[detail.employment_type] ?? "—",
+                        )
+                      : "—"}
+                  </dd>
+                </div>
+                <div>
+                  <dt className="text-xs text-muted-foreground">{t("Contract duration")}</dt>
+                  <dd className="text-sm">
+                    {contractDuration(
+                      detail.contract_start_date,
+                      detail.contract_end_date,
+                      t,
+                    )}
+                  </dd>
+                </div>
+              </>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       <Card>
         <CardHeader>

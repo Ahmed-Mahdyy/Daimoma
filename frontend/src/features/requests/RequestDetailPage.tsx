@@ -18,13 +18,13 @@ import { useLanguage } from "../../app/LanguageProvider";
 import { useAuth } from "../auth/auth-context";
 import { StatusBadge } from "./StatusBadge";
 
-function Field({ label, value }: { label: string; value: React.ReactNode }) {
+function Field({ label, value, className }: { label: string; value: React.ReactNode; className?: string }) {
   return (
-    <div>
-      <dt className="text-xs font-medium uppercase tracking-wide text-gray-500">
+    <div className={className}>
+      <dt className="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-slate-300">
         {label}
       </dt>
-      <dd className="mt-0.5 text-sm text-gray-900">{value ?? "—"}</dd>
+      <dd className="mt-0.5 text-sm text-gray-900 dark:text-slate-100">{value ?? "—"}</dd>
     </div>
   );
 }
@@ -211,7 +211,7 @@ export function RequestDetailPage() {
               </p>
             )}
 
-            <dl className="mt-5 grid grid-cols-2 gap-4 rounded-md border bg-white p-4 sm:grid-cols-3">
+            <dl className="mt-5 grid grid-cols-2 gap-4 rounded-xl border bg-white p-5 shadow-sm dark:border-[#4d6970] dark:bg-[#244047] sm:grid-cols-3">
               <Field label={t("Status")} value={<StatusBadge status={req.status} />} />
               <Field
                 label={t("Submitted")}
@@ -244,9 +244,7 @@ export function RequestDetailPage() {
               {req.quantity != null && (
                 <Field label={t("Quantity")} value={req.quantity} />
               )}
-              <div className="col-span-full">
-                <Field label={t("Details")} value={req.description || "—"} />
-              </div>
+              <Field className="col-span-full" label={t("Details")} value={req.description || "—"} />
             </dl>
 
             {/* Steps */}
@@ -255,7 +253,7 @@ export function RequestDetailPage() {
               {history?.steps.map((s) => (
                 <li
                   key={`${s.cycle}-${s.sequence}`}
-                  className="flex items-center justify-between rounded-md border bg-white px-3 py-2 text-sm"
+                  className="flex items-center justify-between gap-3 rounded-xl border bg-white px-4 py-3 text-sm dark:border-[#4d6970] dark:bg-[#244047] dark:text-slate-100"
                 >
                   <span>
                     {t("Cycle {n}", { n: s.cycle })} ·{" "}
@@ -281,7 +279,7 @@ export function RequestDetailPage() {
               {history?.events.map((e, i) => (
                 <li
                   key={i}
-                  className="rounded-md border-l-4 border-brand-300 bg-white px-3 py-2 text-sm"
+                  className="rounded-xl border border-slate-200 border-s-4 border-s-brand-300 bg-white px-4 py-3 text-sm dark:border-[#4d6970] dark:border-s-brand-300 dark:bg-[#244047] dark:text-slate-100"
                 >
                   <span className="font-medium">{t(e.event_type)}</span>
                   {e.actor_name || e.actor_email ? (

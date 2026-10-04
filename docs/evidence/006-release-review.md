@@ -158,5 +158,109 @@ exposes `created_at` to match the table's Created column. Rerun:
 (including a new RTL/persistence e2e; the keyboard-login spec's tab order
 now asserts the language toggle), Ruff/ESLint/tsc/build clean.
 
+Full-UI Arabic sweep: every feature surface now routes user-visible text
+through `t()` with literal-English keys and an English fallback — page
+headings, buttons, filters, status badges, all table column headers,
+dialog copy, form labels/validation, notification text, loading/empty
+states, login demo strip, and the breadcrumb sr-only label. Dates and
+durations localize via `lib/dates.ts` (locale synced from the provider)
+and the dashboard calendar uses a date-fns Arabic locale. Brand work: the
+login hero's decorative ring (read as an "O") became a D-mark watermark;
+the D-mark family gained `logo-icon-dark`, `logo-en(-dark)` and
+`logo-ar(-dark)` lockups — the login hero/mobile header swap per language,
+and the sidebar/mobile wordmark localizes to "ديمومة". Sidebar brand and
+topbar heights aligned at 5.5rem so their bottom borders form one line.
+Rerun: **45/45 Vitest**, **60/60 Playwright** (all 13 axe scans),
+tsc/ESLint/build clean, initial JS **212.35 KB gz** (under gate).
+
+Brand revert + demo fixes: the D-mark logo family was an unapproved
+redesign — reverted to the original asset set (`icon.svg` person-check
+mark + `logo-primary`/`logo-light`/`logo-arabic` wordmarks; a new
+`logo-arabic-dark` lockup covers AR-on-dark). The decorative "O" rings on
+the login hero and profile banner (the actual complaint) are now D-letter
+watermarks — decoration, separate from the logo. Hero indicators became a
+real 3-slide carousel (6s autoplay, clickable dots, hover pause, reduced
+motion honored — `motion-reduce:duration-0` after the a11y spec caught
+the 0.7s crossfade). Demo-account buttons sign in directly with the seed
+password. `seed_e2e` grows real departments (Engineering, People &
+Culture, Finance & Accounting, Operations) with profile assignments and
+renames the demo org to Acme Corporation (legacy "E2E Corp" rows migrate
+in place). The "photo resets to red" report was the e2e photo spec's 1×1
+red PNG overwriting shared demo accounts — it now saves and restores the
+prior photo in a `finally` block. Two latent test defects surfaced and
+fixed: the seed test asserted the old org name, and
+`test_requests_report_is_bounded` used a hardcoded `to=2026-10-02` window
+while fixtures submit at `now()` — a midnight time bomb, now
+`localdate()`. Rerun: **427/427 backend pytest**, **45/45 Vitest**,
+**60/60 Playwright** (13 axe scans), Ruff/ESLint/tsc/build clean,
+initial JS **213.26 KB gz** (under gate).
+
+Brand correction (owner feedback): the approved mark is the PNG family in
+`assets/brand` — `logo-icon.png` (dashed continuity ring + gold check),
+`logo-en.png` (stacked lockup), `logo-ar.png` (horizontal AR lockup) —
+not the provisional SVG lockups. All runtime references now use the PNGs:
+favicon + sidebar mark + hero brand tile + all background watermarks use
+`logo-icon.png` (one motif at ~6–10% opacity on dark surfaces, replacing
+three inconsistent decorative shapes: dashboard arc, hero ring, profile
+ring); mobile login uses `logo-en.png`/`logo-ar.png` per language. The
+unapproved `logo-arabic-dark.svg` lockup was removed. Rerun:
+**45/45 Vitest**, **60/60 Playwright**, tsc/ESLint/build clean.
+
+Dark-theme readability follow-up (006:FR-003/FR-006, D-009): Arabic request
+field values on dark cards were measured at 1.27:1 contrast by an initially
+failing axe regression; the detail card text/surfaces and a malformed
+nested definition-list item were corrected. The dark workspace/background
+and panels are lighter; the sidebar now has separate light and dark palettes,
+including the brand tile, navigation, settings divider, and profile footer,
+while retaining the approved `logo-icon.png`. Added browser checks for both
+the Arabic dark detail and theme-aware sidebar. Rerun: **45/45 Vitest**,
+**62/62 Playwright**, build (initial JS **213.08 KB gz**), ESLint, and
+`git diff --check` passed. The build still warns about an uncompressed
+chunk above 500 KB; the initial gzipped JS remains below the approved
+500 KB gate. No manual screen-reader review or owner acceptance claimed.
+
+Employee-information follow-up: with owner approval for the minimal field
+set, HR-only editing, scoped employee/manager/HR viewing, and removal of
+stored language preferences, added optional personal (birth date, address,
+emergency contact), education (qualification, institution, field of study,
+graduation year), and employment (start date, type, location) fields. Sensitive
+fields are returned only from scoped employee detail endpoints, never directory
+lists or audit metadata. The approved accounts.0006 migration added optional
+fields and dropped `preferred_locale` on the local Docker database; this
+permanently discarded stored profile language values there. EN/AR remains a
+browser-level language toggle. Empty optional phone/job title provisioning
+was also fixed after the new browser test exposed its 400 response. Generated
+OpenAPI and TypeScript schemas were refreshed. Verification: **432/432 pytest**,
+**45/45 Vitest**, **64/64 Playwright**, Ruff, ESLint, build, migration-drift
+check, OpenAPI validation and `git diff --check` passed; initial JS
+**214.04 KB gz** (below the approved 500 KB gz gate). Tests include
+provisioning, invalid input, HR writes, self/manager/HR read scope and
+denied cross-org reads, no personal fields in lists, Arabic headings,
+manager read-only UI, self-service read-only link, and no personal values
+in audit metadata.
+
+Follow-up (same pending-acceptance window): contract fields
+(`contract_start_date`/`contract_end_date`, end ≥ start enforced in the
+serializer *and* the service for partial PATCHes; duration derived at
+display time, no stored column). Employment/contract fields are now
+**HR-only** — `EmployeeDetailSerializer` omits those keys entirely for
+employees and managers (masked values would still leak presence); personal
+and education fields stay scoped-visible. The employee's own record now
+renders inline on the profile page (no separate detail view needed);
+work-info is absent even from the employee's own response per the literal
+HR-only rule. Migration `accounts.0007` applied. **435/435 pytest**,
+**64/64 Playwright**, 45/45 Vitest, Ruff/ESLint/build clean — 214.83 KB gz.
+
+Polish round (same window): phone and emergency-contact-phone fields now
+require Egyptian numbers (`01x`/`+201x` mobile or `0x` landline; separators
+normalized away on write) via `accounts/validators.py` — enforced on model
+fields, both HR serializers, and `/api/v1/me/` (`accounts.0008`). Graduation
+year is a bounded year dropdown, no free text. Employee detail/provision
+sections moved into Radix `Tabs` (shared `ui/tabs.tsx`); title-case
+capitalization applied to headings, nav/menu items, breadcrumbs, card and
+table headers via one CSS rule (no-op for Arabic). **437/437 pytest**,
+**64/64 Playwright**, 45/45 Vitest — 216.12 KB gz. No production
+migration or real-data use is claimed.
+
 These checks do not imply owner acceptance, a staging deployment, real-data
 readiness, or manual screen-reader validation.

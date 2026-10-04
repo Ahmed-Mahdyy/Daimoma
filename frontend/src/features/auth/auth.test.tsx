@@ -46,11 +46,11 @@ describe("LoginPage", () => {
     ).toBeInTheDocument();
   });
 
-  it("prefills only the synthetic account email for a chosen role", async () => {
+  it("signs in directly with the seed password for a chosen demo role", async () => {
     renderLogin();
-    await userEvent.click(screen.getByRole("button", { name: "Choose Manager demo account" }));
+    await userEvent.click(screen.getByRole("button", { name: "Use Manager demo account" }));
+    expect(login).toHaveBeenCalledWith("manager-e2e@acme.test", "E2ePassw0rd1");
     expect(screen.getByRole("textbox", { name: "Email" })).toHaveValue("manager-e2e@acme.test");
-    expect(screen.getByLabelText(/password/i)).toHaveValue("");
   });
 
   it("shows validation errors on empty submit", async () => {

@@ -7,12 +7,13 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.accounts.pagination import DefaultPagination
-from apps.accounts.permissions import IsActiveAuthenticated, IsHR
+from apps.accounts.permissions import IsActiveAuthenticated, IsHR, is_hr
 from apps.accounts.selectors import get_visible_profile
 from apps.organizations.models import Department
 from apps.organizations.selectors import scoped_directory
 from apps.organizations.serializers import (
     DepartmentSerializer,
+    EmployeeDetailSerializer,
     EmployeeProvisionSerializer,
     EmployeeSummarySerializer,
     EmployeeUpdateSerializer,
@@ -90,14 +91,14 @@ class EmployeeListView(APIView):
 
     @extend_schema(
         request=EmployeeProvisionSerializer,
-        responses={201: EmployeeSummarySerializer},
+        responses={201: EmployeeDetailSerializer},
     )
     def post(self, request):
         serializer = EmployeeProvisionSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         user = provision_employee(request.user, _org(request), **serializer.validated_data)
         return Response(
-            EmployeeSummarySerializer(user.profile).data,
+            EmployeeDetailSerializer(user.profile).data,
             status=status.HTTP_201_CREATED,
         )
 
@@ -117,11 +118,16 @@ class EmployeeDetailView(APIView):
         except Exception:
             raise NotFound from None
 
-    @extend_schema(responses={200: EmployeeSummarySerializer})
+    @extend_schema(responses={200: EmployeeDetailSerializer})
     def get(self, request, pk):
-        return Response(EmployeeSummarySerializer(self._profile(request, pk)).data)
+        return Response(
+            EmployeeDetailSerializer(
+                self._profile(request, pk),
+                context={"hide_work_info": not is_hr(request.user)},
+            ).data
+        )
 
-    @extend_schema(request=EmployeeUpdateSerializer, responses={200: EmployeeSummarySerializer})
+    @extend_schema(request=EmployeeUpdateSerializer, responses={200: EmployeeDetailSerializer})
     def patch(self, request, pk):
         profile = self._profile(request, pk)
         serializer = EmployeeUpdateSerializer(data=request.data, partial=True)
@@ -129,7 +135,7 @@ class EmployeeDetailView(APIView):
         attrs = dict(serializer.validated_data)
         version = attrs.pop("version", None)
         profile = update_employee(request.user, profile, attrs, expected_version=version)
-        return Response(EmployeeSummarySerializer(profile).data)
+        return Response(EmployeeDetailSerializer(profile).data)
 
 
 class EmployeePhotoView(APIView):

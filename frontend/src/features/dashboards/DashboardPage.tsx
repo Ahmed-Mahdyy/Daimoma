@@ -122,8 +122,8 @@ export function DashboardPage() {
   return (
     <div className="flex flex-col gap-7">
       <div className="relative overflow-hidden rounded-3xl bg-[#103e3a] px-6 py-8 text-white shadow-xl shadow-brand-800/10 sm:px-10 sm:py-10">
-        <div className="pointer-events-none absolute -right-10 -top-20 h-80 w-60 rounded-r-full border-[44px] border-white/5" aria-hidden="true" />
-        <div className="pointer-events-none absolute -bottom-44 right-20 h-56 w-40 rounded-r-full bg-[#d8b770]/10 blur-3xl" aria-hidden="true" />
+        <img src="/brand/logo-icon.png" alt="" aria-hidden="true" className="pointer-events-none absolute -right-12 -top-16 h-80 w-auto opacity-[.06]" />
+        <div className="pointer-events-none absolute -bottom-44 right-20 h-56 w-40 rounded-full bg-[#d8b770]/10 blur-3xl" aria-hidden="true" />
         <div className="relative flex flex-wrap items-end justify-between gap-6">
           <div><span className="text-xs font-bold uppercase tracking-[.2em] text-[#b7d9cd]">{t("WELCOME TO YOUR WORKSPACE")}</span><h1 className="mt-3 text-3xl font-bold tracking-tight text-white sm:text-4xl">{t("My dashboard")}</h1><p className="mt-3 max-w-lg text-sm leading-6 text-[#d2e6de]">{t("A clearer view of your requests, time and everything that needs your attention.")}</p></div>
           <div className="flex flex-wrap gap-2"><Link to="/requests/new" className="inline-flex items-center rounded-xl bg-[#e6bf71] px-4 py-2.5 text-sm font-bold text-[#223b34] hover:bg-[#f0cd87]">{t("New request")} <span className="ms-2" aria-hidden="true">↗</span></Link><Link to="/timesheets" className="inline-flex items-center rounded-xl border border-white/30 px-4 py-2.5 text-sm font-semibold text-white hover:bg-white/10">{t("View timesheets")}</Link></div>

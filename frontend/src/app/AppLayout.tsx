@@ -103,7 +103,7 @@ export function AppLayout() {
     <div className="workspace min-h-screen lg:flex">
       <a href="#main-content" className="skip-link">{t("nav.skipToContent")}</a>
       <aside id="workspace-navigation" className={`workspace-sidebar ${menuOpen ? "workspace-sidebar-open" : ""}`}>
-        <Link to="/" className="workspace-brand" aria-label={t("nav.daimomaHome")}><span className="workspace-brand-mark"><img src="/brand/logo-icon.svg" alt="" /></span><span><strong>Daimoma</strong><small>{t("shell.yourWorkspace")}</small></span></Link>
+        <Link to="/" className="workspace-brand" aria-label={t("nav.daimomaHome")}><span className="workspace-brand-mark"><img src="/brand/logo-icon.png" alt="" /></span><span><strong>{t("brand.name")}</strong><small>{t("shell.yourWorkspace")}</small></span></Link>
         <div className="workspace-sidebar-inner">
           <p className="workspace-nav-heading">{t("nav.workspace")}</p>
           <nav aria-label={t("nav.main")} className="workspace-nav">
@@ -139,7 +139,7 @@ export function AppLayout() {
                 </button>
               </div>
               {showSettingsChildren && (
-                <nav aria-label={t("nav.settingsMenu")} className="ms-9 grid gap-0.5 border-s border-white/10 ps-2">
+                <nav aria-label={t("nav.settingsMenu")} className="workspace-settings-nav ms-9 grid gap-0.5 border-s ps-2">
                   {settingsChildren.map((child) => (
                     <NavLink key={child.to} to={child.to} end={child.to === "/settings"} className={linkClass} onClick={() => setMenuOpen(false)}>
                       <span className="text-[0.83rem]">{t(child.key)}</span>
@@ -157,7 +157,7 @@ export function AppLayout() {
         <header className="workspace-topbar">
           <div className="flex min-w-0 items-center gap-3">
             <Button type="button" variant="outline" size="icon" aria-label={menuOpen ? t("nav.closeMenu") : t("nav.openMenu")} aria-expanded={menuOpen} aria-controls="workspace-navigation" onClick={() => setMenuOpen((value) => !value)} className="lg:hidden">{menuOpen ? <X /> : <Menu />}</Button>
-            <span className="workspace-mobile-brand lg:hidden">Daimoma</span>
+            <span className="workspace-mobile-brand lg:hidden">{t("brand.name")}</span>
             <Breadcrumb className="hidden sm:block" aria-label={t("shell.breadcrumb")}><BreadcrumbList><BreadcrumbItem><BreadcrumbLink asChild><Link to="/">{t("nav.workspace")}</Link></BreadcrumbLink></BreadcrumbItem>{crumbs.map((crumb, index) => <Fragment key={`${crumb.to}-${index}`}><BreadcrumbSeparator><ChevronRight className="size-3 rtl:rotate-180" /></BreadcrumbSeparator><BreadcrumbItem>{index === crumbs.length - 1 ? <BreadcrumbPage>{t(crumb.key)}</BreadcrumbPage> : <BreadcrumbLink asChild><Link to={crumb.to}>{t(crumb.key)}</Link></BreadcrumbLink>}</BreadcrumbItem></Fragment>)}</BreadcrumbList></Breadcrumb>
           </div>
           <div className="flex items-center gap-2"><PunchWidget /><Button type="button" variant="ghost" size="icon" aria-label={lang === "en" ? t("shell.languageToArabic") : t("shell.languageToEnglish")} title={lang === "en" ? t("shell.languageToArabic") : t("shell.languageToEnglish")} onClick={() => setLang(lang === "en" ? "ar" : "en")}><Languages className="size-4" /><span className="sr-only">{t("shell.language")}</span></Button><Button type="button" variant="ghost" size="icon" aria-label={mode === "dark" ? t("shell.themeToLight") : t("shell.themeToDark")} onClick={toggle}>{mode === "dark" ? <Sun /> : <Moon />}</Button><NotificationBell /><DropdownMenu><DropdownMenuTrigger asChild><Button type="button" variant="ghost" size="icon" aria-label={t("shell.accountMenu")} className="cursor-pointer rounded-full ring-[#c9a227]/50 transition hover:ring-4 data-[state=open]:ring-4"><Avatar className="size-8">{user?.photo_url && <AvatarImage src={user.photo_url} alt="" />}<AvatarFallback>{name.slice(0, 1).toUpperCase()}</AvatarFallback></Avatar></Button></DropdownMenuTrigger><DropdownMenuContent align="end" className="w-64"><DropdownMenuLabel><strong className="block truncate">{name}</strong><span className="block truncate text-xs font-normal text-muted-foreground">{user?.email}</span><Badge className="mt-2" variant="secondary">{isHr ? "HR" : canSeeAudit ? "Manager" : "Employee"}</Badge><span className="ms-2 text-xs font-normal text-muted-foreground">{user?.employee_code}</span></DropdownMenuLabel><DropdownMenuSeparator /><DropdownMenuItem asChild><Link to="/profile">{t("shell.myProfile")}</Link></DropdownMenuItem>{isHr && <DropdownMenuItem asChild><Link to="/settings">{t("nav.settings")}</Link></DropdownMenuItem>}<DropdownMenuItem onSelect={() => void signOut()}>{t("shell.signOut")}</DropdownMenuItem></DropdownMenuContent></DropdownMenu></div>

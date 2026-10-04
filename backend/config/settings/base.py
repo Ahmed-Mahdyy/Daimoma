@@ -125,11 +125,6 @@ SPECTACULAR_SETTINGS = {
     "VERSION": "0.1.0",
     "SERVE_INCLUDE_SCHEMA": False,
     "ENUM_NAME_OVERRIDES": {
-        "PreferredLocaleEnum": [
-            "apps.accounts.models.EmployeeProfile.preferred_locale",
-            "apps.organizations.serializers.EmployeeProvisionSerializer.preferred_locale",
-            "apps.organizations.serializers.EmployeeUpdateSerializer.preferred_locale",
-        ],
         "TimesheetStatusEnum": "apps.timesheets.models.Timesheet.Status",
     },
 }

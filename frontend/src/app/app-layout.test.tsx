@@ -86,17 +86,17 @@ describe("AppLayout role-aware navigation", () => {
     expect(screen.getByRole("link", { name: "Departments" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Settings" })).toBeInTheDocument();
     expect(
-      screen.getByRole("link", { name: "Request types" }),
+      screen.getByRole("link", { name: "Request Types" }),
     ).toHaveAttribute("href", "/requests/types");
-    expect(screen.getByRole("link", { name: "Add employee" })).toHaveAttribute("href", "/employees/new");
+    expect(screen.getByRole("link", { name: "Add Employee" })).toHaveAttribute("href", "/employees/new");
   });
 
   it("persists a light/dark preference", () => {
     renderLayout([]);
-    fireEvent.click(screen.getByRole("button", { name: "Switch to dark mode" }));
+    fireEvent.click(screen.getByRole("button", { name: "Switch to Dark Mode" }));
     expect(document.documentElement).toHaveClass("dark");
     expect(localStorage.getItem("daimoma-theme")).toBe("dark");
-    fireEvent.click(screen.getByRole("button", { name: "Switch to light mode" }));
+    fireEvent.click(screen.getByRole("button", { name: "Switch to Light Mode" }));
     expect(document.documentElement).not.toHaveClass("dark");
   });
 

@@ -1062,6 +1062,8 @@ export interface components {
             /** Format: date-time */
             readonly occurred_at: string;
         };
+        /** @enum {unknown} */
+        BlankEnum: "";
         /**
          * @description * `leave` - Leave
          *     * `equipment` - Equipment
@@ -1096,15 +1098,73 @@ export interface components {
             readonly id: string;
             name: string;
             is_active?: boolean;
+            /** Format: date-time */
+            readonly created_at: string;
         };
         DetailResponse: {
             detail: string;
+        };
+        /** @description Safe directory fields — never exposes auth internals. */
+        EmployeeDetail: {
+            /** Format: uuid */
+            readonly id: string;
+            /** Format: email */
+            readonly email: string;
+            readonly is_active: boolean;
+            readonly roles: string[];
+            employee_code: string;
+            display_name?: string;
+            phone?: string;
+            job_title?: string;
+            /** Format: uuid */
+            department?: string | null;
+            readonly department_name: string;
+            /** Format: uuid */
+            manager?: string | null;
+            readonly manager_name: string;
+            /** @description Scoped photo endpoint; `v` busts caches after a re-upload. */
+            readonly photo_url: string;
+            version?: number;
+            /** Format: date */
+            birth_date?: string | null;
+            address?: string;
+            emergency_contact_name?: string;
+            emergency_contact_phone?: string;
+            highest_qualification?: string;
+            institution?: string;
+            field_of_study?: string;
+            graduation_year?: number | null;
+            /** Format: date */
+            employment_start_date?: string | null;
+            employment_type?: components["schemas"]["EmploymentTypeEnum"] | components["schemas"]["BlankEnum"];
+            work_location?: string;
+            /** Format: date */
+            contract_start_date?: string | null;
+            /** Format: date */
+            contract_end_date?: string | null;
         };
         /**
          * @description HR provisioning input — organization and privileges are assigned
          *     server-side; the allowlist contains no is_staff/is_superuser/password.
          */
         EmployeeProvision: {
+            /** Format: date */
+            birth_date?: string | null;
+            address?: string;
+            emergency_contact_name?: string;
+            emergency_contact_phone?: string;
+            highest_qualification?: string;
+            institution?: string;
+            field_of_study?: string;
+            graduation_year?: number | null;
+            /** Format: date */
+            employment_start_date?: string | null;
+            employment_type?: components["schemas"]["EmploymentTypeEnum"] | components["schemas"]["BlankEnum"];
+            work_location?: string;
+            /** Format: date */
+            contract_start_date?: string | null;
+            /** Format: date */
+            contract_end_date?: string | null;
             /** Format: email */
             email: string;
             employee_code: string;
@@ -1114,8 +1174,6 @@ export interface components {
             phone: string;
             /** @default  */
             job_title: string;
-            /** @default en */
-            preferred_locale: components["schemas"]["PreferredLocaleEnum"];
             /** Format: uuid */
             department?: string | null;
             /** Format: uuid */
@@ -1186,7 +1244,6 @@ export interface components {
             display_name?: string;
             phone?: string;
             job_title?: string;
-            preferred_locale?: components["schemas"]["PreferredLocaleEnum"];
             /** Format: uuid */
             department?: string | null;
             readonly department_name: string;
@@ -1197,6 +1254,14 @@ export interface components {
             readonly photo_url: string;
             version?: number;
         };
+        /**
+         * @description * `full_time` - Full time
+         *     * `part_time` - Part time
+         *     * `contract` - Contract
+         *     * `internship` - Internship
+         * @enum {string}
+         */
+        EmploymentTypeEnum: "full_time" | "part_time" | "contract" | "internship";
         Login: {
             /** Format: email */
             email: string;
@@ -1218,7 +1283,7 @@ export interface components {
         /**
          * @description Read/write serializer for GET/PATCH /api/v1/me/.
          *
-         *     Explicit allowlist: only display_name, phone, preferred_locale are
+         *     Explicit allowlist: only display_name and phone are
          *     writable. Any other key in the payload — including privilege fields —
          *     is rejected with validation_error (no silent drops). `version` carries
          *     the optimistic-lock value and is never written directly.
@@ -1232,7 +1297,6 @@ export interface components {
             readonly employee_code: string;
             display_name?: string;
             phone?: string;
-            preferred_locale?: components["schemas"]["PreferredLocaleEnum"];
             /** @description Auth-gated photo URL; the `v` param busts caches after upload. */
             readonly photo_url: string;
             readonly job_title: string;
@@ -1316,19 +1380,37 @@ export interface components {
             readonly id?: string;
             name?: string;
             is_active?: boolean;
+            /** Format: date-time */
+            readonly created_at?: string;
         };
         /**
          * @description Explicit allowlist for PATCH employees/{id}/ — everything else,
          *     including privilege fields, is rejected outright.
          */
         PatchedEmployeeUpdate: {
+            /** Format: date */
+            birth_date?: string | null;
+            address?: string;
+            emergency_contact_name?: string;
+            emergency_contact_phone?: string;
+            highest_qualification?: string;
+            institution?: string;
+            field_of_study?: string;
+            graduation_year?: number | null;
+            /** Format: date */
+            employment_start_date?: string | null;
+            employment_type?: components["schemas"]["EmploymentTypeEnum"] | components["schemas"]["BlankEnum"];
+            work_location?: string;
+            /** Format: date */
+            contract_start_date?: string | null;
+            /** Format: date */
+            contract_end_date?: string | null;
             /** Format: email */
             email?: string;
             employee_code?: string;
             display_name?: string;
             phone?: string;
             job_title?: string;
-            preferred_locale?: components["schemas"]["PreferredLocaleEnum"];
             /** Format: uuid */
             department?: string | null;
             /** Format: uuid */
@@ -1339,7 +1421,7 @@ export interface components {
         /**
          * @description Read/write serializer for GET/PATCH /api/v1/me/.
          *
-         *     Explicit allowlist: only display_name, phone, preferred_locale are
+         *     Explicit allowlist: only display_name and phone are
          *     writable. Any other key in the payload — including privilege fields —
          *     is rejected with validation_error (no silent drops). `version` carries
          *     the optimistic-lock value and is never written directly.
@@ -1353,7 +1435,6 @@ export interface components {
             readonly employee_code?: string;
             display_name?: string;
             phone?: string;
-            preferred_locale?: components["schemas"]["PreferredLocaleEnum"];
             /** @description Auth-gated photo URL; the `v` param busts caches after upload. */
             readonly photo_url?: string;
             readonly job_title?: string;
@@ -1430,12 +1511,6 @@ export interface components {
             window_reason?: string;
             expected_version?: number;
         };
-        /**
-         * @description * `en` - English
-         *     * `ar` - Arabic
-         * @enum {string}
-         */
-        PreferredLocaleEnum: "en" | "ar";
         PunchCheckoutResult: {
             /** Format: uuid */
             timesheet: string;
@@ -1515,6 +1590,8 @@ export interface components {
             requires_manager?: boolean;
             requires_hr?: boolean;
             is_active?: boolean;
+            /** Format: date-time */
+            readonly created_at: string;
         };
         /** @description HR type configuration — organization assigned server-side. */
         RequestTypeWrite: {
@@ -2093,7 +2170,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["EmployeeSummary"];
+                    "application/json": components["schemas"]["EmployeeDetail"];
                 };
             };
         };
@@ -2114,7 +2191,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["EmployeeSummary"];
+                    "application/json": components["schemas"]["EmployeeDetail"];
                 };
             };
         };
@@ -2141,7 +2218,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["EmployeeSummary"];
+                    "application/json": components["schemas"]["EmployeeDetail"];
                 };
             };
         };

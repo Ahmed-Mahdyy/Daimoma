@@ -1,5 +1,5 @@
 """Profile mass-assignment and protected-field tests (T010, FR-003/FR-010).
-Employee may edit only display_name, phone, preferred_locale. Every other
+Employee may edit only display_name and phone. Every other
 field — including is_staff/is_superuser/organization — must be rejected."""
 
 import pytest
@@ -13,6 +13,12 @@ PROTECTED_FIELDS = [
     "email",
     "employee_code",
     "job_title",
+    "preferred_locale",
+    "birth_date",
+    "address",
+    "emergency_contact_name",
+    "highest_qualification",
+    "employment_type",
     "department",
     "manager",
     "organization",
@@ -49,7 +55,7 @@ class TestMeRead:
         data = response.json()
         assert data["email"] == "employee@acme.test"
         assert data["employee_code"] == "E001"
-        assert data["preferred_locale"] == "en"
+        assert "preferred_locale" not in data
         assert "password" not in data
         assert "is_staff" not in data
         assert "is_superuser" not in data
@@ -78,19 +84,25 @@ class TestMeUpdate:
             {
                 "display_name": "Sara K.",
                 "phone": "+20 100 000 0000",
-                "preferred_locale": "ar",
             },
             format="json",
         )
         assert response.status_code == 200
         employee.profile.refresh_from_db()
         assert employee.profile.display_name == "Sara K."
-        assert employee.profile.phone == "+20 100 000 0000"
-        assert employee.profile.preferred_locale == "ar"
+        # Separators are normalized away on write.
+        assert employee.profile.phone == "+201000000000"
+
+    def test_non_egyptian_phone_rejected(self, logged_in, employee):
+        for bad in ("+1 555 000 0000", "12345", "+201812345678"):
+            response = logged_in.patch(ME_URL, {"phone": bad}, format="json")
+            assert response.status_code == 400, bad
+        employee.profile.refresh_from_db()
+        assert employee.profile.phone != "12345"
 
     def test_allowed_fields_are_the_complete_allowlist(self, logged_in, employee):
-        """Every field outside {display_name, phone, preferred_locale,
-        version} must be rejected — including all privilege fields."""
+        """Every field outside {display_name, phone, version} must be
+        rejected — including all privilege fields."""
         for field in PROTECTED_FIELDS:
             response = logged_in.patch(ME_URL, {field: "x"}, format="json")
             assert response.status_code == 400, f"{field} was not rejected"
@@ -105,7 +117,7 @@ class TestMeUpdate:
         response = logged_in.patch(ME_URL, {"hax": "x"}, format="json")
         assert response.status_code == 400
 
-    def test_invalid_locale_rejected(self, logged_in):
+    def test_removed_locale_rejected(self, logged_in):
         response = logged_in.patch(ME_URL, {"preferred_locale": "fr"}, format="json")
         assert response.status_code == 400
         assert "preferred_locale" in response.json()["field_errors"]

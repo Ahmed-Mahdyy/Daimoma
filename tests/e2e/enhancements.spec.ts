@@ -190,39 +190,63 @@ test.describe.serial("enhancements", () => {
     page,
   }) => {
     await loginAs(page, "employee-e2e@acme.test");
-    const submenu = page.getByRole("navigation", { name: "Settings" });
-    await expect(
-      submenu.getByRole("link", { name: "Profile" }),
-    ).toBeVisible();
-    // HR-only children stay hidden from a plain employee.
-    await expect(
-      submenu.getByRole("link", { name: "Request types" }),
-    ).toHaveCount(0);
+    // Preserve the account's existing photo — the suite shares demo
+    // accounts with manual use, so the synthetic pixel must not be left
+    // behind after the upload assertions.
+    const csrf =
+      (await page.context().cookies()).find((c) => c.name === "csrftoken")
+        ?.value ?? "";
+    const prior = await page.request.get("/api/v1/me/photo/");
+    const priorBody = prior.ok() ? await prior.body() : null;
+    const priorType = prior.headers()["content-type"] ?? "image/png";
+    try {
+      const submenu = page.getByRole("navigation", { name: "Settings" });
+      await expect(
+        submenu.getByRole("link", { name: "Profile" }),
+      ).toBeVisible();
+      // HR-only children stay hidden from a plain employee.
+      await expect(
+        submenu.getByRole("link", { name: "Request types" }),
+      ).toHaveCount(0);
 
-    await submenu.getByRole("link", { name: "Profile" }).click();
-    await expect(
-      page.getByRole("heading", { name: "My profile" }),
-    ).toBeVisible();
-    // The submenu entry is highlighted while editing the profile.
-    await expect(
-      submenu.getByRole("link", { name: "Profile" }),
-    ).toHaveClass(/workspace-nav-active/);
+      await submenu.getByRole("link", { name: "Profile" }).click();
+      await expect(
+        page.getByRole("heading", { name: "My profile" }),
+      ).toBeVisible();
+      // The submenu entry is highlighted while editing the profile.
+      await expect(
+        submenu.getByRole("link", { name: "Profile" }),
+      ).toHaveClass(/workspace-nav-active/);
 
-    // Upload a small synthetic PNG; the avatar swaps initials for the photo.
-    await page.getByLabel("Choose profile photo").setInputFiles({
-      name: "avatar.png",
-      mimeType: "image/png",
-      buffer: TINY_PNG,
-    });
-    await expect(
-      page.locator('img[src*="/api/v1/me/photo/"]').first(),
-    ).toBeVisible({ timeout: 10_000 });
+      // Upload a small synthetic PNG; the avatar swaps initials for the photo.
+      await page.getByLabel("Choose profile photo").setInputFiles({
+        name: "avatar.png",
+        mimeType: "image/png",
+        buffer: TINY_PNG,
+      });
+      await expect(
+        page.locator('img[src*="/api/v1/me/photo/"]').first(),
+      ).toBeVisible({ timeout: 10_000 });
 
-    // The photo persists and shows in the topbar avatar.
-    await expect(
-      page.getByRole("button", { name: "Account menu" }).locator("img"),
-    ).toBeVisible();
-    await signOut(page);
+      // The photo persists and shows in the topbar avatar.
+      await expect(
+        page.getByRole("button", { name: "Account menu" }).locator("img"),
+      ).toBeVisible();
+    } finally {
+      if (priorBody) {
+        await page.request.post("/api/v1/me/photo/", {
+          headers: { "X-CSRFToken": csrf },
+          multipart: {
+            photo: { name: "photo", mimeType: priorType, buffer: priorBody },
+          },
+        });
+      } else {
+        await page.request.delete("/api/v1/me/photo/", {
+          headers: { "X-CSRFToken": csrf },
+        });
+      }
+      await signOut(page);
+    }
   });
 
   test("HR configures per-type approval stages dynamically", async ({
@@ -281,6 +305,68 @@ test.describe.serial("enhancements", () => {
     await item.click();
     await expect(page).toHaveURL(/\/requests\/[0-9a-f-]{36}/);
     await expect(page.getByRole("heading", { name: title })).toBeVisible();
+    await signOut(page);
+  });
+
+  test("employee can find their own read-only information on the profile page", async ({ page }) => {
+    await loginAs(page, "employee-e2e@acme.test");
+    await page.goto("/profile");
+    await expect(page.getByLabel("Language")).toHaveCount(0);
+    // No separate page needed — the record renders inline.
+    await expect(page.getByText("Employee information")).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Personal information" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Education" })).toBeVisible();
+    await expect(page.getByText("Address")).toBeVisible();
+    // Work information is HR-only — the employee does not see their own.
+    await expect(page.getByRole("heading", { name: "Work information" })).toHaveCount(0);
+    await signOut(page);
+  });
+
+  test("HR records employee information and their manager can read but not edit it", async ({ page }) => {
+    await loginAs(page, "hr-e2e@acme.test");
+    await page.goto("/employees/new");
+    const suffix = Date.now();
+    await page.getByLabel(/email/i).fill(`details-${suffix}@acme.test`);
+    await page.getByLabel(/employee code/i).fill(`D${suffix}`);
+    await page.getByLabel(/display name/i).fill("Details Example");
+    await page.getByRole("combobox", { name: "Manager" }).selectOption({ label: "Manny Manager" });
+    await page.getByRole("tab", { name: "Personal information" }).click();
+    await page.getByLabel("Birth date").fill("1995-05-20");
+    await page.getByLabel("Address").fill("Example address");
+    await page.getByRole("tab", { name: "Education" }).click();
+    await page.getByLabel("Highest qualification").fill("Bachelor's");
+    await page.getByRole("tab", { name: "Work information" }).click();
+    await page.getByLabel("Employment type").selectOption("full_time");
+    await page.getByLabel("Contract start date").fill("2025-01-15");
+    await page.getByLabel("Contract end date").fill("2027-01-14");
+    const created = page.waitForResponse((response) => response.url().endsWith("/api/v1/employees/") && response.request().method() === "POST");
+    await page.getByRole("button", { name: "Provision employee" }).click();
+    const result = await created;
+    expect(result.status(), JSON.stringify(await result.json())).toBe(201);
+    await expect(page.getByRole("heading", { name: "Details Example" })).toBeVisible();
+    await page.getByRole("tab", { name: "Personal information" }).click();
+    await expect(page.getByLabel("Address")).toHaveValue("Example address");
+    await page.getByRole("tab", { name: "Education" }).click();
+    await expect(page.getByLabel("Highest qualification")).toHaveValue("Bachelor's");
+    // HR sees the HR-only work information tab, including contract dates.
+    await page.getByRole("tab", { name: "Work information" }).click();
+    await expect(page.getByLabel("Contract start date")).toHaveValue("2025-01-15");
+    await page.getByRole("button", { name: "Switch to Arabic" }).click();
+    await expect(page.getByRole("tab", { name: "المعلومات الشخصية" })).toBeVisible();
+    await expect(page.getByRole("tab", { name: "التعليم" })).toBeVisible();
+    await page.getByRole("button", { name: "التبديل إلى الإنجليزية" }).click();
+    const detailUrl = page.url();
+    await signOut(page);
+    await loginAs(page, "manager-e2e@acme.test");
+    await page.goto(detailUrl);
+    await page.getByRole("tab", { name: "Education" }).click();
+    await expect(page.getByLabel("Highest qualification")).toHaveValue("Bachelor's");
+    await page.getByRole("tab", { name: "Personal information" }).click();
+    await expect(page.getByLabel("Address")).toBeDisabled();
+    await expect(page.getByRole("button", { name: "Save changes" })).toHaveCount(0);
+    // Work information is HR-only — the manager's report shows no contract data.
+    await expect(page.getByRole("tab", { name: "Work information" })).toHaveCount(0);
+    await expect(page.getByLabel("Contract start date")).toHaveCount(0);
     await signOut(page);
   });
 

@@ -19,6 +19,12 @@ def visible_profiles(user):
 def get_visible_profile(user, profile_id) -> EmployeeProfile:
     """Non-enumerating fetch: out-of-scope ids are 404, not 403."""
     try:
+        if is_manager(user) and (profile := getattr(user, "profile", None)):
+            if (
+                str(profile.pk) == str(profile_id)
+                and profile.organization_id == user.organization_id
+            ):
+                return profile
         return visible_profiles(user).get(pk=profile_id)
     except EmployeeProfile.DoesNotExist:
         raise Http404 from None

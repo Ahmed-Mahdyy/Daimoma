@@ -10,7 +10,7 @@ import {
   reactivateEmployee,
   resendInvitation,
   updateEmployee,
-  type EmployeeSummary,
+  type EmployeeDetail,
 } from "../../api/employees";
 import { ApiError } from "../../api/client";
 import { Alert } from "../../components/ui/Alert";
@@ -19,6 +19,17 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ConfirmDialog } from "../../components/ui/ConfirmDialog";
 import { useLanguage } from "../../app/LanguageProvider";
 import { useAuth } from "../auth/auth-context";
+
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  contractDuration,
+  EDUCATION_FIELDS,
+  EGYPT_PHONE_HINT,
+  EGYPT_PHONE_PATTERN,
+  EMPLOYMENT_FIELDS,
+  graduationYears,
+  PERSONAL_FIELDS,
+} from "./fields";
 
 const input = "w-full rounded-md border border-gray-300 px-2 py-1.5 text-sm";
 const ALL_ROLES = ["Manager", "HR"];
@@ -49,7 +60,7 @@ export function EmployeeDetailPage() {
     enabled: isHr,
   });
 
-  const [form, setForm] = useState<Partial<EmployeeSummary> | null>(null);
+  const [form, setForm] = useState<Partial<EmployeeDetail> | null>(null);
   const [action, setAction] = useState<PendingAction | null>(null);
   const [reason, setReason] = useState("");
   const [notice, setNotice] = useState<string | null>(null);
@@ -114,7 +125,7 @@ export function EmployeeDetailPage() {
   }
 
   const current = { ...employee, ...form };
-  const field = (key: keyof EmployeeSummary) => ({
+  const field = (key: keyof EmployeeDetail) => ({
     value: (current[key] as string) ?? "",
     onChange: (
       e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
@@ -128,6 +139,15 @@ export function EmployeeDetailPage() {
   const save = () => {
     if (!form) return;
     const patch: Record<string, unknown> = { ...form, version: employee.version };
+    for (const key of [
+      "birth_date",
+      "employment_start_date",
+      "contract_start_date",
+      "contract_end_date",
+      "graduation_year",
+    ]) {
+      if (patch[key] === "") patch[key] = null;
+    }
     delete patch.id;
     delete patch.is_active;
     delete patch.department_name;
@@ -185,89 +205,185 @@ export function EmployeeDetailPage() {
       {notice && <div className="mt-3"><Alert kind="success">{notice}</Alert></div>}
       {formError && <div className="mt-3"><Alert kind="error">{formError}</Alert></div>}
 
-      <section className="workspace-panel mt-4 grid grid-cols-1 gap-4 p-5 sm:grid-cols-2">
-        <label className="text-sm">
-          {t("Email")}
-          <input type="email" className={input} {...field("email")} />
-        </label>
-        <label className="text-sm">
-          {t("Display name")}
-          <input className={input} {...field("display_name")} />
-        </label>
-        <label className="text-sm">
-          {t("Phone")}
-          <input className={input} {...field("phone")} />
-        </label>
-        <label className="text-sm">
-          {t("Job title")}
-          <input className={input} {...field("job_title")} />
-        </label>
-        {isHr && (
-          <>
+      <section className="workspace-panel mt-4 p-5" aria-label={t("Employee information")}>
+        <Tabs defaultValue="general">
+          <TabsList aria-label={t("Employee information")}>
+            <TabsTrigger value="general">{t("General information")}</TabsTrigger>
+            <TabsTrigger value="personal">{t("Personal information")}</TabsTrigger>
+            <TabsTrigger value="education">{t("Education")}</TabsTrigger>
+            {isHr && <TabsTrigger value="work">{t("Work information")}</TabsTrigger>}
+          </TabsList>
+          <TabsContent value="general" className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <label className="text-sm">
-              {t("Department")}
+              {t("Email")}
+              <input type="email" className={input} {...field("email")} />
+            </label>
+            <label className="text-sm">
+              {t("Display name")}
+              <input className={input} {...field("display_name")} />
+            </label>
+            <label className="text-sm">
+              {t("Phone")}
+              <input
+                type="tel"
+                className={input}
+                pattern={EGYPT_PHONE_PATTERN}
+                title={t(EGYPT_PHONE_HINT)}
+                {...field("phone")}
+              />
+            </label>
+            <label className="text-sm">
+              {t("Job title")}
+              <input className={input} {...field("job_title")} />
+            </label>
+            {isHr && (
+              <>
+                <label className="text-sm">
+                  {t("Department")}
+                  <select
+                    className={input}
+                    value={(current.department as string) ?? ""}
+                    onChange={(e) =>
+                      setForm((f) => ({
+                        ...(f ?? {}),
+                        department: e.target.value || null,
+                      }))
+                    }
+                  >
+                    <option value="">{t("None")}</option>
+                    {departments?.results
+                      .filter((d) => d.is_active)
+                      .map((d) => (
+                        <option key={d.id} value={d.id}>
+                          {d.name}
+                        </option>
+                      ))}
+                  </select>
+                </label>
+                <label className="text-sm">
+                  {t("Manager")}
+                  <select
+                    className={input}
+                    value={(current.manager as string) ?? ""}
+                    onChange={(e) =>
+                      setForm((f) => ({
+                        ...(f ?? {}),
+                        manager: e.target.value || null,
+                      }))
+                    }
+                  >
+                    <option value="">{t("None")}</option>
+                    {managers?.results
+                      .filter((m) => m.id !== employee.id)
+                      .map((m) => (
+                        <option key={m.id} value={m.id}>
+                          {m.display_name || m.employee_code}
+                        </option>
+                      ))}
+                  </select>
+                </label>
+                <fieldset className="text-sm sm:col-span-2">
+                  <legend className="mb-1">{t("Business roles")}</legend>
+                  <div className="flex gap-4">
+                    {ALL_ROLES.map((role) => (
+                      <label key={role} className="flex items-center gap-1">
+                        <input
+                          type="checkbox"
+                          checked={(form?.roles ?? employee.roles).includes(role)}
+                          onChange={() => toggleRole(role)}
+                        />
+                        {role === "HR" ? "HR" : t(role)}
+                      </label>
+                    ))}
+                  </div>
+                  <p className="mt-1 text-xs text-gray-500">
+                    {t("Every account is an Employee; these add elevated roles.")}
+                  </p>
+                </fieldset>
+              </>
+            )}
+          </TabsContent>
+          <TabsContent value="personal" className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            {PERSONAL_FIELDS.map(([key, label, type]) => (
+              <label key={key} className="text-sm">
+                {t(label)}
+                <input
+                  type={type}
+                  className={input}
+                  {...(key === "emergency_contact_phone"
+                    ? { pattern: EGYPT_PHONE_PATTERN, title: t(EGYPT_PHONE_HINT) }
+                    : {})}
+                  {...field(key)}
+                />
+              </label>
+            ))}
+          </TabsContent>
+          <TabsContent value="education" className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            {EDUCATION_FIELDS.map(([key, label, type]) => (
+              <label key={key} className="text-sm">
+                {t(label)}
+                <input type={type} className={input} {...field(key)} />
+              </label>
+            ))}
+            <label className="text-sm">
+              {t("Graduation year")}
               <select
                 className={input}
-                value={(current.department as string) ?? ""}
+                value={current.graduation_year ?? ""}
+                disabled={!isHr}
                 onChange={(e) =>
                   setForm((f) => ({
                     ...(f ?? {}),
-                    department: e.target.value || null,
+                    graduation_year: e.target.value ? Number(e.target.value) : null,
                   }))
                 }
               >
                 <option value="">{t("None")}</option>
-                {departments?.results
-                  .filter((d) => d.is_active)
-                  .map((d) => (
-                    <option key={d.id} value={d.id}>
-                      {d.name}
-                    </option>
-                  ))}
-              </select>
-            </label>
-            <label className="text-sm">
-              {t("Manager")}
-              <select
-                className={input}
-                value={(current.manager as string) ?? ""}
-                onChange={(e) =>
-                  setForm((f) => ({
-                    ...(f ?? {}),
-                    manager: e.target.value || null,
-                  }))
-                }
-              >
-                <option value="">{t("None")}</option>
-                {managers?.results
-                  .filter((m) => m.id !== employee.id)
-                  .map((m) => (
-                    <option key={m.id} value={m.id}>
-                      {m.display_name || m.employee_code}
-                    </option>
-                  ))}
-              </select>
-            </label>
-            <fieldset className="text-sm sm:col-span-2">
-              <legend className="mb-1">{t("Business roles")}</legend>
-              <div className="flex gap-4">
-                {ALL_ROLES.map((role) => (
-                  <label key={role} className="flex items-center gap-1">
-                    <input
-                      type="checkbox"
-                      checked={(form?.roles ?? employee.roles).includes(role)}
-                      onChange={() => toggleRole(role)}
-                    />
-                    {role === "HR" ? "HR" : t(role)}
-                  </label>
+                {graduationYears().map((year) => (
+                  <option key={year} value={year}>
+                    {year}
+                  </option>
                 ))}
-              </div>
-              <p className="mt-1 text-xs text-gray-500">
-                {t("Every account is an Employee; these add elevated roles.")}
+              </select>
+            </label>
+          </TabsContent>
+          {isHr && (
+            <TabsContent value="work" className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <p className="text-xs text-muted-foreground sm:col-span-2">
+                {t("Only HR can see employment and contract details.")}
               </p>
-            </fieldset>
-          </>
-        )}
+              {EMPLOYMENT_FIELDS.map(([key, label, type]) => (
+                <label key={key} className="text-sm">
+                  {t(label)}
+                  <input type={type} className={input} {...field(key)} />
+                </label>
+              ))}
+              <label className="text-sm">
+                {t("Employment type")}
+                <select className={input} {...field("employment_type")}>
+                  <option value="">{t("None")}</option>
+                  <option value="full_time">{t("Full time")}</option>
+                  <option value="part_time">{t("Part time")}</option>
+                  <option value="contract">{t("Contract")}</option>
+                  <option value="internship">{t("Internship")}</option>
+                </select>
+              </label>
+              <label className="text-sm">
+                {t("Contract duration")}
+                <input
+                  className={input}
+                  readOnly
+                  disabled
+                  value={contractDuration(
+                    (current.contract_start_date as string) ?? null,
+                    (current.contract_end_date as string) ?? null,
+                    t,
+                  )}
+                />
+              </label>
+            </TabsContent>
+          )}
+        </Tabs>
       </section>
 
       {isHr && (

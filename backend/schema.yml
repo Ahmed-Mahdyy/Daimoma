@@ -411,7 +411,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/EmployeeSummary'
+                $ref: '#/components/schemas/EmployeeDetail'
           description: ''
   /api/v1/employees/{id}/:
     get:
@@ -435,7 +435,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/EmployeeSummary'
+                $ref: '#/components/schemas/EmployeeDetail'
           description: ''
     patch:
       operationId: employees_partial_update
@@ -469,7 +469,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/EmployeeSummary'
+                $ref: '#/components/schemas/EmployeeDetail'
           description: ''
   /api/v1/employees/{id}/deactivate/:
     post:
@@ -1898,6 +1898,9 @@ components:
       - occurred_at
       - target_id
       - target_type
+    BlankEnum:
+      enum:
+      - ''
     CategoryEnum:
       enum:
       - leave
@@ -1965,7 +1968,12 @@ components:
           maxLength: 120
         is_active:
           type: boolean
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
       required:
+      - created_at
       - id
       - name
     DetailResponse:
@@ -1975,12 +1983,166 @@ components:
           type: string
       required:
       - detail
+    EmployeeDetail:
+      type: object
+      description: Safe directory fields — never exposes auth internals.
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        email:
+          type: string
+          format: email
+          readOnly: true
+        is_active:
+          type: boolean
+          readOnly: true
+        roles:
+          type: array
+          items:
+            type: string
+          readOnly: true
+        employee_code:
+          type: string
+          maxLength: 40
+        display_name:
+          type: string
+          maxLength: 150
+        phone:
+          type: string
+          maxLength: 40
+        job_title:
+          type: string
+          maxLength: 150
+        department:
+          type: string
+          format: uuid
+          nullable: true
+        department_name:
+          type: string
+          readOnly: true
+        manager:
+          type: string
+          format: uuid
+          nullable: true
+        manager_name:
+          type: string
+          readOnly: true
+        photo_url:
+          type: string
+          description: Scoped photo endpoint; `v` busts caches after a re-upload.
+          readOnly: true
+        version:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+        birth_date:
+          type: string
+          format: date
+          nullable: true
+        address:
+          type: string
+          maxLength: 500
+        emergency_contact_name:
+          type: string
+          maxLength: 150
+        emergency_contact_phone:
+          type: string
+          maxLength: 40
+        highest_qualification:
+          type: string
+          maxLength: 150
+        institution:
+          type: string
+          maxLength: 150
+        field_of_study:
+          type: string
+          maxLength: 150
+        graduation_year:
+          type: integer
+          maximum: 32767
+          minimum: 0
+          nullable: true
+        employment_start_date:
+          type: string
+          format: date
+          nullable: true
+        employment_type:
+          oneOf:
+          - $ref: '#/components/schemas/EmploymentTypeEnum'
+          - $ref: '#/components/schemas/BlankEnum'
+        work_location:
+          type: string
+          maxLength: 150
+        contract_start_date:
+          type: string
+          format: date
+          nullable: true
+        contract_end_date:
+          type: string
+          format: date
+          nullable: true
+      required:
+      - department_name
+      - email
+      - employee_code
+      - id
+      - is_active
+      - manager_name
+      - photo_url
+      - roles
     EmployeeProvision:
       type: object
       description: |-
         HR provisioning input — organization and privileges are assigned
         server-side; the allowlist contains no is_staff/is_superuser/password.
       properties:
+        birth_date:
+          type: string
+          format: date
+          nullable: true
+        address:
+          type: string
+          maxLength: 500
+        emergency_contact_name:
+          type: string
+          maxLength: 150
+        emergency_contact_phone:
+          type: string
+          maxLength: 40
+        highest_qualification:
+          type: string
+          maxLength: 150
+        institution:
+          type: string
+          maxLength: 150
+        field_of_study:
+          type: string
+          maxLength: 150
+        graduation_year:
+          type: integer
+          minimum: 1900
+          nullable: true
+        employment_start_date:
+          type: string
+          format: date
+          nullable: true
+        employment_type:
+          oneOf:
+          - $ref: '#/components/schemas/EmploymentTypeEnum'
+          - $ref: '#/components/schemas/BlankEnum'
+        work_location:
+          type: string
+          maxLength: 150
+        contract_start_date:
+          type: string
+          format: date
+          nullable: true
+        contract_end_date:
+          type: string
+          format: date
+          nullable: true
         email:
           type: string
           format: email
@@ -1999,10 +2161,6 @@ components:
           type: string
           default: ''
           maxLength: 150
-        preferred_locale:
-          allOf:
-          - $ref: '#/components/schemas/PreferredLocaleEnum'
-          default: en
         department:
           type: string
           format: uuid
@@ -2185,8 +2343,6 @@ components:
         job_title:
           type: string
           maxLength: 150
-        preferred_locale:
-          $ref: '#/components/schemas/PreferredLocaleEnum'
         department:
           type: string
           format: uuid
@@ -2218,6 +2374,18 @@ components:
       - manager_name
       - photo_url
       - roles
+    EmploymentTypeEnum:
+      enum:
+      - full_time
+      - part_time
+      - contract
+      - internship
+      type: string
+      description: |-
+        * `full_time` - Full time
+        * `part_time` - Part time
+        * `contract` - Contract
+        * `internship` - Internship
     Login:
       type: object
       properties:
@@ -2270,7 +2438,7 @@ components:
       description: |-
         Read/write serializer for GET/PATCH /api/v1/me/.
 
-        Explicit allowlist: only display_name, phone, preferred_locale are
+        Explicit allowlist: only display_name and phone are
         writable. Any other key in the payload — including privilege fields —
         is rejected with validation_error (no silent drops). `version` carries
         the optimistic-lock value and is never written directly.
@@ -2297,8 +2465,6 @@ components:
         phone:
           type: string
           maxLength: 40
-        preferred_locale:
-          $ref: '#/components/schemas/PreferredLocaleEnum'
         photo_url:
           type: string
           description: Auth-gated photo URL; the `v` param busts caches after upload.
@@ -2522,12 +2688,61 @@ components:
           maxLength: 120
         is_active:
           type: boolean
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
     PatchedEmployeeUpdate:
       type: object
       description: |-
         Explicit allowlist for PATCH employees/{id}/ — everything else,
         including privilege fields, is rejected outright.
       properties:
+        birth_date:
+          type: string
+          format: date
+          nullable: true
+        address:
+          type: string
+          maxLength: 500
+        emergency_contact_name:
+          type: string
+          maxLength: 150
+        emergency_contact_phone:
+          type: string
+          maxLength: 40
+        highest_qualification:
+          type: string
+          maxLength: 150
+        institution:
+          type: string
+          maxLength: 150
+        field_of_study:
+          type: string
+          maxLength: 150
+        graduation_year:
+          type: integer
+          minimum: 1900
+          nullable: true
+        employment_start_date:
+          type: string
+          format: date
+          nullable: true
+        employment_type:
+          oneOf:
+          - $ref: '#/components/schemas/EmploymentTypeEnum'
+          - $ref: '#/components/schemas/BlankEnum'
+        work_location:
+          type: string
+          maxLength: 150
+        contract_start_date:
+          type: string
+          format: date
+          nullable: true
+        contract_end_date:
+          type: string
+          format: date
+          nullable: true
         email:
           type: string
           format: email
@@ -2543,8 +2758,6 @@ components:
         job_title:
           type: string
           maxLength: 150
-        preferred_locale:
-          $ref: '#/components/schemas/PreferredLocaleEnum'
         department:
           type: string
           format: uuid
@@ -2565,7 +2778,7 @@ components:
       description: |-
         Read/write serializer for GET/PATCH /api/v1/me/.
 
-        Explicit allowlist: only display_name, phone, preferred_locale are
+        Explicit allowlist: only display_name and phone are
         writable. Any other key in the payload — including privilege fields —
         is rejected with validation_error (no silent drops). `version` carries
         the optimistic-lock value and is never written directly.
@@ -2592,8 +2805,6 @@ components:
         phone:
           type: string
           maxLength: 40
-        preferred_locale:
-          $ref: '#/components/schemas/PreferredLocaleEnum'
         photo_url:
           type: string
           description: Auth-gated photo URL; the `v` param busts caches after upload.
@@ -2736,14 +2947,6 @@ components:
         expected_version:
           type: integer
           minimum: 1
-    PreferredLocaleEnum:
-      enum:
-      - en
-      - ar
-      type: string
-      description: |-
-        * `en` - English
-        * `ar` - Arabic
     PunchCheckoutResult:
       type: object
       properties:
@@ -2928,9 +3131,14 @@ components:
           type: boolean
         is_active:
           type: boolean
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
       required:
       - category
       - code
+      - created_at
       - id
       - name
     RequestTypeWrite:
