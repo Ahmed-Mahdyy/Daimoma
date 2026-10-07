@@ -91,9 +91,9 @@ export function AuditPage() {
           placeholder={t("e.g. employee_updated")}
           value={actionInput}
           onChange={setActionInput}
-          onSearch={() => {
+          onSearch={(v) => {
             const next = new URLSearchParams();
-            if (actionInput) next.set("action", actionInput);
+            if (v) next.set("action", v);
             setParams(next, { replace: true });
           }}
         />

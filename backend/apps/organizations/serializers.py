@@ -11,10 +11,18 @@ from apps.organizations.models import Department, Organization
 
 
 class DepartmentSerializer(serializers.ModelSerializer):
+    manager = serializers.UUIDField(source="manager_id", required=False, allow_null=True)
+    manager_name = serializers.SerializerMethodField()
+
+    def get_manager_name(self, obj) -> str | None:
+        if not obj.manager_id:
+            return None
+        return obj.manager.display_name or obj.manager.employee_code
+
     class Meta:
         model = Department
-        fields = ["id", "name", "is_active", "created_at"]
-        read_only_fields = ["id", "created_at"]
+        fields = ["id", "name", "manager", "manager_name", "is_active", "created_at"]
+        read_only_fields = ["id", "manager_name", "created_at"]
 
 
 class EmployeeSummarySerializer(serializers.ModelSerializer):
@@ -185,8 +193,17 @@ class EmployeeUpdateSerializer(EmployeeInformationFields):
 class OrgSettingsSerializer(serializers.ModelSerializer):
     class Meta:
         model = Organization
-        fields = ["id", "name", "timezone", "week_start", "fallback_reviewer"]
+        fields = ["id", "name", "timezone", "week_start", "working_weekdays", "fallback_reviewer"]
         read_only_fields = ["id"]
+
+    def validate_working_weekdays(self, value):
+        if (
+            not isinstance(value, list)
+            or any(type(day) is not int or day not in range(7) for day in value)
+            or len(value) != len(set(value))
+        ):
+            raise serializers.ValidationError("Select distinct weekdays from 0 to 6.")
+        return value
 
 
 class ReasonSerializer(serializers.Serializer):

@@ -116,22 +116,22 @@ class Command(BaseCommand):
             code="annual_leave",
             defaults={
                 "name": "Annual leave",
-                "category": "leave",
+                "unit": "none",
                 "requires_hr": False,
                 "is_active": True,
             },
         )
-        for code, category, name in (
-            ("early_leave", "early_leave", "Early leave"),
-            ("equipment", "equipment", "Equipment"),
-            ("hr_service", "hr_service", "HR service"),
-            ("work_from_home", "work_from_home", "Work from home"),
-            ("general", "general", "General request"),
+        for code, unit, name in (
+            ("early_leave", "hour", "Early leave"),
+            ("equipment", "none", "Equipment"),
+            ("hr_service", "none", "HR service"),
+            ("work_from_home", "none", "Work from home"),
+            ("general", "none", "General request"),
         ):
             RequestType.objects.get_or_create(
                 organization=org,
                 code=code,
-                defaults={"name": name, "category": category, "is_active": True},
+                defaults={"name": name, "unit": unit, "is_active": True},
             )
 
         for user in (employee, manager, hr):

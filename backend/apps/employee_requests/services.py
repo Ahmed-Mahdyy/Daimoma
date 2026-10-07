@@ -1,6 +1,6 @@
 """Transactional request workflow services. Views adapt HTTP; all state
 transitions, invariants, and event/notification writes live here so races and
-partial writes cannot occur. Lock order: employee profile -> request -> steps.
+partial writes cannot occur. Lock order: employee profile -> request -> grant -> steps.
 """
 
 from config.exceptions import ConflictError
@@ -9,14 +9,16 @@ from django.db import transaction
 from django.utils import timezone
 from rest_framework.exceptions import ValidationError
 
+from apps.accounts.models import EmployeeProfile
 from apps.accounts.permissions import ROLE_HR
+from apps.employee_requests.allocations import reserve, settle
 from apps.employee_requests.models import (
     EmployeeRequest,
     RequestApprovalStep,
     RequestEvent,
     RequestType,
 )
-from apps.employee_requests.serializers import validate_fields_for_category
+from apps.employee_requests.serializers import validate_fields_for_type
 from apps.notifications.services import notify
 
 
@@ -33,10 +35,10 @@ def _type_for(user, type_id):
 def create_draft(user, data):
     """Create a draft request owned by the caller. Ownership/organization/
     status are server-assigned; typed fields validated against the type's
-    category (D-006)."""
+    allocation unit."""
     req_type = _type_for(user, data["type"])
     errors: dict = {}
-    validate_fields_for_category(req_type.category, data, errors)
+    validate_fields_for_type(req_type.unit, data, errors)
     if errors:
         raise ValidationError(errors)
     try:
@@ -55,17 +57,19 @@ def create_draft(user, data):
         end_time=data.get("end_time"),
         equipment_item=data.get("equipment_item", ""),
         quantity=data.get("quantity"),
+        hours=data.get("hours"),
     )
 
 
 def update_draft(request_obj, user, data):
     """Edit a draft/returned request. Only the owner may edit; the caller's
-    expected `version` must match (409 on staleness). Category fields are
+    expected `version` must match (409 on staleness). Unit fields are
     re-validated if the type changes."""
     if not request_obj.editable:
         raise ValidationError({"detail": ["Only draft or returned requests can be edited."]})
     expected = data.get("version")
     with transaction.atomic():
+        EmployeeProfile.objects.select_for_update().get(pk=request_obj.employee_id)
         req = EmployeeRequest.objects.select_for_update().get(pk=request_obj.pk)
         if expected is not None and req.version != expected:
             raise ConflictError("This request changed since you loaded it. Refresh and retry.")
@@ -81,10 +85,11 @@ def update_draft(request_obj, user, data):
             "end_time": data.get("end_time", req.end_time),
             "equipment_item": data.get("equipment_item", req.equipment_item),
             "quantity": data.get("quantity", req.quantity),
+            "hours": data.get("hours", req.hours),
         }
         # PATCH semantics: fields explicitly sent as null/empty stay cleared.
         errors: dict = {}
-        validate_fields_for_category(new_type.category, merged, errors)
+        validate_fields_for_type(new_type.unit, merged, errors)
         if errors:
             raise ValidationError(errors)
         for f, v in merged.items():
@@ -155,11 +160,15 @@ def submit_request(request_obj, user, expected_version=None):
     transaction. Freeze route+content snapshots so later config or
     reporting-line changes cannot reinterpret this cycle."""
     with transaction.atomic():
+        EmployeeProfile.objects.select_for_update().get(pk=request_obj.employee_id)
         # of=("self",) locks only the request row — select_for_update cannot
         # traverse nullable FK joins in Postgres.
         req = (
             EmployeeRequest.objects.select_for_update(of=("self",))
-            .select_related("type", "employee", "employee__manager", "employee__manager__user")
+            .select_related(
+                "type", "organization", "employee", "employee__manager",
+                "employee__manager__user",
+            )
             .get(pk=request_obj.pk)
         )
         if not req.editable:
@@ -176,6 +185,8 @@ def submit_request(request_obj, user, expected_version=None):
                     ]
                 }
             )
+        submitted_at = timezone.now()
+        reserve(req, submitted_at)
         req.cycle += 1
         req.version += 1
         req.status = (
@@ -183,7 +194,7 @@ def submit_request(request_obj, user, expected_version=None):
             if route[0][1] == "manager"
             else EmployeeRequest.Status.PENDING_HR
         )
-        req.submitted_at = timezone.now()
+        req.submitted_at = submitted_at
         created_steps = [
             RequestApprovalStep.objects.create(
                 request=req,
@@ -306,6 +317,7 @@ def review_request(request_obj, user, action, *, reason="", expected_version=Non
     if action in {"reject", "return"} and not reason.strip():
         raise ValidationError({"reason": ["A reason is required."]})
     with transaction.atomic():
+        EmployeeProfile.objects.select_for_update().get(pk=request_obj.employee_id)
         req = EmployeeRequest.objects.select_for_update(of=("self",)).get(pk=request_obj.pk)
         if expected_version is not None and req.version != expected_version:
             raise ConflictError("This request changed since you loaded it. Refresh and retry.")
@@ -348,6 +360,10 @@ def review_request(request_obj, user, action, *, reason="", expected_version=Non
             new_status = EmployeeRequest.Status.REJECTED
         else:
             new_status = EmployeeRequest.Status.RETURNED
+        if new_status == EmployeeRequest.Status.APPROVED:
+            settle(req, "used")
+        elif new_status in (EmployeeRequest.Status.RETURNED, EmployeeRequest.Status.REJECTED):
+            settle(req, "released")
         req.status = new_status
         req.version += 1
         req.save()

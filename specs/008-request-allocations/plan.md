@@ -1,7 +1,7 @@
 # Implementation Plan: Request Allocations
 
 **Feature**: 008-request-allocations | **Date**: 2026-10-04 | **Spec**: [spec.md](spec.md)
-**Status**: Design only. Owner rules recorded; proposed edge policies require review before implementation. No branch switch, application change, migration or deployment.
+**Status**: Design reviewed and accepted by owner 2026-10-05; implemented and verified 2026-10-05; **redesigned and re-verified 2026-10-06** per owner direction — `category` → visible `unit` (`none`/`unit`/`hour`) with employee-entered amounts; category-based calculations (weekday counting, early-leave billing, equipment submission-date inference) removed; `code` auto-generated/hidden; dedicated new-grant page. Category-era passages below are the accepted design record; [spec.md](spec.md), [data-model.md](data-model.md) and [research.md](research.md) carry the amended model.
 
 ## Summary
 
@@ -14,23 +14,23 @@ Add HR-controlled dated allowances to measurable request types, reserve employee
 - **Testing**: Existing pytest PostgreSQL integration/concurrency, Ruff, OpenAPI/type generation, TypeScript, ESLint, Vitest and Playwright/axe.
 - **Target**: Existing same-origin self-hosted web application; synthetic data only pending D-008 real-data gates.
 - **Performance**: Approved D-009 budgets on the synthetic 500-employee workload; scoped balance/list reads <300ms p95 and write/transition <500ms p95 where those categories apply, measured on documented hardware. Avoid per-type/employee N+1 queries.
-- **Constraints**: Integer units; time-zone-aware grant selection; no grants spanning a request, no holiday calendar, one company schedule; no overwriting/removing existing data; work-information privacy remains HR-only and is independent of allocation cards.
+- **Constraints**: Integer amounts (`hour` stored as whole minutes, entered in quarter-hour steps); employee-entered amount per unit; time-zone-aware grant selection by stated dates or submission date; no grants spanning a request; no physical deletion or rewriting of grant history (HR removal is a soft status transition); work-information privacy remains HR-only and is independent of allocation cards.
 
 ## Scope and Impact
 
-- **In**: HR type flag; company weekdays; dated employee/type grants and audited adjustments; submission-cycle reservations; HR grant table; employee preview and personal dashboard analysis; bilingual accessible UI; additive migrations and tests.
+- **In**: HR per-type unit selector; dated employee/type grants with HR view, audited date edits/amount adjustments and soft removal; submission-cycle reservations; HR grant table and history; employee amount entry + preview and personal dashboard analysis; bilingual accessible UI; additive migrations and tests.
 - **Out**: Accrual/payroll, automatic annual rollover, company holidays, per-employee schedules, inventory, monetary budget, split grants, retroactive conversions, other employees' balance visibility to managers, live deployment or real data.
 - **Models/modules**: `organizations.Organization`, `employee_requests.RequestType`/`EmployeeRequest` and request service, new allocation grant/adjustment/commitment models, `reporting` personal projection; frontend request forms, HR request types/grants, personal dashboard.
 - **Data/security**: Additive schema; existing types default off and existing submissions unchanged. Scoped HR mutation and self-only balance read, with audit history and capacity checks under DB locks. Accounting and stock untouched.
 
 ## Constitution Check — pre-design and post-design
 
-- **I/X scope and traceability**: New 008 feature explicitly extends the 003 exclusion of leave balances. Owner decisions are stated; proposed defaults are marked pending, not treated as approved. Do not alter old requirement IDs or mark old tasks done.
+- **I/X scope and traceability**: New 008 feature explicitly extends the 003 exclusion of leave balances. Owner decisions are stated and ratified. Do not alter old requirement IDs or mark old tasks done.
 - **II/VI authorization/privacy**: Scope related employees/types, grant lists/details, dashboard aggregates and choices before filtering; no cross-org IDs, draft leakage or generic client balance edits; immutable adjustment history and PII-safe events.
 - **III/IV integrity/tests**: Write failing calculation, authorization, race and migration tests before critical implementation. Commit reservation with existing request/event/notification transitions; establish a consistent lock order and test concurrent admin edits.
 - **V/VIII maintainability/performance**: Extend modular monolith and current tools; no cache, queue or ledger service. Measure query plans and approved workload instead of asserting optimizations.
 - **VII/IX UX/release**: EN/AR RTL, WCAG 2.2 AA, responsive states and safe errors. This plan neither approves deployment nor real employee data.
-- **Gate verdict**: No architectural exception required. Proposed non-overlap, zero-day, prospective schedule-edit and correction policies need explicit review before implementation; no approval or passing checks claimed.
+- **Gate verdict**: No architectural exception required. Owner choices on non-overlap, zero-day, prospective schedule changes and guarded grant edits were recorded on 2026-10-04; soft removal without deletion was clarified on 2026-10-05. Owner accepted each requirements-review checklist item on 2026-10-05. No passing application checks claimed.
 
 ## Project Structure
 
@@ -53,10 +53,10 @@ backend/apps/*/migrations/ and tests/e2e/     # additive migrations and cross-ro
 
 ## Implementation sequence after review/approval — no code in this phase
 
-1. Ratify proposed policies in [spec.md](spec.md), especially grant overlap, schedule effective dates and invalidating edits; record decision in AGENTS approval register and amend 003/005 contracts and tasks without erasing completed history (008:FR-001–FR-010).
+1. Owner choices recorded in [spec.md](spec.md) and the AGENTS approval register (D-011) through 2026-10-05; owner accepted the requirements-review checklist on 2026-10-05. Reconcile the approved 008 extension with 003/005 contracts and tasks without erasing completed history (008:FR-001–FR-010).
 2. Write failing model/API/service tests for company-day/time/quantity calculation, grant eligibility, scope, reservation lifecycle, exact-once settlement and concurrency; include populated-data migration baseline (008:FR-001–FR-008, FR-010).
 3. Introduce additive organization/type fields and grant/adjustment/commitment tables, constraints and indexes justified by measured query plans; no backfill to live employees (008:FR-001–FR-002, FR-008).
-4. Add HR administration services and scoped APIs: grant creation and audited adjustments, immutable type/unit invariants, workweek settings and optimistic concurrency; reject overlaps or capacity-invalidating edits (008:FR-001–FR-002, FR-007).
+4. Add HR administration services and scoped APIs: grant creation, view/history, audited date edits and amount adjustments, guarded remove-from-active-use action, immutable employee/type/unit invariants, workweek settings and optimistic concurrency; reject overlaps or capacity-invalidating edits (008:FR-001–FR-002, FR-007).
 5. Integrate request services with one lock order: preview is advisory; submit locks and checks grant then records reserved commitment in the existing atomic transition; review moves it to used or released once, including HR-stage and return/resubmit paths. Protect older cycles against policy changes (008:FR-003–FR-006).
 6. Add scoped personal balance projection and documented endpoints; aggregate per grant in bounded queries, distinguish active, expired-but-pending and no-grant states. No extra manager/team counts (008:FR-007).
 7. Generate OpenAPI/TypeScript definitions. Build HR grant table and type control, company schedule settings, employee request impact preview and dashboard breakdown using existing UI/table components; add Arabic strings and full async/accessibility states (008:FR-001, FR-003, FR-007, FR-009).

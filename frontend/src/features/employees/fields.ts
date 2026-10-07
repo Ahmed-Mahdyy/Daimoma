@@ -16,7 +16,6 @@ export const EDUCATION_FIELDS = [
 ] as const;
 
 export const EMPLOYMENT_FIELDS = [
-  ["employment_start_date", "Employment start date", "date"],
   ["work_location", "Work location", "text"],
   ["contract_start_date", "Contract start date", "date"],
   ["contract_end_date", "Contract end date", "date"],

@@ -24,6 +24,22 @@ PeriodSerializer = inline_serializer(
         "timezone": drf_serializers.CharField(),
     },
 )
+DashboardAllocationSerializer = inline_serializer(
+    name="DashboardAllocation",
+    fields={
+        "id": drf_serializers.UUIDField(),
+        "request_type": drf_serializers.UUIDField(),
+        "type_name": drf_serializers.CharField(),
+        "unit": drf_serializers.CharField(),
+        "start_date": drf_serializers.DateField(),
+        "end_date": drf_serializers.DateField(),
+        "granted": drf_serializers.IntegerField(),
+        "reserved": drf_serializers.IntegerField(),
+        "used": drf_serializers.IntegerField(),
+        "remaining": drf_serializers.IntegerField(),
+        "expired": drf_serializers.BooleanField(),
+    },
+)
 DashboardSerializer = inline_serializer(
     name="Dashboard",
     fields={
@@ -33,6 +49,9 @@ DashboardSerializer = inline_serializer(
         "timesheets": drf_serializers.DictField(),
         "approved_minutes": drf_serializers.IntegerField(),
         "pending_review": drf_serializers.IntegerField(),
+        "allocations": drf_serializers.ListSerializer(
+            child=DashboardAllocationSerializer, required=False
+        ),
     },
 )
 
@@ -86,7 +105,7 @@ def _request_row(req):
         "id": str(req.pk),
         "title": req.title,
         "type": req.type.name,
-        "category": req.type.category,
+        "unit": req.type.unit,
         "status": req.status,
         "submitted_at": req.submitted_at.isoformat() if req.submitted_at else None,
         "employee_id": str(req.employee_id),
@@ -113,7 +132,7 @@ RequestRowSerializer = inline_serializer(
         "id": drf_serializers.UUIDField(),
         "title": drf_serializers.CharField(),
         "type": drf_serializers.CharField(),
-        "category": drf_serializers.CharField(),
+        "unit": drf_serializers.CharField(),
         "status": drf_serializers.CharField(),
         "submitted_at": drf_serializers.DateTimeField(allow_null=True),
         "employee_id": drf_serializers.UUIDField(),

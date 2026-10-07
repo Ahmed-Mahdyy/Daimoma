@@ -72,6 +72,7 @@ export interface TimesheetFilters {
   status?: string;
   employee?: string;
   period?: string;
+  search?: string;
   ordering?: string;
   page?: number;
   page_size?: number;

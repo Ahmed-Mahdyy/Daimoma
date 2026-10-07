@@ -10,7 +10,7 @@ from apps.accounts.pagination import DefaultPagination
 from apps.accounts.permissions import IsActiveAuthenticated, IsHR, is_hr
 from apps.accounts.selectors import get_visible_profile
 from apps.organizations.models import Department
-from apps.organizations.selectors import scoped_directory
+from apps.organizations.selectors import department_queryset, scoped_directory
 from apps.organizations.serializers import (
     DepartmentSerializer,
     EmployeeDetailSerializer,
@@ -213,7 +213,7 @@ class DepartmentListView(APIView):
 
     @extend_schema(responses={200: PagedDepartments}, operation_id="departments_list")
     def get(self, request):
-        qs = Department.objects.filter(organization=_org(request))
+        qs = department_queryset(_org(request), request.query_params)
         return Response({"results": DepartmentSerializer(qs, many=True).data, "count": qs.count()})
 
     @extend_schema(request=DepartmentSerializer, responses={201: DepartmentSerializer})
@@ -221,7 +221,8 @@ class DepartmentListView(APIView):
         serializer = DepartmentSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         dept = create_department(
-            request.user, _org(request), name=serializer.validated_data["name"]
+            request.user, _org(request), name=serializer.validated_data["name"],
+            manager=serializer.validated_data.get("manager_id"),
         )
         return Response(DepartmentSerializer(dept).data, status=status.HTTP_201_CREATED)
 
@@ -234,7 +235,9 @@ class DepartmentDetailView(APIView):
 
     def _dept(self, request, pk):
         try:
-            return Department.objects.get(pk=pk, organization=_org(request))
+            return Department.objects.select_related("manager").get(
+                pk=pk, organization=_org(request)
+            )
         except Department.DoesNotExist:
             raise NotFound from None
 
@@ -247,7 +250,10 @@ class DepartmentDetailView(APIView):
         dept = self._dept(request, pk)
         serializer = DepartmentSerializer(dept, data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
-        dept = update_department(request.user, dept, **serializer.validated_data)
+        attrs = dict(serializer.validated_data)
+        if "manager_id" in attrs:
+            attrs["manager"] = attrs.pop("manager_id")
+        dept = update_department(request.user, dept, **attrs)
         return Response(DepartmentSerializer(dept).data)
 
 

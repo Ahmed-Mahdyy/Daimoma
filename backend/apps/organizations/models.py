@@ -15,6 +15,7 @@ class Organization(models.Model):
     name = models.CharField(max_length=160)
     timezone = models.CharField(max_length=64, default="UTC")
     week_start = models.PositiveSmallIntegerField(default=0)  # 0=Monday … 6=Sunday
+    working_weekdays = models.JSONField(default=list, blank=True)
     fallback_reviewer = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         null=True,
@@ -43,6 +44,13 @@ class Organization(models.Model):
             raise ValidationError({"timezone": "Must be a valid IANA timezone."})
         if not 0 <= self.week_start <= 6:
             raise ValidationError({"week_start": "Must be between 0 (Monday) and 6 (Sunday)."})
+        days = self.working_weekdays
+        if (
+            not isinstance(days, list)
+            or any(type(day) is not int or day not in range(7) for day in days)
+            or len(days) != len(set(days))
+        ):
+            raise ValidationError({"working_weekdays": "Select distinct weekdays from 0 to 6."})
 
 
 class Department(models.Model):
@@ -55,6 +63,10 @@ class Department(models.Model):
         Organization, on_delete=models.PROTECT, related_name="departments"
     )
     name = models.CharField(max_length=120)
+    manager = models.ForeignKey(
+        "accounts.EmployeeProfile", null=True, blank=True, on_delete=models.PROTECT,
+        related_name="managed_departments",
+    )
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

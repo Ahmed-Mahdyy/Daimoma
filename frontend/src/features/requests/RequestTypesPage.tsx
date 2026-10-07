@@ -18,20 +18,12 @@ import { useLanguage } from "../../app/LanguageProvider";
 import { formatDate } from "../../lib/dates";
 import { Alert } from "../../components/ui/Alert";
 import { AsyncState } from "../../components/ui/AsyncState";
-
-const CATEGORY_OPTIONS: { value: RequestTypeWriteInput["category"]; label: string }[] = [
-  { value: "leave", label: "Leave (dates)" },
-  { value: "equipment", label: "Equipment (item + quantity)" },
-  { value: "hr_service", label: "HR service (title/details)" },
-  { value: "work_from_home", label: "Work from home (dates)" },
-  { value: "early_leave", label: "Early leave (date + from/to hours)" },
-  { value: "general", label: "General (title/details)" },
-];
+import { UNIT_OPTIONS, UNIT_LABELS } from "./requestTypeUnits";
+import { Link } from "react-router-dom";
 
 interface TypeForm {
-  code: string;
   name: string;
-  category: RequestTypeWriteInput["category"];
+  unit: RequestTypeWriteInput["unit"];
   help_text: string;
   requires_manager: boolean;
   requires_hr: boolean;
@@ -52,14 +44,14 @@ export function RequestTypesPage() {
 
   const { register, handleSubmit, reset, formState: { errors } } =
     useForm<TypeForm>({
-      defaultValues: { category: "general", requires_manager: true },
+      defaultValues: { unit: "none", requires_manager: true },
     });
 
   const create = useMutation({
     mutationFn: (input: RequestTypeWriteInput) => createRequestType(input),
     onSuccess: () => {
       setServerError(null);
-      reset({ category: "general" });
+      reset({ unit: "none", requires_manager: true });
       queryClient.invalidateQueries({ queryKey: ["request-types"] });
     },
     onError: (e) => setServerError(apiErrorMessage(e)),
@@ -103,22 +95,20 @@ export function RequestTypesPage() {
       accessorKey: "name",
       header: t("Name"),
       cell: ({ row }) => (
-        <span className="font-medium">{row.original.name}</span>
+        <Link
+          to={`/requests/types/${row.original.id}/edit`}
+          className="font-medium workspace-link-quiet"
+        >
+          {row.original.name}
+        </Link>
       ),
     },
     {
-      accessorKey: "code",
-      header: t("Code"),
-      cell: ({ row }) => (
-        <span className="text-gray-600">{row.original.code}</span>
-      ),
-    },
-    {
-      accessorKey: "category",
-      header: t("Category"),
+      accessorKey: "unit",
+      header: t("Unit"),
       cell: ({ row }) => (
         <span className="text-gray-600">
-          {t(CATEGORY_OPTIONS.find((o) => o.value === row.original.category)?.label ?? row.original.category)}
+          {t(UNIT_LABELS[row.original.unit] ?? row.original.unit)}
         </span>
       ),
     },
@@ -162,6 +152,15 @@ export function RequestTypesPage() {
           </div>
         );
       },
+    },
+    {
+      accessorKey: "requires_allocation",
+      header: t("Allocated"),
+      cell: ({ row }) => (
+        <span className="text-sm text-muted-foreground">
+          {row.original.unit === "none" ? t("No") : t("Yes")}
+        </span>
+      ),
     },
     {
       accessorKey: "is_active",
@@ -226,21 +225,6 @@ export function RequestTypesPage() {
         noValidate
       >
         <div>
-          <label htmlFor="t-code" className="block text-sm font-medium">
-            {t("Code")}
-          </label>
-          <input
-            id="t-code"
-            className={`mt-1 w-full ${input}`}
-            {...register("code", { required: t("Code is required.") })}
-          />
-          {errors.code && (
-            <p role="alert" className="mt-1 text-sm text-red-700">
-              {errors.code.message}
-            </p>
-          )}
-        </div>
-        <div>
           <label htmlFor="t-name" className="block text-sm font-medium">
             {t("Name")}
           </label>
@@ -256,20 +240,23 @@ export function RequestTypesPage() {
           )}
         </div>
         <div>
-          <label htmlFor="t-category" className="block text-sm font-medium">
-            {t("Category")}
+          <label htmlFor="t-unit" className="block text-sm font-medium">
+            {t("Unit")}
           </label>
           <select
-            id="t-category"
+            id="t-unit"
             className={`mt-1 w-full ${input}`}
-            {...register("category")}
+            {...register("unit")}
           >
-            {CATEGORY_OPTIONS.map((o) => (
+            {UNIT_OPTIONS.map((o) => (
               <option key={o.value} value={o.value}>
                 {t(o.label)}
               </option>
             ))}
           </select>
+          <p className="mt-1 text-xs text-muted-foreground">
+            {t("Units and hours draw from employee allocations; the employee enters the amount on the request. Not measurable types collect no amount.")}
+          </p>
         </div>
         <div>
           <label htmlFor="t-help" className="block text-sm font-medium">

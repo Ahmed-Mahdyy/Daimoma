@@ -21,10 +21,13 @@ import { DepartmentsPage } from "../features/departments/DepartmentsPage";
 import { EmployeeDetailPage } from "../features/employees/EmployeeDetailPage";
 import { EmployeesPage } from "../features/employees/EmployeesPage";
 import { ProvisionEmployeePage } from "../features/employees/ProvisionEmployeePage";
+import { AllocationNewPage } from "../features/requests/AllocationNewPage";
+import { AllocationsPage } from "../features/requests/AllocationsPage";
 import { RequestDetailPage } from "../features/requests/RequestDetailPage";
 import { RequestEditPage } from "../features/requests/RequestEditPage";
 import { RequestFormPage } from "../features/requests/RequestFormPage";
 import { RequestsPage } from "../features/requests/RequestsPage";
+import { RequestTypeEditPage } from "../features/requests/RequestTypeEditPage";
 import { RequestTypesPage } from "../features/requests/RequestTypesPage";
 import { NotificationsPage } from "../features/notifications/NotificationsPage";
 import { OrgSettingsPage } from "../features/settings/OrgSettingsPage";
@@ -86,6 +89,7 @@ const router = createBrowserRouter([
           { path: "/requests", element: <RequestsPage /> },
           { path: "/requests/new", element: <RequestFormPage /> },
           { path: "/requests/types", element: <RequestTypesPage /> },
+          { path: "/requests/types/:id/edit", element: <RequireHr><RequestTypeEditPage /></RequireHr> },
           { path: "/requests/:id", element: <RequestDetailPage /> },
           { path: "/requests/:id/edit", element: <RequestEditPage /> },
           { path: "/timesheets", element: <TimesheetsPage /> },
@@ -96,6 +100,8 @@ const router = createBrowserRouter([
           { path: "/profile", element: <SettingsPage /> },
           { path: "/settings", element: <RequireHr><SettingsPage /></RequireHr> },
           { path: "/settings/organization", element: <RequireHr><OrgSettingsPage /></RequireHr> },
+          { path: "/settings/allocations", element: <RequireHr><AllocationsPage /></RequireHr> },
+          { path: "/settings/allocations/new", element: <RequireHr><AllocationNewPage /></RequireHr> },
         ],
       },
     ],

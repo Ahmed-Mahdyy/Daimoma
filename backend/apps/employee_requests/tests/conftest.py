@@ -7,7 +7,7 @@ from apps.employee_requests.models import RequestType
 @pytest.fixture
 def leave_type(org):
     return RequestType.objects.create(
-        organization=org, code="LEAVE", name="Leave", category="leave"
+        organization=org, code="LEAVE", name="Leave", unit="none"
     )
 
 
@@ -17,22 +17,29 @@ def equipment_type(org):
         organization=org,
         code="EQP",
         name="Equipment",
-        category="equipment",
+        unit="none",
         requires_hr=True,
+    )
+
+
+@pytest.fixture
+def unit_type(org):
+    return RequestType.objects.create(
+        organization=org, code="UNT", name="Countable", unit="unit"
     )
 
 
 @pytest.fixture
 def general_type(org):
     return RequestType.objects.create(
-        organization=org, code="GEN", name="General", category="general"
+        organization=org, code="GEN", name="General", unit="none"
     )
 
 
 @pytest.fixture
 def early_leave_type(org):
     return RequestType.objects.create(
-        organization=org, code="EARLY", name="Early leave", category="early_leave"
+        organization=org, code="EARLY", name="Early leave", unit="hour"
     )
 
 
@@ -42,7 +49,7 @@ def inactive_type(org):
         organization=org,
         code="OLD",
         name="Retired",
-        category="general",
+        unit="none",
         is_active=False,
     )
 
@@ -50,5 +57,5 @@ def inactive_type(org):
 @pytest.fixture
 def other_org_type(other_org):
     return RequestType.objects.create(
-        organization=other_org, code="LEAVE", name="Leave", category="leave"
+        organization=other_org, code="LEAVE", name="Leave", unit="none"
     )

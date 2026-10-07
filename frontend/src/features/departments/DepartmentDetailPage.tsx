@@ -1,7 +1,7 @@
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { type ColumnDef } from "@tanstack/react-table";
 import { useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useParams, useSearchParams } from "react-router-dom";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -13,10 +13,11 @@ import {
   sortingToOrdering,
 } from "@/lib/table-sorting";
 
-import { getDepartment } from "../../api/departments";
-import { listEmployees, type EmployeeSummary } from "../../api/employees";
+import { getDepartment, updateDepartment } from "../../api/departments";
+import { listEmployees, managerChoices, type EmployeeSummary } from "../../api/employees";
 import { useLanguage } from "../../app/LanguageProvider";
 import { AsyncState } from "../../components/ui/AsyncState";
+import { Alert } from "../../components/ui/Alert";
 
 const PAGE_SIZE = 10;
 
@@ -75,6 +76,11 @@ const columns = (t: (key: string) => string): ColumnDef<EmployeeSummary, unknown
 export function DepartmentDetailPage() {
   const { id } = useParams<{ id: string }>();
   const { t } = useLanguage();
+  const queryClient = useQueryClient();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [edit, setEdit] = useState<{ name: string; manager: string } | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
   const [page, setPage] = useState(1);
   const [ordering, setOrdering] = useState("employee_code");
   const sorting = orderingToSorting(ordering);
@@ -92,6 +98,22 @@ export function DepartmentDetailPage() {
     enabled: !!id,
     placeholderData: (prev) => prev,
   });
+  const { data: managers } = useQuery({
+    queryKey: ["managerChoices"],
+    queryFn: () => managerChoices(),
+  });
+  const update = useMutation({
+    mutationFn: (input: { name: string; manager: string | null }) => updateDepartment(id!, input),
+    onSuccess: (saved) => {
+      queryClient.setQueryData(["department", id], saved);
+      void queryClient.invalidateQueries({ queryKey: ["departments"] });
+      setEdit(null);
+      setSearchParams({}, { replace: true });
+      setNotice(t("Department updated."));
+      setErrorMessage(null);
+    },
+    onError: (e) => setErrorMessage(e instanceof Error ? e.message : t("Failed.")),
+  });
 
   if (!dept) {
     return <AsyncState isLoading={isLoading} error={error}>{null}</AsyncState>;
@@ -99,6 +121,8 @@ export function DepartmentDetailPage() {
 
   const total = members.data?.count ?? 0;
   const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  const editing = edit !== null || searchParams.get("edit") === "true";
+  const values = edit ?? { name: dept.name, manager: dept.manager ?? "" };
 
   return (
     <div>
@@ -112,6 +136,36 @@ export function DepartmentDetailPage() {
       <p className="mt-1 text-sm text-muted-foreground">
         {t("Department record — members below reflect the current assignment.")}
       </p>
+      {errorMessage && <div className="mt-4"><Alert kind="error">{errorMessage}</Alert></div>}
+      {notice && <div className="mt-4"><Alert kind="success">{notice}</Alert></div>}
+      <div className="mt-6 grid gap-4 sm:grid-cols-3">
+        <Card><CardHeader><CardTitle>{t("Name")}</CardTitle></CardHeader><CardContent>{dept.name}</CardContent></Card>
+        <Card><CardHeader><CardTitle>{t("Manager")}</CardTitle></CardHeader><CardContent>{dept.manager ? (
+          <Link className="workspace-link-quiet" to={`/employees/${dept.manager}`}>{dept.manager_name || t("Manager")}</Link>
+        ) : t("None")}</CardContent></Card>
+        <Card><CardHeader><CardTitle>{t("Employees count")}</CardTitle></CardHeader><CardContent>{members.isLoading ? t("Loading…") : members.error ? t("Failed.") : total}</CardContent></Card>
+      </div>
+      {!editing ? (
+        <Button type="button" className="mt-5" variant="outline" onClick={() => setEdit({ name: dept.name, manager: dept.manager ?? "" })}>{t("Edit")}</Button>
+      ) : (
+        <form className="workspace-panel mt-5 grid gap-4 p-5 sm:grid-cols-2" onSubmit={(e) => { e.preventDefault(); setErrorMessage(null); update.mutate({ name: values.name.trim(), manager: values.manager || null }); }}>
+          <label className="text-sm font-medium">{t("Name")}
+            <input className="mt-1 block w-full rounded-md border px-3 py-2" required maxLength={120} value={values.name} onChange={(e) => setEdit({ ...values, name: e.target.value })} />
+          </label>
+          <label className="text-sm font-medium">{t("Manager")}
+            <select className="mt-1 block w-full rounded-md border px-3 py-2" value={values.manager} onChange={(e) => setEdit({ ...values, manager: e.target.value })}>
+              <option value="">{t("None")}</option>
+              {managers?.results.filter((m) => m.roles.includes("Manager") || m.id === dept.manager).map((m) => (
+                <option key={m.id} value={m.id}>{m.display_name || m.employee_code}</option>
+              ))}
+            </select>
+          </label>
+          <div className="flex gap-2 sm:col-span-2">
+            <Button type="submit" disabled={update.isPending || !values.name.trim()}>{t("Save")}</Button>
+            <Button type="button" variant="outline" onClick={() => { setEdit(null); setSearchParams({}, { replace: true }); setErrorMessage(null); }}>{t("Cancel")}</Button>
+          </div>
+        </form>
+      )}
 
       <Card className="mt-6">
         <CardHeader>

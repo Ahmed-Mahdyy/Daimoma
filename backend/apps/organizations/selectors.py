@@ -37,6 +37,19 @@ ORDERING_FIELD_MAP = {
 }
 
 
+def department_queryset(org, params):
+    """Organization-scoped department list with bounded search."""
+    qs = org.departments.select_related("manager", "manager__user")
+    if search := params.get("search", "").strip():
+        qs = qs.filter(
+            Q(name__icontains=search)
+            | Q(manager__display_name__icontains=search)
+            | Q(manager__employee_code__icontains=search)
+            | Q(manager__user__email__icontains=search)
+        )
+    return qs
+
+
 def scoped_directory(user, params):
     """Role-scoped employee list with bounded filters/ordering.
 

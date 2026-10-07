@@ -102,7 +102,7 @@ export function DataTable<T>({
                       <button
                         type="button"
                         onClick={header.column.getToggleSortingHandler()}
-                        className="inline-flex items-center gap-1.5 font-semibold uppercase tracking-wide text-muted-foreground transition-colors hover:text-foreground"
+                        className="inline-flex items-center gap-1.5 font-semibold uppercase tracking-wide text-gray-600 transition-colors hover:text-foreground dark:text-muted-foreground"
                       >
                         {flexRender(
                           header.column.columnDef.header,

@@ -1,6 +1,8 @@
 """T015 — scoped search/filter/order/pagination + history + type config
 isolation. D-004/D-009: scope before count; allowlisted params only."""
 
+from datetime import date
+
 import pytest
 
 from apps.conftest import TEST_PASSWORD, login, make_profile, make_user
@@ -95,7 +97,7 @@ class TestScopedList:
         """Column sorting maps allowlisted ids to joined fields (type name,
         employee display name)."""
         other_type = RequestType.objects.create(
-            organization=org, code="EQP", name="Equipment", category="equipment",
+            organization=org, code="EQP", name="Equipment", unit="unit",
         )
         make_draft(org, report.profile, leave_type, title="T1")
         make_draft(org, report.profile, other_type, title="T2")
@@ -153,9 +155,8 @@ class TestTypeConfigIsolation:
         resp = client.post(
             TYPES,
             {
-                "code": "NEW",
                 "name": "New",
-                "category": "general",
+                "unit": "none",
             },
         )
         assert resp.status_code in (403, 404)
@@ -167,29 +168,32 @@ class TestTypeAdmin:
         resp = client.post(
             TYPES,
             {
-                "code": "WFH",
                 "name": "Work from home",
-                "category": "work_from_home",
+                "unit": "none",
                 "requires_hr": True,
             },
         )
         assert resp.status_code == 201, resp.json()
-        tid = resp.json()["id"]
+        body = resp.json()
+        assert body["code"]  # server-generated, not client-supplied
+        tid = body["id"]
         resp = client.patch(f"{TYPES}{tid}/", {"is_active": False})
         assert resp.status_code == 200
         assert resp.json()["is_active"] is False
 
-    def test_duplicate_code_rejected(self, api_client, org, hr_user, leave_type):
-        client = authed(api_client, hr_user)
-        resp = client.post(
-            TYPES,
-            {
-                "code": "LEAVE",
-                "name": "Another",
-                "category": "leave",
-            },
+    def test_unit_locked_after_allocation_use(self, api_client, org, hr_user):
+        from apps.employee_requests.allocations import create_grant
+
+        req_type = RequestType.objects.create(
+            organization=org, code="ALLOC", name="Allocated", unit="unit",
         )
+        emp = make_user(org, "lock-emp@acme.test")
+        profile = make_profile(org, emp, "L001")
+        create_grant(hr_user, profile, req_type, date(2026, 10, 1), date(2026, 10, 31), 2)
+        client = authed(api_client, hr_user)
+        resp = client.patch(f"{TYPES}{req_type.pk}/", {"unit": "hour"})
         assert resp.status_code == 400
+        assert "unit" in resp.json()["field_errors"]
 
 
 @pytest.mark.django_db

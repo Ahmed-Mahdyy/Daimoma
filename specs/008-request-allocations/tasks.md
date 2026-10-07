@@ -1,52 +1,54 @@
 # Tasks: Request Allocations
 
-**Status**: Planning queue only. All tasks are unchecked; no application code has been changed for this feature. Input: [spec](spec.md), [plan](plan.md), [model](data-model.md), [contract](contracts/api.md). Critical tests precede implementation where practical.
+**Status**: Implemented and verified 2026-10-05; **redesigned and re-verified 2026-10-06** per owner direction — `category` → visible `unit` (`none`/`unit`/`hour`), employee-entered amounts, `code` hidden/auto-generated, dedicated `/settings/allocations/new` page, dark-mode badge fixes. Evidence in `docs/evidence/008-request-allocations.md` (458 backend / 45 frontend unit / 68 Playwright-axe tests re-run on the unit model). Input: [spec](spec.md), [plan](plan.md), [model](data-model.md), [contract](contracts/api.md). Critical tests preceded implementation where practical.
+
+> **Note (2026-10-06):** Task descriptions below are the completed-history record and reference the superseded category model ("weekday setting", "early-leave minutes", "category/immutable-unit checks"). The shipped implementation maps these to the unit model: `unit`/`hour` grants with entered amounts, unit-lock validation, and the dedicated new-grant page.
 
 ## Phase 1: Setup and review gates
 
-- [ ] T001 Obtain owner/reviewer decisions for no-overlap, zero-day, schedule-edit and grant-correction rules; record them in `specs/008-request-allocations/spec.md` and `AGENTS.md` before implementing affected behavior (FR-001, FR-002, FR-003, FR-004).
-- [ ] T002 Reconcile the approved 008 extension with 003/005 contracts and preserve completed task history in `specs/003-employee-requests/spec.md`, `specs/005-dashboard-reporting/spec.md`, and `specs/008-request-allocations/contracts/api.md` (FR-006, FR-007, FR-008).
+- [x] T001 Record owner decisions for no-overlap, zero-day, schedule-edit, grant-edit and soft-removal rules in `specs/008-request-allocations/spec.md` and `AGENTS.md`; obtain requirements-review acceptance before affected implementation (FR-001, FR-002, FR-003, FR-004). Owner decisions and individual checklist acceptance recorded 2026-10-05.
+- [x] T002 Reconcile the approved 008 extension with 003/005 contracts and preserve completed task history in `specs/003-employee-requests/spec.md`, `specs/005-dashboard-reporting/spec.md`, and `specs/008-request-allocations/contracts/api.md` (FR-006, FR-007, FR-008).
 
 ## Phase 2: Foundational invariants
 
-- [ ] T003 Specify and test one profile -> grant -> request/step lock order shared by existing request transitions and HR grant mutations in `backend/apps/employee_requests/services.py` and `backend/apps/employee_requests/tests/test_concurrency.py`; retain current request version/conflict semantics (FR-005, FR-006, FR-010).
-- [ ] T004 Write populated-database migration and scope baseline tests in `backend/apps/employee_requests/tests/test_allocations.py` and `backend/tests/test_security_matrix.py` to ensure existing types default false and no old request gets a commitment (FR-007, FR-008, FR-010).
+- [x] T003 Specify and test profile-first serialization (request -> grant -> steps on submission; request -> steps/commitment on review; profile -> grant on HR edits) shared by existing request transitions and HR grant mutations in `backend/apps/employee_requests/services.py` and `backend/apps/employee_requests/tests/test_concurrency.py`; retain current request version/conflict semantics (FR-005, FR-006, FR-010).
+- [x] T004 Write populated-database migration and scope baseline tests in `backend/apps/employee_requests/tests/test_allocations.py` and `backend/tests/test_security_matrix.py` to ensure existing types default false and no old request gets a commitment (FR-007, FR-008, FR-010). `backend/tests/test_migrations.py` populated-fixture test passes.
 
 ## Phase 3: User Story 1 — HR awards and audits grants (P1)
 
 **Goal**: HR can set the company schedule/type flag, award dated allowances and adjust them without invalidating existing commitments.
 **Independent test**: HR creates an allowance; employee sees their own grant, another employee and manager cannot administer it; overlap and invalid reduction are rejected.
 
-- [ ] T005 [US1] Write failing grant/date/unit/HR permission and adjustment-history tests in `backend/apps/employee_requests/tests/test_allocations.py` and `backend/apps/organizations/tests/test_administration.py` (FR-001, FR-002, FR-007, FR-010).
-- [ ] T006 [US1] Add company weekday setting, request-type Boolean default false, positive integer dated grant and append-only adjustment model with additive migrations in `backend/apps/organizations/models.py`, `backend/apps/employee_requests/models.py` and their `migrations/` directories (FR-001, FR-002, FR-008).
-- [ ] T007 [US1] Implement HR-only company weekday configuration, eligible category/immutable-unit checks, same-org grant choice, no-overlap rules and reasoned adjustments with locking in `backend/apps/organizations/services.py` and `backend/apps/employee_requests/allocations.py` (FR-001, FR-002, FR-003, FR-007).
-- [ ] T008 [US1] Add scoped paginated grant/adjustment endpoints and type flag to `backend/apps/employee_requests/serializers.py`, `backend/apps/employee_requests/views.py`, `backend/apps/employee_requests/urls.py` and org settings serializers (FR-001, FR-002, FR-007).
-- [ ] T009 [US1] Build HR weekday/type control and allocation administration table and adjustment form with EN/AR states in `frontend/src/features/requests/RequestTypesPage.tsx`, `frontend/src/features/requests/AllocationsPage.tsx`, `frontend/src/lib/i18n.ts` (FR-001, FR-002, FR-009).
+- [x] T005 [US1] Write failing grant/date/unit/HR permission, audited date-edit/amount-adjustment and soft-removal tests (including released history and blocked reserved/used removal) in `backend/apps/employee_requests/tests/test_allocations.py` and `backend/apps/organizations/tests/test_administration.py` (FR-001, FR-002, FR-007, FR-010).
+- [x] T006 [US1] Add company weekday setting, request-type Boolean default false, positive integer dated grant with active/void status, append-only adjustment and grant-change audit models with additive migrations in `backend/apps/organizations/models.py`, `backend/apps/employee_requests/models.py` and their `migrations/` directories (FR-001, FR-002, FR-008).
+- [x] T007 [US1] Implement HR-only company weekday configuration, eligible category/immutable-unit checks, same-org grant choice, non-overlap, audited reasoned date edits and amount adjustments, and void transition guarded by reserved/used amounts under locks in `backend/apps/organizations/services.py` and `backend/apps/employee_requests/allocations.py` (FR-001, FR-002, FR-003, FR-007).
+- [x] T008 [US1] Add scoped paginated grant/history endpoints, versioned HR date-edit and soft-removal actions, amount adjustment endpoint and type flag to `backend/apps/employee_requests/serializers.py`, `backend/apps/employee_requests/views.py`, `backend/apps/employee_requests/urls.py` and org settings serializers (FR-001, FR-002, FR-007).
+- [x] T009 [US1] Build HR weekday/type control, grant view/history table, audited date-edit/amount-adjustment and remove-from-active-use controls with EN/AR states in `frontend/src/features/requests/RequestTypesPage.tsx`, `frontend/src/features/requests/AllocationsPage.tsx`, `frontend/src/lib/i18n.ts` (FR-001, FR-002, FR-009).
 
 ## Phase 4: User Story 2 — employee submits against one grant (P1)
 
 **Goal**: Submission alone reserves the calculated amount; no grant/insufficient balance blocks the request without partial side effects.
 **Independent test**: Date, time and item requests each reserve exactly their own units; competing submissions do not overspend.
 
-- [ ] T010 [US2] Write failing positive/zero-day, date-boundary, quantity/minute, grant-expiry, race and cross-org request tests in `backend/apps/employee_requests/tests/test_allocations.py` and `backend/apps/employee_requests/tests/test_concurrency.py` (FR-003, FR-004, FR-005, FR-010).
-- [ ] T011 [US2] Add positive-integer, one-grant-per-request-cycle commitment schema, unique `(request, cycle)` and frozen unit/weekday/date-basis snapshot in `backend/apps/employee_requests/models.py` and `backend/apps/employee_requests/migrations/` (FR-004, FR-005, FR-006, FR-008).
-- [ ] T012 [US2] Calculate inclusive scheduled days (no holidays), same-day minutes or equipment quantity; select one dated grant, lock/recheck capacity and atomically reserve on submit in `backend/apps/employee_requests/allocations.py` and `backend/apps/employee_requests/services.py` (FR-003, FR-004, FR-005).
-- [ ] T013 [US2] Document scoped advisory preview, regenerate OpenAPI/TypeScript contract and add form impact/error states in `backend/apps/employee_requests/views.py`, `backend/schema.yml`, `frontend/src/api/requests.ts` and `frontend/src/features/requests/RequestFormPage.tsx` (FR-003, FR-004, FR-009).
+- [x] T010 [US2] Write failing positive/zero-day, date-boundary, equipment quantity and early-leave minute tests (15 actual → 30 charged, 35 → 45, exact 30/45, sub-minute input rejected, monthly dated grant without auto-renewal), grant-expiry, race and cross-org request tests in `backend/apps/employee_requests/tests/test_allocations.py` and `backend/apps/employee_requests/tests/test_concurrency.py` (FR-003, FR-004, FR-005, FR-010).
+- [x] T011 [US2] Add positive-integer, one-grant-per-request-cycle commitment schema, unique `(request, cycle)` and frozen unit/weekday/date-basis snapshot in `backend/apps/employee_requests/models.py` and `backend/apps/employee_requests/migrations/` (FR-004, FR-005, FR-006, FR-008).
+- [x] T012 [US2] Calculate inclusive scheduled days (no holidays), early-leave same-day elapsed minutes with a 30-minute minimum charge and 15-minute rounding, or equipment quantity; select one dated grant, lock/recheck capacity and atomically reserve on submit in `backend/apps/employee_requests/allocations.py` and `backend/apps/employee_requests/services.py` (FR-003, FR-004, FR-005).
+- [x] T013 [US2] Document scoped advisory preview, regenerate OpenAPI/TypeScript contract and add form impact/error states in `backend/apps/employee_requests/views.py`, `backend/schema.yml`, `frontend/src/api/requests.ts` and `frontend/src/features/requests/RequestFormPage.tsx` (FR-003, FR-004, FR-009).
 
 ## Phase 5: User Story 3 — employee follows remaining allocation (P1)
 
 **Goal**: Approval settles once, return/rejection releases once, and only the owner sees correct balances on the personal dashboard.
 **Independent test**: Personal totals reconcile across all request states; reviewers cannot access another employee's grant details; expired pending remains reserved.
 
-- [ ] T014 [US3] Write failing approval/return/reject/resubmit, pending-expiry, dashboard privacy/reconciliation and role-boundary tests in `backend/apps/employee_requests/tests/test_allocations.py` and `backend/apps/reporting/tests/test_dashboards.py` (FR-006, FR-007, FR-010).
-- [ ] T015 [US3] Integrate exact-once reserved -> used/released decisions into existing request transitions and history, preserving multi-stage review behavior in `backend/apps/employee_requests/services.py` and `backend/apps/employee_requests/allocations.py` (FR-005, FR-006).
-- [ ] T016 [US3] Add scoped self-balance projection and personal dashboard fields without granting team/org allocation reads in `backend/apps/reporting/selectors.py`, `backend/apps/reporting/views.py` and `backend/apps/employee_requests/views.py` (FR-007, FR-009).
-- [ ] T017 [US3] Add responsive personal grant breakdown, no-grant/zero/expired-pending states, cache invalidation and Arabic copy in `frontend/src/features/dashboards/DashboardPage.tsx`, `frontend/src/api/reporting.ts` and `frontend/src/lib/i18n.ts` (FR-007, FR-009).
+- [x] T014 [US3] Write failing approval/return/reject/resubmit, pending-expiry, dashboard privacy/reconciliation and role-boundary tests in `backend/apps/employee_requests/tests/test_allocations.py` and `backend/apps/reporting/tests/test_dashboards.py` (FR-006, FR-007, FR-010).
+- [x] T015 [US3] Integrate exact-once reserved -> used/released decisions into existing request transitions and history, preserving multi-stage review behavior in `backend/apps/employee_requests/services.py` and `backend/apps/employee_requests/allocations.py` (FR-005, FR-006).
+- [x] T016 [US3] Add scoped self-balance projection and personal dashboard fields without granting team/org allocation reads in `backend/apps/reporting/selectors.py`, `backend/apps/reporting/views.py` and `backend/apps/employee_requests/views.py` (FR-007, FR-009).
+- [x] T017 [US3] Add responsive personal grant breakdown, no-grant/zero/expired-pending states, cache invalidation and Arabic copy in `frontend/src/features/dashboards/DashboardPage.tsx`, `frontend/src/api/reporting.ts` and `frontend/src/lib/i18n.ts` (FR-007, FR-009).
 
 ## Phase 6: Integrated verification and release gate
 
-- [ ] T018 Add cross-role browser journeys and accessibility/RTL/responsive checks in `tests/e2e/requests.spec.ts`, `tests/e2e/accessibility.spec.ts` and `frontend/src/features/dashboards/dashboard.test.tsx` (FR-007, FR-009, FR-010).
-- [ ] T019 Validate additive migration on a populated synthetic database, schema drift, Ruff, backend tests, TypeScript/lint/build, frontend tests, Playwright/axe and measured D-009 workload; record actual outcomes, open failures and reviewer approval in `docs/evidence/008-request-allocations.md` and `specs/008-request-allocations/quickstart.md` (FR-008, FR-010).
+- [x] T018 Add cross-role browser journeys for HR grant view/edit/soft-removal, employee dashboard capacity, and accessibility/RTL/responsive checks in `tests/e2e/requests.spec.ts`, `tests/e2e/accessibility.spec.ts` and `frontend/src/features/dashboards/dashboard.test.tsx` (FR-002, FR-007, FR-009, FR-010). Delivered as dedicated `tests/e2e/allocations.spec.ts` (5 serial scenarios incl. axe + AR/RTL); all pass.
+- [x] T019 Validate additive migration on a populated synthetic database, schema drift, Ruff, backend tests, TypeScript/lint/build, frontend tests, Playwright/axe and measured D-009 workload; record actual outcomes, open failures and reviewer approval in `docs/evidence/008-request-allocations.md` and `specs/008-request-allocations/quickstart.md` (FR-008, FR-010). All checks PASS and recorded; D-009 re-measured on gunicorn workload — all p95 budgets hold.
 
 ## Dependencies and safe parallelism
 

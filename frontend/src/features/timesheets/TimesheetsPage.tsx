@@ -10,7 +10,7 @@ import {
   orderingToSorting,
   sortingToOrdering,
 } from "@/lib/table-sorting";
-import { FilterBar, FilterSelect } from "@/components/ui/filter-bar";
+import { FilterBar, FilterSelect, SearchField } from "@/components/ui/filter-bar";
 import { Input } from "@/components/ui/input";
 import {
   getOrCreateTimesheet,
@@ -98,8 +98,10 @@ export function TimesheetsPage() {
   const navigate = useNavigate();
   const qc = useQueryClient();
   const { t, lang } = useLanguage();
+  const [searchInput, setSearchInput] = useState(params.get("search") ?? "");
 
   const filters = {
+    search: params.get("search") ?? "",
     status: params.get("status") ?? "",
     ordering: params.get("ordering") ?? "-period_start",
     page: Number(params.get("page") ?? 1),
@@ -164,6 +166,14 @@ export function TimesheetsPage() {
       )}
 
       <FilterBar>
+        <SearchField
+          label={t("Search")}
+          ariaLabel={t("Search timesheets")}
+          value={searchInput}
+          onChange={setSearchInput}
+          onSearch={(v) => setParam("search", v)}
+          placeholder={t("Employee name, code or email…")}
+        />
         <FilterSelect
           label={t("Status")}
           value={filters.status}

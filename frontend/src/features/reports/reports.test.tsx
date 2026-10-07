@@ -78,7 +78,7 @@ const REQUESTS_PAGE = {
       id: "r1",
       title: "New laptop",
       type: "Equipment",
-      category: "equipment",
+      unit: "unit",
       status: "approved",
       submitted_at: "2026-10-01T10:00:00Z",
       employee_id: "e1",

@@ -252,9 +252,23 @@ def resend_invitation(actor, profile):
     _audit(profile.organization, actor, "invitation_resent", profile)
 
 
+def _department_manager(org, manager_id):
+    if manager_id is None:
+        return None
+    try:
+        return EmployeeProfile.objects.get(
+            pk=manager_id, organization=org, user__is_active=True,
+            user__groups__name=ROLE_MANAGER,
+        )
+    except EmployeeProfile.DoesNotExist:
+        raise ValidationError(
+            {"manager": ["Select an active manager in this organization."]}
+        ) from None
+
+
 @transaction.atomic
-def create_department(actor, org, name):
-    dept = Department(organization=org, name=name)
+def create_department(actor, org, name, manager=None):
+    dept = Department(organization=org, name=name, manager=_department_manager(org, manager))
     try:
         dept.save()
     except IntegrityError as exc:
@@ -264,9 +278,12 @@ def create_department(actor, org, name):
 
 
 @transaction.atomic
-def update_department(actor, dept, *, name=None, is_active=None):
+def update_department(actor, dept, *, name=None, is_active=None, manager=...):
     dept = Department.objects.select_for_update().get(pk=dept.pk)
     changes = {}
+    if manager is not ...:
+        dept.manager = _department_manager(dept.organization, manager)
+        changes["manager"] = str(manager or "")
     if name is not None:
         dept.name = name
         changes["name"] = name
@@ -289,7 +306,7 @@ def update_department(actor, dept, *, name=None, is_active=None):
 def update_org_settings(actor, org, attrs):
     org = Organization.objects.select_for_update().get(pk=org.pk)
     changes = {}
-    for field in ("name", "timezone", "week_start"):
+    for field in ("name", "timezone", "week_start", "working_weekdays"):
         if field in attrs:
             setattr(org, field, attrs[field])
             changes[field] = attrs[field]

@@ -39,6 +39,12 @@
 - Q: Must every employee belong to a department, and what happens when HR deactivates a department that still has members? → A: Option A — department membership is optional; deactivating a department with members is allowed and leaves those members without a department (owner-approved 2026-09-25).
 - Q: How is the local development environment provisioned? → A: Fully dockerized — backend runs in a `python:3.12` container (owner-specified), frontend in a Node LTS container, PostgreSQL in its own container; nothing needs installing on the host beyond Docker (owner-approved 2026-09-25).
 
+### Owner amendment — department and employee UI (2026-10-06)
+
+- HR can optionally assign an active, same-organization Manager-role employee as a department's manager when creating or editing it. This is a department attribute, not a bulk change to employees' reporting lines or reviewer assignments. HR can open a department to see its name, manager, current employee count and paginated member table; the list's former **Rename** action becomes **Edit** on the department record. Deactivation and scoped access rules above remain unchanged.
+- Employee forms and profile displays show **Contract start date** only; the redundant **Employment start date** is hidden and is not submitted by the current UI. Existing stored employment dates and legacy API compatibility remain intact; no column or historical value is deleted.
+- Verify create/edit/clear, active/same-organization Manager choice, non-HR and cross-organization denial, paginated member count, and the EN/AR detail-page flow.
+
 ## User Scenarios & Testing
 
 ### User Story 1 - Secure personal access (Priority: P1)

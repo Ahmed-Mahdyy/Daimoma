@@ -4,6 +4,7 @@ Exactly one decision/submission must win every race — no double decisions,
 no lost transitions, no corrupted steps."""
 
 import threading
+from datetime import date, timedelta
 
 import pytest
 from config.exceptions import ConflictError
@@ -13,6 +14,7 @@ from rest_framework.exceptions import PermissionDenied, ValidationError
 
 from apps.accounts.permissions import ROLE_HR, ROLE_MANAGER
 from apps.conftest import make_profile, make_user
+from apps.employee_requests.allocations import adjust_grant, create_grant, grant_totals
 from apps.employee_requests.models import EmployeeRequest, RequestType
 from apps.employee_requests.services import (
     create_draft,
@@ -67,7 +69,7 @@ def cast(roles, org):
         organization=org,
         code="leave",
         name="Leave",
-        category="leave",
+        unit="none",
         requires_hr=True,
         is_active=True,
     )
@@ -163,3 +165,51 @@ class TestConcurrentReview:
         )
         req.refresh_from_db()
         assert req.status == EmployeeRequest.Status.PENDING_HR
+
+
+class TestConcurrentAllocations:
+    def test_two_requests_cannot_spend_same_item(self, cast, org):
+        employee, _, hr, _ = cast
+        request_type = RequestType.objects.create(
+            organization=org, code="allocated-equipment", name="Equipment",
+            unit="unit",
+        )
+        today = date.today()
+        grant = create_grant(
+            hr, employee.profile, request_type,
+            today - timedelta(days=2), today + timedelta(days=2), 1,
+        )
+        requests = [
+            create_draft(employee, {
+                "type": request_type.pk, "title": f"Item {n}",
+                "equipment_item": "Keyboard", "quantity": 1,
+            }) for n in range(2)
+        ]
+        results, errors = run_in_threads(
+            *(lambda req=req: submit_request(req, employee) for req in requests)
+        )
+        assert sum(result is not None for result in results) == 1
+        assert sum(isinstance(error, ValidationError) for error in errors) == 1
+        grant.refresh_from_db()
+        assert grant_totals(grant)["remaining"] == 0
+        assert grant.commitments.count() == 1
+
+    def test_competing_adjustments_use_version(self, cast, org):
+        employee, _, hr, _ = cast
+        request_type = RequestType.objects.create(
+            organization=org, code="allocated-equipment", name="Equipment",
+            unit="unit",
+        )
+        today = date.today()
+        grant = create_grant(
+            hr, employee.profile, request_type,
+            today - timedelta(days=2), today + timedelta(days=2), 2,
+        )
+        results, errors = run_in_threads(
+            lambda: adjust_grant(hr, grant.pk, 1, "Correction", grant.version),
+            lambda: adjust_grant(hr, grant.pk, 1, "Correction", grant.version),
+        )
+        assert sum(result is not None for result in results) == 1
+        assert sum(isinstance(error, ConflictError) for error in errors) == 1
+        grant.refresh_from_db()
+        assert grant_totals(grant)["granted"] == 3

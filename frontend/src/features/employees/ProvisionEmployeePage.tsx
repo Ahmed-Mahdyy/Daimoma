@@ -37,7 +37,6 @@ export function ProvisionEmployeePage() {
     institution: "",
     field_of_study: "",
     graduation_year: "",
-    employment_start_date: "",
     employment_type: "",
     work_location: "",
     contract_start_date: "",
@@ -51,7 +50,7 @@ export function ProvisionEmployeePage() {
 
   const { data: departments } = useQuery({
     queryKey: ["departments"],
-    queryFn: listDepartments,
+    queryFn: () => listDepartments(),
   });
   const { data: managers } = useQuery({
     queryKey: ["managerChoices"],
@@ -74,7 +73,6 @@ export function ProvisionEmployeePage() {
         institution: form.institution,
         field_of_study: form.field_of_study,
         graduation_year: form.graduation_year ? Number(form.graduation_year) : null,
-        employment_start_date: form.employment_start_date || null,
         employment_type: form.employment_type as "" | "full_time" | "part_time" | "contract" | "internship",
         work_location: form.work_location,
         contract_start_date: form.contract_start_date || null,

@@ -117,4 +117,4 @@ def test_seed_e2e_creates_role_samples_without_overwriting_them():
     assert Timesheet.objects.filter(organization=org).count() == 3
     assert TimeEntry.objects.filter(organization=org).count() == 3
     assert RequestType.objects.filter(organization=org).count() == 6
-    assert RequestType.objects.filter(organization=org, category="early_leave").exists()
+    assert RequestType.objects.filter(organization=org, code="early_leave").exists()

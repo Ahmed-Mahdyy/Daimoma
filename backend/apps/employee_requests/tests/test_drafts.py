@@ -72,22 +72,21 @@ class TestDraftCreate:
         assert body["employee_email"] == "employee@acme.test"
         assert body["version"] == 1
 
-    def test_equipment_requires_item_and_quantity(self, api_client, employee, equipment_type):
+    def test_unit_type_requires_quantity(self, api_client, employee, unit_type):
         client = authed(api_client, employee)
         resp = client.post(
             LIST,
             {
-                "type": str(equipment_type.id),
+                "type": str(unit_type.id),
                 "title": "Laptop",
                 "description": "For remote work",
             },
         )
         assert resp.status_code == 400
         body = resp.json()
-        assert "equipment_item" in body["field_errors"]
         assert "quantity" in body["field_errors"]
 
-    def test_leave_requires_dates(self, api_client, employee, leave_type):
+    def test_partial_date_range_rejected(self, api_client, employee, leave_type):
         client = authed(api_client, employee)
         resp = client.post(
             LIST,
@@ -95,10 +94,11 @@ class TestDraftCreate:
                 "type": str(leave_type.id),
                 "title": "X",
                 "description": "d",
+                "start_date": "2026-10-05",
             },
         )
         assert resp.status_code == 400
-        assert "start_date" in resp.json()["field_errors"]
+        assert "end_date" in resp.json()["field_errors"]
 
     def test_end_before_start_rejected(self, api_client, employee, leave_type):
         client = authed(api_client, employee)
@@ -115,9 +115,8 @@ class TestDraftCreate:
         assert resp.status_code == 400
         assert "end_date" in resp.json()["field_errors"]
 
-    def test_unused_category_fields_rejected(self, api_client, employee, leave_type, general_type):
+    def test_amount_fields_rejected_on_none_type(self, api_client, employee, leave_type):
         client = authed(api_client, employee)
-        # equipment fields on a leave request are invalid
         resp = client.post(
             LIST,
             {
@@ -131,18 +130,17 @@ class TestDraftCreate:
         )
         assert resp.status_code == 400
         assert "quantity" in resp.json()["field_errors"]
-        # dates on a general request are invalid
         resp = client.post(
             LIST,
             {
-                "type": str(general_type.id),
+                "type": str(leave_type.id),
                 "title": "X",
                 "description": "d",
-                "start_date": "2026-10-05",
+                "hours": "1.00",
             },
         )
         assert resp.status_code == 400
-        assert "start_date" in resp.json()["field_errors"]
+        assert "hours" in resp.json()["field_errors"]
 
     def test_inactive_type_rejected(self, api_client, employee, inactive_type):
         client = authed(api_client, employee)
@@ -194,9 +192,9 @@ class TestDraftCreate:
             assert field in resp.json()["field_errors"], field
 
 
-class TestEarlyLeave:
-    """Early-leave category: a same-day time range (start_date + from/to
-    hours); end must be later than start and unrelated fields are rejected."""
+class TestHourType:
+    """Hour-unit type: the employee enters the hours amount directly
+    (quarter-hour steps); a paired date range may be attached optionally."""
 
     def payload(self, early_leave_type, **kw):
         return {
@@ -204,61 +202,45 @@ class TestEarlyLeave:
             "title": "Leaving early",
             "description": "Appointment",
             "start_date": "2026-10-05",
-            "start_time": "14:00",
-            "end_time": "16:30",
+            "end_date": "2026-10-05",
+            "hours": "1.50",
             **kw,
         }
 
-    def test_create_valid_early_leave(self, api_client, employee, early_leave_type):
+    def test_create_valid_hour_request(self, api_client, employee, early_leave_type):
         client = authed(api_client, employee)
         resp = client.post(LIST, self.payload(early_leave_type))
         assert resp.status_code == 201, resp.json()
         body = resp.json()
+        assert body["hours"] == "1.50"
         assert body["start_date"] == "2026-10-05"
-        assert body["start_time"] == "14:00:00"
-        assert body["end_time"] == "16:30:00"
 
-    def test_times_required(self, api_client, employee, early_leave_type):
+    def test_hours_required(self, api_client, employee, early_leave_type):
         client = authed(api_client, employee)
         body = self.payload(early_leave_type)
-        del body["start_time"], body["end_time"]
+        del body["hours"]
         resp = client.post(LIST, body)
         assert resp.status_code == 400
-        errors = resp.json()["field_errors"]
-        assert "start_time" in errors and "end_time" in errors
+        assert "hours" in resp.json()["field_errors"]
 
-    def test_end_not_after_start_rejected(self, api_client, employee, early_leave_type):
+    def test_non_quarter_hours_rejected(self, api_client, employee, early_leave_type):
         client = authed(api_client, employee)
-        for end in ("14:00", "13:00"):
-            resp = client.post(LIST, self.payload(early_leave_type, end_time=end))
-            assert resp.status_code == 400, end
-            assert "end_time" in resp.json()["field_errors"]
+        for bad in ("0.30", "1.10", "-1.00", "0"):
+            resp = client.post(LIST, self.payload(early_leave_type, hours=bad))
+            assert resp.status_code == 400, bad
+            assert "hours" in resp.json()["field_errors"]
 
-    def test_end_date_and_equipment_rejected(self, api_client, employee, early_leave_type):
+    def test_quantity_rejected_on_hour_type(self, api_client, employee, early_leave_type):
         client = authed(api_client, employee)
-        resp = client.post(
-            LIST,
-            self.payload(early_leave_type, end_date="2026-10-06", quantity=2),
-        )
+        resp = client.post(LIST, self.payload(early_leave_type, quantity=2))
         assert resp.status_code == 400
-        errors = resp.json()["field_errors"]
-        assert "end_date" in errors and "quantity" in errors
+        assert "quantity" in resp.json()["field_errors"]
 
-    def test_times_rejected_on_other_categories(self, api_client, employee, leave_type):
+    def test_unpaired_time_rejected(self, api_client, employee, early_leave_type):
         client = authed(api_client, employee)
-        resp = client.post(
-            LIST,
-            {
-                "type": str(leave_type.id),
-                "title": "X",
-                "description": "d",
-                "start_date": "2026-10-05",
-                "end_date": "2026-10-09",
-                "start_time": "14:00",
-            },
-        )
+        resp = client.post(LIST, self.payload(early_leave_type, start_time="14:00"))
         assert resp.status_code == 400
-        assert "start_time" in resp.json()["field_errors"]
+        assert "end_time" in resp.json()["field_errors"]
 
 
 class TestDraftEdit:

@@ -227,11 +227,13 @@ export function RequestDetailPage() {
               />
               {req.start_date && (
                 <Field
-                  label={req.type_category === "early_leave" ? t("Date") : t("Start")}
+                  label={req.type_unit === "hour" ? t("Date") : t("Start")}
                   value={req.start_date}
                 />
               )}
-              {req.end_date && <Field label={t("End")} value={req.end_date} />}
+              {req.end_date && req.end_date !== req.start_date && (
+                <Field label={t("End")} value={req.end_date} />
+              )}
               {req.start_time && (
                 <Field label={t("From")} value={req.start_time.slice(0, 5)} />
               )}
@@ -243,6 +245,9 @@ export function RequestDetailPage() {
               )}
               {req.quantity != null && (
                 <Field label={t("Quantity")} value={req.quantity} />
+              )}
+              {req.hours != null && (
+                <Field label={t("Hours")} value={req.hours} />
               )}
               <Field className="col-span-full" label={t("Details")} value={req.description || "—"} />
             </dl>

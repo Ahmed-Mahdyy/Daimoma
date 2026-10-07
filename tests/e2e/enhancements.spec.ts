@@ -22,8 +22,8 @@ async function loginAs(page: Page, email: string) {
 }
 
 async function signOut(page: Page) {
-  const sidebarSignOut = page.locator("aside").getByRole("button", { name: /sign out/i, includeHidden: true });
-  if (!(await sidebarSignOut.isVisible())) await page.getByRole("button", { name: "Open menu" }).click();
+  const sidebarSignOut = page.locator("aside").getByRole("button", { name: /sign out|تسجيل الخروج/i, includeHidden: true });
+  if (!(await sidebarSignOut.isVisible())) await page.getByRole("button", { name: /open menu|فتح القائمة/i }).click();
   await sidebarSignOut.click();
   await expect(page).toHaveURL(/\/login/);
 }
@@ -38,13 +38,15 @@ test.describe.serial("enhancements", () => {
 
     await page.getByLabel(/request type/i).selectOption({ label: "Early leave" });
     await expect(page.getByLabel(/^date$/i)).toBeVisible();
+    await expect(page.getByLabel(/^hours$/i)).toBeVisible();
     await expect(page.getByLabel(/^from$/i)).toBeVisible();
     await expect(page.getByLabel(/^to$/i)).toBeVisible();
-    // Date-range fields are irrelevant for this category.
+    // Date-range fields are irrelevant for this unit.
     await expect(page.getByLabel(/end date/i)).toHaveCount(0);
 
     await page.getByLabel(/^title$/i).fill(EARLY_TITLE);
     await page.getByLabel(/^date$/i).fill("2027-06-01");
+    await page.getByLabel(/^hours$/i).fill("2");
     await page.getByLabel(/^from$/i).fill("15:00");
     await page.getByLabel(/^to$/i).fill("17:00");
     await page.getByRole("button", { name: /save draft/i }).click();
@@ -113,15 +115,16 @@ test.describe.serial("enhancements", () => {
     await signOut(page);
   });
 
-  test("HR sees a Settings submenu containing Request types + Audit", async ({ page }) => {
+  test("HR sees Request types + Allocations under Requests and Audit under Settings", async ({ page }) => {
     await loginAs(page, "hr-e2e@acme.test");
-    const submenu = page.getByRole("navigation", { name: "Settings" });
-    await expect(submenu.getByRole("link", { name: "Request types" })).toBeVisible();
-    await expect(submenu.getByRole("link", { name: "Audit" })).toBeVisible();
-    await submenu.getByRole("link", { name: "Request types" }).click();
+    const requests = page.getByRole("navigation", { name: "Requests Menu" });
+    await expect(requests.getByRole("link", { name: "Request types" })).toBeVisible();
+    await expect(requests.getByRole("link", { name: "Allocations" })).toBeVisible();
+    await expect(page.getByRole("navigation", { name: "Settings Menu" }).getByRole("link", { name: "Audit" })).toBeVisible();
+    await requests.getByRole("link", { name: "Request types" }).click();
     await expect(page.getByRole("heading", { name: /request types/i })).toBeVisible();
     const breadcrumb = page.getByRole("navigation", { name: "Breadcrumb" });
-    await expect(breadcrumb.getByRole("link", { name: "Settings" })).toBeVisible();
+    await expect(breadcrumb.getByRole("link", { name: "Requests" })).toBeVisible();
     await signOut(page);
   });
 
@@ -254,11 +257,7 @@ test.describe.serial("enhancements", () => {
   }) => {
     await loginAs(page, "hr-e2e@acme.test");
     await page
-      .getByRole("navigation", { name: "Main" })
-      .getByRole("link", { name: "Settings", exact: true })
-      .click();
-    await page
-      .getByRole("navigation", { name: "Settings" })
+      .getByRole("navigation", { name: "Requests Menu" })
       .getByRole("link", { name: "Request types" })
       .click();
 
@@ -286,22 +285,23 @@ test.describe.serial("enhancements", () => {
       .getByRole("link", { name: "Requests", exact: true })
       .click();
     await page.getByRole("link", { name: "New request", exact: true }).first().click();
-    await page.getByLabel(/request type/i).selectOption({ label: "Annual leave" });
+    await page.getByLabel(/request type/i).selectOption({ label: "General request" });
     await page.getByLabel(/^title$/i).fill(title);
     await page.getByLabel(/details/i).fill("notification target check");
-    await page.getByLabel(/start date/i).fill("2027-07-01");
-    await page.getByLabel(/end date/i).fill("2027-07-02");
     await page.getByRole("button", { name: /save draft/i }).click();
     await page.getByRole("button", { name: /submit for review/i }).click();
     await expect(page.getByText("Pending manager").first()).toBeVisible();
     await signOut(page);
 
     await loginAs(page, "manager-e2e@acme.test");
-    await page.getByRole("button", { name: /notifications/i }).click();
-    const item = page
-      .getByRole("menu")
-      .getByRole("button", { name: new RegExp(title.slice(0, 25), "i") })
-      .or(page.getByRole("menu").getByRole("button").filter({ hasText: /review/i }).first());
+    await page.getByRole("button", { name: "Switch to Arabic" }).click();
+    await expect(page.locator("html")).toHaveAttribute("dir", "rtl");
+    await page.getByRole("button", { name: /الإشعارات/ }).click();
+    const panel = page.getByRole("region", { name: "الإشعارات" });
+    const item = panel
+      .getByRole("button")
+      .filter({ hasText: `«${title}» بانتظار مراجعتك.` });
+    await expect(item).toBeVisible();
     await item.click();
     await expect(page).toHaveURL(/\/requests\/[0-9a-f-]{36}/);
     await expect(page.getByRole("heading", { name: title })).toBeVisible();
@@ -337,6 +337,7 @@ test.describe.serial("enhancements", () => {
     await page.getByLabel("Highest qualification").fill("Bachelor's");
     await page.getByRole("tab", { name: "Work information" }).click();
     await page.getByLabel("Employment type").selectOption("full_time");
+    await expect(page.getByLabel("Employment start date")).toHaveCount(0);
     await page.getByLabel("Contract start date").fill("2025-01-15");
     await page.getByLabel("Contract end date").fill("2027-01-14");
     const created = page.waitForResponse((response) => response.url().endsWith("/api/v1/employees/") && response.request().method() === "POST");
@@ -351,6 +352,7 @@ test.describe.serial("enhancements", () => {
     // HR sees the HR-only work information tab, including contract dates.
     await page.getByRole("tab", { name: "Work information" }).click();
     await expect(page.getByLabel("Contract start date")).toHaveValue("2025-01-15");
+    await expect(page.getByLabel("Employment start date")).toHaveCount(0);
     await page.getByRole("button", { name: "Switch to Arabic" }).click();
     await expect(page.getByRole("tab", { name: "المعلومات الشخصية" })).toBeVisible();
     await expect(page.getByRole("tab", { name: "التعليم" })).toBeVisible();

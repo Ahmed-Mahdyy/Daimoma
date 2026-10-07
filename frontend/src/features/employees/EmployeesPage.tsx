@@ -92,7 +92,7 @@ export function EmployeesPage() {
 
   const { data: departments } = useQuery({
     queryKey: ["departments"],
-    queryFn: listDepartments,
+    queryFn: () => listDepartments(),
     enabled: isHr,
   });
 
@@ -119,7 +119,7 @@ export function EmployeesPage() {
           ariaLabel={t("Search employees")}
           value={searchInput}
           onChange={setSearchInput}
-          onSearch={() => setParam("search", searchInput)}
+          onSearch={(v) => setParam("search", v)}
           placeholder={t("Name, code or email…")}
         />
         <FilterSelect

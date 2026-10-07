@@ -49,6 +49,35 @@ class TestPopulatedUpgrade:
             # Always restore head even if assertions fail mid-test.
             call_command("migrate", "timesheets", verbosity=0, interactive=False)
 
+    def test_existing_requests_survive_allocation_migrations(self, org, employee):
+        from apps.employee_requests.models import (
+            EmployeeRequest,
+            RequestAllocationCommitment,
+            RequestType,
+        )
+
+        req_type = RequestType.objects.create(
+            organization=org, code="pre-allocation", name="Existing leave", unit="none"
+        )
+        req = EmployeeRequest.objects.create(
+            organization=org, employee=employee.profile, type=req_type,
+            title="Existing request", description="", status="approved", cycle=1,
+            start_date="2026-09-01", end_date="2026-09-02",
+        )
+        call_command("migrate", "employee_requests", "0003", verbosity=0, interactive=False)
+        try:
+            call_command("migrate", "employee_requests", verbosity=0, interactive=False)
+            req_type.refresh_from_db()
+            req.refresh_from_db()
+            org.refresh_from_db()
+            assert req_type.requires_allocation is False
+            assert req.status == "approved"
+            assert req.cycle == 1
+            assert org.working_weekdays == []
+            assert not RequestAllocationCommitment.objects.filter(request=req).exists()
+        finally:
+            call_command("migrate", "employee_requests", verbosity=0, interactive=False)
+
     def test_fresh_migrate_zero_to_head(self):
         """Clean-slate upgrade path: all migrations apply on an empty schema."""
         call_command("migrate", "timesheets", "zero", verbosity=0, interactive=False)

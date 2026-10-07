@@ -30,11 +30,11 @@ test.describe.serial("request lifecycle", () => {
     await expect(page.getByRole("heading", { name: "Requests", level: 1 })).toBeVisible();
     await page.getByRole("link", { name: "New request", exact: true }).click();
 
-    await page.getByLabel(/request type/i).selectOption({ label: "Annual leave" });
+    // "General request" is not measurable — no amount or grant is needed, so
+    // the lifecycle stays independent of allocation fixtures.
+    await page.getByLabel(/request type/i).selectOption({ label: "General request" });
     await page.getByLabel(/^title$/i).fill(TITLE);
     await page.getByLabel(/details/i).fill("Synthetic e2e request");
-    await page.getByLabel(/start date/i).fill("2027-06-01");
-    await page.getByLabel(/end date/i).fill("2027-06-10");
     await page.getByRole("button", { name: /save draft/i }).click();
 
     await expect(page.getByRole("heading", { name: TITLE })).toBeVisible();
@@ -55,7 +55,7 @@ test.describe.serial("request lifecycle", () => {
 
     await page.getByRole("button", { name: /^return$/i }).click();
     const dialog = page.getByRole("dialog");
-    await dialog.getByLabel(/reason/i).fill("Please adjust the dates.");
+    await dialog.getByLabel(/reason/i).fill("Please add more detail.");
     await dialog.getByRole("button", { name: /^return$/i }).click();
     await expect(page.getByText("Returned").first()).toBeVisible();
     await signOut(page);
@@ -69,11 +69,11 @@ test.describe.serial("request lifecycle", () => {
     await page.getByRole("link", { name: TITLE }).click();
     await expect(page.getByText("Returned").first()).toBeVisible();
     await expect(
-      page.getByText(/please adjust the dates/i).first(),
+      page.getByText(/please add more detail/i).first(),
     ).toBeVisible();
 
     await page.getByRole("link", { name: /edit draft/i }).click();
-    await page.getByLabel(/end date/i).fill("2027-06-05");
+    await page.getByLabel(/details/i).fill("Synthetic e2e request — revised");
     await page.getByRole("button", { name: /save & resubmit/i }).click();
     await expect(page.getByText("Pending manager").first()).toBeVisible();
     await signOut(page);

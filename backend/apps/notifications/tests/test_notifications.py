@@ -109,3 +109,25 @@ class TestReadFlows:
         notify(manager, "b")
         authed_client(employee).post(f"{NOTIFICATIONS}read-all/", {})
         assert Notification.objects.get(recipient=manager).is_read is False
+
+
+@pytest.mark.django_db
+class TestPresentationMetadata:
+    def test_known_request_summary_exposes_translation_parts(self, employee):
+        notify(
+            employee,
+            "request:1:cycle1:pending",
+            kind="request_review",
+            summary="Equipment keyboard awaits your review.",
+        )
+        row = authed_client(employee).get(NOTIFICATIONS).json()["results"][0]
+        assert row["summary"] == "Equipment keyboard awaits your review."
+        assert row["summary_key"] == "notification.requestReview"
+        assert row["summary_params"] == {"title": "Equipment keyboard"}
+
+    def test_unknown_summary_falls_back_without_translation_key(self, employee):
+        notify(employee, "custom:1", summary="Something custom happened.")
+        row = authed_client(employee).get(NOTIFICATIONS).json()["results"][0]
+        assert row["summary"] == "Something custom happened."
+        assert row["summary_key"] == ""
+        assert row["summary_params"] == {}

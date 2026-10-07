@@ -65,12 +65,10 @@ def ts(day, hour):
 
 def _req(user, req_type, **extra):
     data = {"type": str(req_type.pk), "title": extra.pop("title", "req")}
-    if req_type.category in ("leave", "work_from_home"):
+    if req_type.name == "Leave":
         data.update(start_date="2026-09-15", end_date="2026-09-15")
-    if req_type.category == "equipment":
-        data.update(equipment_item="Laptop", quantity=1)
-    if req_type.category in ("hr_service", "general"):
-        data.update(description="details")
+    if req_type.unit == "unit":
+        data.update(quantity=1, equipment_item="Laptop")
     data.update(extra)
     return create_draft(user, data)
 
@@ -96,13 +94,13 @@ def reporting_dataset(org):
     make_profile(org, lone, "E003", department=dept_b)
 
     leave = RequestType.objects.create(
-        organization=org, code="LEAVE", name="Leave", category="leave"
+        organization=org, code="LEAVE", name="Leave", unit="none"
     )
     equip = RequestType.objects.create(
-        organization=org, code="EQ", name="Equipment", category="equipment"
+        organization=org, code="EQ", name="Equipment", unit="none"
     )
     gen = RequestType.objects.create(
-        organization=org, code="GEN", name="General", category="general"
+        organization=org, code="GEN", name="General", unit="none"
     )
 
     r1 = _req(emp1, leave, title="annual leave")
@@ -123,7 +121,7 @@ def reporting_dataset(org):
     review_request(r5, mgr, "reject", reason="not needed")
 
     hrsvc = RequestType.objects.create(
-        organization=org, code="HRSVC", name="HR service", category="hr_service"
+        organization=org, code="HRSVC", name="HR service", unit="none"
     )
     r6 = _req(lone, hrsvc, title="certificate")
     submit_request(r6, lone)

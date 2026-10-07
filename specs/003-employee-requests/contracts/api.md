@@ -29,3 +29,7 @@ List/filter/sort/pagination, type-dependent form, request detail/timeline, revie
 ## Atomic and external effects
 
 Transition, steps, event, and durable notification commit together. Scope is checked again at notification target/read time. Notification summaries omit sensitive free-text details.
+
+## Feature 008 allocation extension (accepted 2026-10-05)
+
+The separately specified [allocation contract](../../008-request-allocations/contracts/api.md) extends HR request-type configuration with `requires_allocation` for measurable categories. New submission cycles for those types calculate and reserve from one dated employee grant in the same atomic transition; final approval settles reserved to used, while return/rejection release it. Existing pending/approved cycles receive no retroactive debit. The original request version checks, reviewer routing, history and notification semantics remain in force; the allocation rule does not add payroll, holiday exclusion, inventory or attachments.

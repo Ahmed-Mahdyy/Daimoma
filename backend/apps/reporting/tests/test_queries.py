@@ -3,6 +3,8 @@ Aggregations must stay O(1) in rows returned: a dashboard is a handful of
 aggregate queries regardless of dataset size; a report page is one grouped
 query plus pagination overhead — never per-row lookups."""
 
+from datetime import date, timedelta
+
 import pytest
 from django.utils import timezone
 from rest_framework.test import APIClient
@@ -24,12 +26,35 @@ class TestQueryBudgets:
         # session + user + profile + org + req counts + sheet counts +
         # minutes aggregate + 2 pending-review counts + session write —
         # all constant regardless of dataset size.
-        with django_assert_num_queries(12):
+        with django_assert_num_queries(13):
             resp = c.get(
                 "/api/v1/dashboards/personal/",
                 {"from": "2026-09-14", "to": "2026-09-20"},
             )
         assert resp.status_code == 200
+
+    def test_personal_allocations_have_constant_query_count(
+        self, reporting_dataset, django_assert_num_queries
+    ):
+        from apps.employee_requests.allocations import create_grant
+        from apps.employee_requests.models import RequestType
+
+        ds = reporting_dataset
+        today = date.today()
+        for n in range(5):
+            req_type = RequestType.objects.create(
+                organization=ds["org"], code=f"ALLOC-{n}", name=f"Allocation {n}",
+                unit="unit",
+            )
+            create_grant(
+                ds["hr"], ds["emp1"].profile, req_type,
+                today - timedelta(days=2), today + timedelta(days=2), 2,
+            )
+        c = authed(ds["emp1"])
+        with django_assert_num_queries(15):
+            resp = c.get("/api/v1/dashboards/personal/")
+        assert resp.status_code == 200
+        assert len(resp.json()["allocations"]) == 5
 
     def test_org_dashboard_is_bounded(self, reporting_dataset, django_assert_num_queries):
         c = authed(reporting_dataset["hr"])

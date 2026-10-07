@@ -93,6 +93,30 @@ test.describe("accessibility", () => {
     await expectNoSeriousViolations(page, "dark timesheets");
   });
 
+  test("notification menu stays onscreen in English and Arabic", async ({ page }) => {
+    await loginAs(page, "employee-e2e@acme.test");
+    for (const dir of ["ltr", "rtl"] as const) {
+      if (dir === "rtl") await page.getByRole("button", { name: "Switch to Arabic" }).click();
+      await expect(page.locator("html")).toHaveAttribute("dir", dir);
+      for (const width of [1024, 360]) {
+        await page.setViewportSize({ width, height: 800 });
+        const bell = page.getByRole("button", { name: /notifications|الإشعارات/i });
+        await bell.click();
+        const panel = page.getByRole("region", { name: /notifications|الإشعارات/i });
+        await expect(panel).toBeVisible();
+        const box = await panel.boundingBox();
+        const trigger = await bell.boundingBox();
+        expect(box).not.toBeNull();
+        expect(trigger).not.toBeNull();
+        expect(box!.x).toBeGreaterThanOrEqual(0);
+        expect(box!.x + box!.width).toBeLessThanOrEqual(width);
+        if (width === 1024 && dir === "rtl") expect(box!.x).toBeGreaterThanOrEqual(trigger!.x - 1);
+        if (dir === "rtl") await expectNoSeriousViolations(page, `Arabic notification menu at ${width}px`);
+        await page.keyboard.press("Escape");
+      }
+    }
+  });
+
   test("sidebar and brand respond to the theme without changing the approved logo", async ({ page }) => {
     await loginAs(page, "employee-e2e@acme.test");
     const sidebar = page.locator(".workspace-sidebar");
@@ -101,7 +125,22 @@ test.describe("accessibility", () => {
     await expect(mark).toHaveAttribute("src", "/brand/logo-icon.png");
     const light = await sidebar.evaluate((el) => getComputedStyle(el).backgroundColor);
     const lightBrand = await brand.locator(".workspace-brand-mark").evaluate((el) => getComputedStyle(el).backgroundColor);
+    const stage = page.locator(".workspace-stage");
+    const lightStage = await stage.evaluate((el) => getComputedStyle(el).backgroundImage);
+    const lightPattern = await stage.evaluate((el) => getComputedStyle(el, "::before").backgroundImage);
+    expect(lightStage).toContain("linear-gradient");
+    expect(lightPattern).toContain("repeating-linear-gradient");
+    const coversStage = () => stage.evaluate((el) =>
+      parseFloat(getComputedStyle(el, "::before").height) >= el.getBoundingClientRect().height - 89,
+    );
+    expect(await coversStage()).toBe(true);
+    await stage.evaluate((el) => { (el as HTMLElement).style.minHeight = "200vh"; });
+    expect(await coversStage()).toBe(true);
     await page.getByRole("button", { name: "Switch to dark mode" }).click();
+    expect(await coversStage()).toBe(true);
+    await stage.evaluate((el) => { (el as HTMLElement).style.minHeight = ""; });
+    await expect(stage).not.toHaveCSS("background-image", lightStage);
+    expect(await stage.evaluate((el) => getComputedStyle(el, "::before").backgroundImage)).not.toBe(lightPattern);
     await expect(sidebar).not.toHaveCSS("background-color", light);
     await expect(brand.locator(".workspace-brand-mark")).not.toHaveCSS("background-color", lightBrand);
     await expect(mark).toHaveAttribute("src", "/brand/logo-icon.png");
@@ -111,10 +150,8 @@ test.describe("accessibility", () => {
   test("Arabic request detail is readable in dark mode", async ({ page }) => {
     await loginAs(page, "employee-e2e@acme.test");
     await page.goto("/requests/new");
-    await page.getByLabel(/request type/i).selectOption({ label: "Annual leave" });
+    await page.getByLabel(/request type/i).selectOption({ label: "General request" });
     await page.getByLabel(/^title$/i).fill(`Contrast check ${Date.now()}`);
-    await page.getByLabel(/start date/i).fill("2027-06-01");
-    await page.getByLabel(/end date/i).fill("2027-06-02");
     await page.getByRole("button", { name: /save draft/i }).click();
     await expect(page.locator("dl dt").first()).toBeVisible();
     await page.getByRole("button", { name: "Switch to dark mode" }).click();

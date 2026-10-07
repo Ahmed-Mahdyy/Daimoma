@@ -6,6 +6,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { ApiError } from "../../api/client";
 import { useLanguage } from "../../app/LanguageProvider";
 import { formatDateTime } from "../../lib/dates";
+import { notificationSummary } from "./notificationText";
 import {
   getUnreadCount,
   listNotifications,
@@ -92,6 +93,7 @@ export function NotificationBell() {
         type="button"
         aria-label={t("Notifications, {count} unread", { count: unread })}
         aria-expanded={open}
+        aria-controls={open ? "notification-popover" : undefined}
         onClick={() => setOpen((v) => !v)}
         className="relative rounded-lg border border-transparent p-2 text-slate-600 transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 dark:border-slate-500/60 dark:text-slate-300 dark:hover:bg-white/10 dark:hover:text-white"
       >
@@ -114,8 +116,10 @@ export function NotificationBell() {
       </button>
       {open && (
         <div
-          role="menu"
-          className="absolute right-0 z-30 mt-1 w-80 rounded-lg border bg-popover text-popover-foreground shadow-lg ring-1 ring-foreground/10"
+          id="notification-popover"
+          role="region"
+          aria-label={t("Notifications")}
+          className="absolute end-0 z-30 mt-1 w-80 rounded-lg border bg-popover text-popover-foreground shadow-lg ring-1 ring-foreground/10 max-sm:fixed max-sm:inset-x-2 max-sm:top-[5.5rem] max-sm:mt-0 max-sm:w-auto"
         >
           <div className="flex items-center justify-between border-b px-3 py-2">
             <span className="text-sm font-semibold">{t("Notifications")}</span>
@@ -155,7 +159,7 @@ export function NotificationBell() {
                         n.is_read ? "text-muted-foreground" : "font-medium"
                       }
                     >
-                      {n.summary}
+                      {notificationSummary(n, t)}
                     </span>
                     <time className="block text-xs text-muted-foreground">
                       {formatDateTime(n.created_at)}

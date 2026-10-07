@@ -138,6 +138,36 @@ describe("TimesheetsPage", () => {
       .closest("tr")!;
     expect(cell.textContent).toContain("Collecting");
   });
+
+  it("searches timesheets through the scoped API", async () => {
+    vi.mocked(listTimesheets).mockResolvedValue({
+      count: 1,
+      next: null,
+      previous: null,
+      results: [sheet({ days: [] }) as never],
+    });
+    const qc = new QueryClient();
+    render(
+      <QueryClientProvider client={qc}>
+        <MemoryRouter>
+          <TimesheetsPage />
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+    await waitFor(() =>
+      expect(screen.getByText("2026-09-14 – 2026-09-20")).toBeInTheDocument(),
+    );
+
+    await userEvent.type(
+      screen.getByRole("textbox", { name: "Search timesheets" }),
+      "em{enter}",
+    );
+    await waitFor(() =>
+      expect(listTimesheets).toHaveBeenCalledWith(
+        expect.objectContaining({ search: "em" }),
+      ),
+    );
+  });
 });
 
 describe("TimesheetDetailPage", () => {

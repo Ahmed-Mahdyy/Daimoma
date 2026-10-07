@@ -10,20 +10,17 @@ export type RequestStatus =
 
 export type StepStatus = "waiting" | "pending" | "approved" | "rejected" | "returned";
 
+export type AllocationUnit = "none" | "unit" | "hour";
+
 export interface RequestType {
   id: string;
   code: string;
   name: string;
-  category:
-    | "leave"
-    | "equipment"
-    | "hr_service"
-    | "work_from_home"
-    | "early_leave"
-    | "general";
+  unit: AllocationUnit;
   help_text?: string;
   requires_manager?: boolean;
   requires_hr?: boolean;
+  requires_allocation?: boolean;
   is_active?: boolean;
   created_at?: string;
 }
@@ -62,7 +59,7 @@ export interface EmployeeRequest {
   employee_code: string;
   type: string;
   type_name: string;
-  type_category: RequestType["category"];
+  type_unit: AllocationUnit;
   title: string;
   description: string;
   start_date: string | null;
@@ -71,6 +68,7 @@ export interface EmployeeRequest {
   end_time: string | null;
   equipment_item: string;
   quantity: number | null;
+  hours: string | null;
   status: RequestStatus;
   cycle: number;
   version: number;
@@ -99,6 +97,7 @@ export interface RequestDraftInput {
   end_time?: string | null;
   equipment_item?: string;
   quantity?: number | null;
+  hours?: number | null;
   version?: number;
 }
 
@@ -108,9 +107,8 @@ export interface RequestHistory {
 }
 
 export interface RequestTypeWriteInput {
-  code: string;
   name: string;
-  category: RequestType["category"];
+  unit: AllocationUnit;
   help_text?: string;
   requires_manager?: boolean;
   requires_hr?: boolean;
@@ -178,6 +176,10 @@ export function listRequestTypes(): Promise<Paged<RequestType>> {
   return apiFetch("/api/v1/request-types/?page_size=100");
 }
 
+export function getRequestType(id: string): Promise<RequestType> {
+  return apiFetch(`/api/v1/request-types/${id}/`);
+}
+
 export function createRequestType(input: RequestTypeWriteInput): Promise<RequestType> {
   return apiFetch("/api/v1/request-types/", { method: "POST", body: input });
 }
@@ -187,4 +189,124 @@ export function updateRequestType(
   input: Partial<RequestTypeWriteInput>,
 ): Promise<RequestType> {
   return apiFetch(`/api/v1/request-types/${id}/`, { method: "PATCH", body: input });
+}
+
+export interface AllocationGrant {
+  id: string;
+  employee: string;
+  employee_name: string;
+  request_type: string;
+  type_name: string;
+  unit: "unit" | "hour";
+  start_date: string;
+  end_date: string;
+  initial_amount: number;
+  status: "active" | "void";
+  version: number;
+  granted: number;
+  reserved: number;
+  used: number;
+  remaining: number;
+  created_at: string;
+  voided_at: string | null;
+}
+
+export const ALLOCATION_UNIT_LABELS: Record<AllocationGrant["unit"], string> = {
+  unit: "units",
+  hour: "hours",
+};
+
+/** Hour-unit rows store whole minutes; units store plain counts. */
+export function formatAllocationAmount(amount: number, unit: AllocationGrant["unit"]): string {
+  if (unit === "hour") {
+    const hours = amount / 60;
+    return `${Number.isInteger(hours) ? hours : hours.toFixed(2)}`;
+  }
+  return String(amount);
+}
+
+/** Convert a user-entered hours value into the API's whole-minute amount. */
+export function hoursToAmount(hours: number): number {
+  return Math.round(hours * 60);
+}
+
+export interface AllocationPreview {
+  required: boolean;
+  amount: number;
+  unit?: AllocationGrant["unit"];
+  status: "not_required" | "no_grant" | "insufficient" | "available";
+  remaining?: number | null;
+  grant?: string | null;
+}
+
+export interface AllocationCreateInput {
+  employee: string;
+  request_type: string;
+  start_date: string;
+  end_date: string;
+  initial_amount: number;
+}
+
+export interface AllocationHistoryEntry {
+  id: string;
+  actor: string;
+  reason: string;
+  occurred_at: string;
+  delta?: number;
+  action?: string;
+  previous?: Record<string, string>;
+  current?: Record<string, string>;
+}
+
+export function listAllocations(filters: {
+  page?: number;
+  employee?: string;
+  status?: AllocationGrant["status"];
+} = {}): Promise<Paged<AllocationGrant>> {
+  return apiFetch(`/api/v1/allocations/${qs(filters)}`);
+}
+
+export function listMyAllocations(): Promise<Paged<AllocationGrant>> {
+  return apiFetch("/api/v1/allocations/mine/");
+}
+
+export function getAllocationPreview(input: Partial<RequestDraftInput>): Promise<AllocationPreview> {
+  const params = new URLSearchParams();
+  for (const field of ["type", "start_date", "end_date", "start_time", "end_time", "equipment_item", "quantity", "hours"] as const) {
+    const value = input[field];
+    if (value !== undefined && value !== null && value !== "") params.set(field, String(value));
+  }
+  return apiFetch(`/api/v1/requests/allocation-preview/?${params}`);
+}
+
+export function createAllocation(input: AllocationCreateInput): Promise<AllocationGrant> {
+  return apiFetch("/api/v1/allocations/", { method: "POST", body: input });
+}
+
+export function editAllocationDates(
+  grant: AllocationGrant, start_date: string, end_date: string, reason: string,
+): Promise<AllocationGrant> {
+  return apiFetch(`/api/v1/allocations/${grant.id}/`, {
+    method: "PATCH", body: { start_date, end_date, reason, version: grant.version },
+  });
+}
+
+export function adjustAllocation(
+  grant: AllocationGrant, delta: number, reason: string,
+): Promise<AllocationGrant> {
+  return apiFetch(`/api/v1/allocations/${grant.id}/adjust/`, {
+    method: "POST", body: { delta, reason, version: grant.version },
+  });
+}
+
+export function removeAllocation(grant: AllocationGrant, reason: string): Promise<AllocationGrant> {
+  return apiFetch(`/api/v1/allocations/${grant.id}/void/`, {
+    method: "POST", body: { reason, version: grant.version },
+  });
+}
+
+export function getAllocationHistory(
+  id: string, kind: "adjustments" | "changes", page = 1,
+): Promise<Paged<AllocationHistoryEntry>> {
+  return apiFetch(`/api/v1/allocations/${id}/${kind}/?page=${page}`);
 }

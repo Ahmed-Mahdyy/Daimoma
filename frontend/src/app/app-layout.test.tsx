@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -80,14 +80,15 @@ describe("AppLayout role-aware navigation", () => {
     ).not.toBeInTheDocument();
   });
 
-  it("shows Settings submenu with Audit + Request types for HR", () => {
+  it("groups request types and allocations under Requests for HR", () => {
     renderLayout(["HR"]);
     expect(screen.getByRole("link", { name: "Audit" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Departments" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Settings" })).toBeInTheDocument();
-    expect(
-      screen.getByRole("link", { name: "Request Types" }),
-    ).toHaveAttribute("href", "/requests/types");
+    const requests = within(screen.getByRole("navigation", { name: "Requests Menu" }));
+    expect(requests.getByRole("link", { name: "Request Types" })).toHaveAttribute("href", "/requests/types");
+    expect(requests.getByRole("link", { name: "Allocations" })).toHaveAttribute("href", "/settings/allocations");
+    expect(within(screen.getByRole("navigation", { name: "Settings Menu" })).queryByRole("link", { name: "Allocations" })).not.toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Add Employee" })).toHaveAttribute("href", "/employees/new");
   });
 

@@ -35,7 +35,7 @@ def make_type(org, **kw):
         organization=org,
         code="RT1",
         name="Route test",
-        category="general",
+        unit="none",
     )
     return RequestType.objects.create(**{**defaults, **kw})
 
@@ -113,9 +113,8 @@ class TestTypeConfiguration:
         resp = authed(api_client, hr_user).post(
             "/api/v1/request-types/",
             {
-                "code": "NOOP",
                 "name": "No reviewers",
-                "category": "general",
+                "unit": "none",
                 "requires_manager": False,
                 "requires_hr": False,
             },

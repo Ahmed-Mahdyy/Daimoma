@@ -4,7 +4,9 @@
 **Created**: 2026-09-20
 **Status**: Approved scope (D-006 resolved 2026-09-29). Attachments deferred entirely; no confidential routing.
 **Source**: Brief sections 4-7, 9-15; phase 002 scope policy and shared services.
-**Scope**: Internal requests, controlled reviews, correction, history, notifications, and scoped discovery. No leave balances, payroll, arbitrary workflow builder, cancellation policy, file attachments, or confidential HR-only routing is implied. Attachments are deferred — if added later, the recorded preference is manual HR acceptance per file.
+**Scope**: Internal requests, controlled reviews, correction, history, notifications, and scoped discovery. No leave balances, payroll, arbitrary workflow builder, cancellation policy, file attachments, or confidential HR-only routing is implied by Phase 003. Attachments are deferred — if added later, the recorded preference is manual HR acceptance per file.
+
+**Feature 008 extension (accepted 2026-10-05)**: [Request allocations](../008-request-allocations/spec.md) explicitly adds dated employee/type allowances to eligible requests and atomic reserve/use/release per submission cycle. This does not alter completed Phase 003 decisions, approval routing or prior request history; payroll, automatic accrual and inventory remain excluded.
 
 ## User Scenarios & Testing
 

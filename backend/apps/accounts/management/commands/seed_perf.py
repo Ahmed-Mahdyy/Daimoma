@@ -111,7 +111,7 @@ class Command(BaseCommand):
             code="perf_leave",
             defaults={
                 "name": "Perf Leave",
-                "category": "leave",
+                "unit": "none",
                 "requires_hr": False,
                 "is_active": True,
             },

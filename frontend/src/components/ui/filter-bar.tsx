@@ -30,21 +30,23 @@ export function SearchField({
   ariaLabel: string;
   value: string;
   onChange: (value: string) => void;
-  onSearch: () => void;
+  /** Called with the value to apply — "" when the field is cleared, so the
+   * caller never reads stale input state. */
+  onSearch: (value: string) => void;
   placeholder?: string;
 }) {
   const { t } = useLanguage();
   const id = useId();
   const clear = () => {
     onChange("");
-    onSearch();
+    onSearch("");
   };
   return (
     <form
       className="min-w-52 flex-1"
       onSubmit={(e) => {
         e.preventDefault();
-        onSearch();
+        onSearch(value);
       }}
     >
       <label htmlFor={id} className={labelClass}>

@@ -1,6 +1,8 @@
 """T003 — dashboard scope/count/reopen/voided tests (FR-001, FR-002, FR-008).
 All expectations reconcile against the documented dataset in conftest.py."""
 
+from datetime import date, timedelta
+
 import pytest
 from rest_framework.test import APIClient
 
@@ -48,6 +50,29 @@ class TestPersonalDashboard:
     def test_pending_review_is_zero_for_plain_employee(self, reporting_dataset):
         body = authed(reporting_dataset["emp1"]).get(PERSONAL).json()
         assert body["pending_review"] == 0
+
+    def test_allocation_is_self_only_and_independent_of_report_period(self, reporting_dataset):
+        from apps.employee_requests.allocations import create_grant, void_grant
+        from apps.employee_requests.models import RequestType
+
+        ds = reporting_dataset
+        req_type = RequestType.objects.create(
+            organization=ds["org"], code="EQ-ALLOC", name="Equipment allocation",
+            unit="unit",
+        )
+        today = date.today()
+        grant = create_grant(
+            ds["hr"], ds["emp1"].profile, req_type,
+            today - timedelta(days=1), today + timedelta(days=1), 2,
+        )
+        body = authed(ds["emp1"]).get(PERSONAL, {"from": "2026-09-01", "to": "2026-09-07"}).json()
+        assert body["allocations"][0]["id"] == str(grant.pk)
+        assert body["allocations"][0]["remaining"] == 2
+        assert authed(ds["emp2"]).get(PERSONAL).json()["allocations"] == []
+        assert "allocations" not in authed(ds["mgr"]).get(TEAM).json()
+        assert "allocations" not in authed(ds["hr"]).get(ORG).json()
+        void_grant(ds["hr"], grant.pk, "Incorrect grant", grant.version)
+        assert authed(ds["emp1"]).get(PERSONAL).json()["allocations"] == []
 
 
 class TestTeamDashboard:

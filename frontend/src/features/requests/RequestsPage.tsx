@@ -133,7 +133,7 @@ export function RequestsPage() {
           ariaLabel={t("Search requests")}
           value={searchInput}
           onChange={setSearchInput}
-          onSearch={() => setParam("search", searchInput)}
+          onSearch={(v) => setParam("search", v)}
           placeholder={t("Title or description…")}
         />
         <FilterSelect

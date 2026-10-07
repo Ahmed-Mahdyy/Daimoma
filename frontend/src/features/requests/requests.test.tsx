@@ -46,17 +46,17 @@ const LEAVE_TYPE = {
   id: "t1",
   code: "annual_leave",
   name: "Annual leave",
-  category: "leave" as const,
+  unit: "unit" as const,
   help_text: "",
   requires_hr: false,
   is_active: true,
 };
 
-const EQUIP_TYPE = {
+const HOUR_TYPE = {
   id: "t2",
-  code: "equipment",
-  name: "Equipment",
-  category: "equipment" as const,
+  code: "early_leave",
+  name: "Early leave",
+  unit: "hour" as const,
   help_text: "",
   requires_hr: true,
   is_active: true,
@@ -70,7 +70,7 @@ const DRAFT = {
   employee_code: "E1",
   type: "t1",
   type_name: "Annual leave",
-  type_category: "leave" as const,
+  type_unit: "unit" as const,
   title: "Summer leave",
   description: "Two weeks off",
   start_date: "2026-07-01",
@@ -78,7 +78,8 @@ const DRAFT = {
   start_time: null,
   end_time: null,
   equipment_item: "",
-  quantity: null,
+  quantity: 10,
+  hours: null,
   status: "draft" as const,
   cycle: 0,
   version: 1,
@@ -152,21 +153,22 @@ describe("RequestsPage", () => {
 describe("RequestFormPage", () => {
   beforeEach(() => vi.clearAllMocks());
 
-  it("shows date fields for leave types and item fields for equipment", async () => {
+  it("shows the amount input matching the type's unit", async () => {
     vi.mocked(listRequestTypes).mockResolvedValue({
       count: 2,
       next: null,
       previous: null,
-      results: [LEAVE_TYPE, EQUIP_TYPE],
+      results: [LEAVE_TYPE, HOUR_TYPE],
     });
     wrap(<RequestFormPage />, "/requests/new", "/requests/new");
     const typeSelect = await screen.findByLabelText(/request type/i);
     fireEvent.change(typeSelect, { target: { value: "t1" } });
-    expect(await screen.findByLabelText(/start date/i)).toBeInTheDocument();
+    expect(await screen.findByLabelText(/quantity/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/start date/i)).toBeInTheDocument();
     fireEvent.change(typeSelect, { target: { value: "t2" } });
-    expect(await screen.findByLabelText(/^item$/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/quantity/i)).toBeInTheDocument();
-    expect(screen.queryByLabelText(/start date/i)).not.toBeInTheDocument();
+    expect(await screen.findByLabelText(/^hours$/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/^date$/i)).toBeInTheDocument();
+    expect(screen.queryByLabelText(/quantity/i)).not.toBeInTheDocument();
   });
 
   it("creates a draft with typed fields", async () => {
@@ -193,6 +195,9 @@ describe("RequestFormPage", () => {
     fireEvent.change(screen.getByLabelText(/end date/i), {
       target: { value: "2026-07-14" },
     });
+    fireEvent.change(screen.getByLabelText(/quantity/i), {
+      target: { value: "10" },
+    });
     fireEvent.click(screen.getByRole("button", { name: /save draft/i }));
     await waitFor(() =>
       expect(createRequest).toHaveBeenCalledWith(
@@ -201,6 +206,7 @@ describe("RequestFormPage", () => {
           title: "Summer leave",
           start_date: "2026-07-01",
           end_date: "2026-07-14",
+          quantity: 10,
         }),
       ),
     );

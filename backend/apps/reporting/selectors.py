@@ -10,13 +10,20 @@ Scope (D-003):
 
 import uuid
 from datetime import date
+from zoneinfo import ZoneInfo
 
-from django.db.models import Count, Sum
+from django.db.models import Count, Q, Sum
+from django.utils import timezone
 from rest_framework.exceptions import PermissionDenied, ValidationError
 
 from apps.accounts.models import EmployeeProfile
 from apps.accounts.permissions import is_hr, is_manager
-from apps.employee_requests.models import EmployeeRequest, RequestApprovalStep
+from apps.employee_requests.models import (
+    EmployeeAllocationGrant,
+    EmployeeRequest,
+    RequestApprovalStep,
+)
+from apps.employee_requests.serializers import AllocationGrantSerializer
 from apps.timesheets.models import TimeEntry, Timesheet
 
 MAX_RANGE_DAYS = 366  # D-009 (2026-10-02)
@@ -130,6 +137,28 @@ def _pending_review_count(user):
     return reqs + sheets
 
 
+def _personal_allocations(user):
+    today = timezone.localtime(timezone.now(), ZoneInfo(user.organization.timezone)).date()
+    grants = (
+        EmployeeAllocationGrant.objects.filter(
+            organization_id=user.organization_id,
+            employee__user=user,
+            status=EmployeeAllocationGrant.Status.ACTIVE,
+        )
+        .filter(Q(start_date__lte=today, end_date__gte=today) | Q(
+            end_date__lt=today, commitments__disposition="reserved"
+        ))
+        .distinct()
+        .select_related("employee", "request_type")
+        .prefetch_related("adjustments", "commitments")
+        .order_by("end_date", "pk")
+    )
+    return [
+        {**AllocationGrantSerializer(grant).data, "expired": grant.end_date < today}
+        for grant in grants
+    ]
+
+
 def dashboard(user, scope, query_params):
     profile_ids = _profile_ids(user, scope=scope)
     start, end = parse_range(query_params, user.organization)
@@ -140,7 +169,7 @@ def dashboard(user, scope, query_params):
         req_qs = req_qs.filter(status__in=REQUEST_OPEN_STATUSES)
         sheet_qs = sheet_qs.filter(status__in=SHEET_OPEN_STATUSES)
 
-    return {
+    result = {
         "scope": scope,
         "period": {
             "from": start.isoformat(),
@@ -152,6 +181,9 @@ def dashboard(user, scope, query_params):
         "approved_minutes": _approved_minutes(profile_ids, start, end),
         "pending_review": _pending_review_count(user),
     }
+    if scope == "personal":
+        result["allocations"] = _personal_allocations(user)
+    return result
 
 
 def _report_profile_ids(user):

@@ -349,6 +349,77 @@ class TestDepartments:
         assert c.get(DEPARTMENTS).status_code == 403
         assert c.post(DEPARTMENTS, {"name": "Y"}, format="json").status_code == 403
 
+    def test_department_manager_create_edit_and_clear(self, hr_user, employee, org):
+        employee.groups.add(Group.objects.get(name=ROLE_MANAGER))
+        c = hr_client(hr_user)
+        response = c.post(
+            DEPARTMENTS, {"name": "Operations", "manager": str(employee.profile.id)}, format="json"
+        )
+        assert response.status_code == 201
+        dept_id = response.json()["id"]
+        assert response.json()["manager"] == str(employee.profile.id)
+        assert response.json()["manager_name"] == employee.profile.employee_code
+        assert c.get(f"{DEPARTMENTS}{dept_id}/").json()["manager"] == str(employee.profile.id)
+        response = c.patch(f"{DEPARTMENTS}{dept_id}/", {"name": "Operations team"}, format="json")
+        assert response.status_code == 200
+        response = c.patch(f"{DEPARTMENTS}{dept_id}/", {"manager": None}, format="json")
+        assert response.json()["manager"] is None
+        response = c.patch(
+            f"{DEPARTMENTS}{dept_id}/", {"manager": str(employee.profile.id)}, format="json"
+        )
+        assert response.json()["manager"] == str(employee.profile.id)
+        assert employee.profile.manager_id is None
+
+    def test_department_manager_must_be_active_org_manager(self, hr_user, employee, org, other_org):
+        c = hr_client(hr_user)
+        foreign = make_profile(other_org, make_user(other_org, "lead@x.test"), "M9")
+        for manager_id in (str(employee.profile.id), str(foreign.id)):
+            response = c.post(
+                DEPARTMENTS, {"name": "Operations", "manager": manager_id}, format="json"
+            )
+            assert response.status_code == 400
+        employee.groups.add(Group.objects.get(name=ROLE_MANAGER))
+        employee.is_active = False
+        employee.save(update_fields=["is_active"])
+        response = c.post(
+            DEPARTMENTS, {"name": "Operations", "manager": str(employee.profile.id)},
+            format="json",
+        )
+        assert response.status_code == 400
+
+    def test_department_search_matches_name_and_manager(self, hr_user, employee, org, other_org):
+        employee.groups.add(Group.objects.get(name=ROLE_MANAGER))
+        employee.profile.display_name = "Morgan Lead"
+        employee.profile.save(update_fields=["display_name"])
+        Department.objects.create(organization=org, name="Engineering")
+        Department.objects.create(organization=org, name="Operations", manager=employee.profile)
+        Department.objects.create(organization=other_org, name="Engineering Annex")
+        c = hr_client(hr_user)
+
+        def names(response):
+            return {d["name"] for d in response.json()["results"]}
+
+        assert names(c.get(f"{DEPARTMENTS}?search=engin")) == {"Engineering"}
+        assert names(c.get(f"{DEPARTMENTS}?search=morgan")) == {"Operations"}
+        assert names(c.get(f"{DEPARTMENTS}?search={employee.email}")) == {"Operations"}
+        # Organization scope applies before the text filter.
+        assert names(c.get(f"{DEPARTMENTS}?search=annex")) == set()
+        assert names(c.get(f"{DEPARTMENTS}?search=zzz")) == set()
+
+    def test_department_manager_is_private_to_hr(self, hr_user, employee, org, other_org):
+        dept = Department.objects.create(organization=org, name="Operations")
+        foreign = Department.objects.create(organization=other_org, name="Elsewhere")
+        assert authed_client(employee).get(f"{DEPARTMENTS}{dept.id}/").status_code == 403
+        response = authed_client(employee).patch(
+            f"{DEPARTMENTS}{dept.id}/", {"manager": None}, format="json"
+        )
+        assert response.status_code == 403
+        assert hr_client(hr_user).get(f"{DEPARTMENTS}{foreign.id}/").status_code == 404
+        response = hr_client(hr_user).patch(
+            f"{DEPARTMENTS}{foreign.id}/", {"manager": None}, format="json"
+        )
+        assert response.status_code == 404
+
 
 @pytest.mark.django_db
 class TestOrgSettings:

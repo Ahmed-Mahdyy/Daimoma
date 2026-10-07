@@ -1,6 +1,14 @@
 from django.urls import path
 
 from apps.employee_requests.views import (
+    AllocationAdjustmentsView,
+    AllocationAdjustView,
+    AllocationChangesView,
+    AllocationDetailView,
+    AllocationListView,
+    AllocationMineView,
+    AllocationPreviewView,
+    AllocationVoidView,
     RequestApproveView,
     RequestDetailView,
     RequestHistoryView,
@@ -13,7 +21,15 @@ from apps.employee_requests.views import (
 )
 
 urlpatterns = [
+    path("allocations/mine/", AllocationMineView.as_view()),
+    path("allocations/", AllocationListView.as_view()),
+    path("allocations/<uuid:pk>/", AllocationDetailView.as_view()),
+    path("allocations/<uuid:pk>/adjust/", AllocationAdjustView.as_view()),
+    path("allocations/<uuid:pk>/adjustments/", AllocationAdjustmentsView.as_view()),
+    path("allocations/<uuid:pk>/changes/", AllocationChangesView.as_view()),
+    path("allocations/<uuid:pk>/void/", AllocationVoidView.as_view()),
     path("requests/", RequestListView.as_view()),
+    path("requests/allocation-preview/", AllocationPreviewView.as_view()),
     path("requests/<uuid:pk>/", RequestDetailView.as_view()),
     path("requests/<uuid:pk>/submit/", RequestSubmitView.as_view()),
     path("requests/<uuid:pk>/approve/", RequestApproveView.as_view()),

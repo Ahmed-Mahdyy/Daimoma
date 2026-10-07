@@ -52,7 +52,8 @@ def scoped_timesheets(user):
 
 def timesheet_queryset(user, params):
     """Scoped list with bounded filters/ordering. Params: status, employee,
-    period_start (YYYY-MM-DD = period containing that date), ordering."""
+    period_start (YYYY-MM-DD = period containing that date), search (matches
+    employee name, code, or email), ordering."""
     qs = (
         scoped_timesheets(user)
         .select_related(
@@ -83,6 +84,13 @@ def timesheet_queryset(user, params):
             qs = qs.filter(employee_id=uuid.UUID(raw))
         except (ValueError, AttributeError) as exc:
             raise ValidationError({"employee": ["Invalid employee id."]}) from exc
+
+    if search := params.get("search", "").strip():
+        qs = qs.filter(
+            Q(employee__display_name__icontains=search)
+            | Q(employee__employee_code__icontains=search)
+            | Q(employee__user__email__icontains=search)
+        )
 
     if raw := params.get("period"):
         try:

@@ -6,6 +6,8 @@ interface AsyncStateProps {
   error: unknown;
   isEmpty?: boolean;
   emptyText?: string;
+  /** Render a retry button inside the error block when provided. */
+  onRetry?: () => void;
   children: React.ReactNode;
 }
 
@@ -16,6 +18,7 @@ export function AsyncState({
   error,
   isEmpty = false,
   emptyText,
+  onRetry,
   children,
 }: AsyncStateProps) {
   const { t } = useLanguage();
@@ -39,6 +42,15 @@ export function AsyncState({
         className="rounded-md border border-red-300 bg-red-50 p-4 text-sm text-red-800 dark:border-red-800/60 dark:bg-red-950/50 dark:text-red-200"
       >
         {message}
+        {onRetry && (
+          <button
+            type="button"
+            onClick={onRetry}
+            className="ms-3 font-semibold underline underline-offset-2"
+          >
+            {t("Try again")}
+          </button>
+        )}
       </div>
     );
   }

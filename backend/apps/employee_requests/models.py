@@ -4,23 +4,20 @@ from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.db import models
 
-# Categories approved under D-006 (2026-09-29); fixed set, no free-form types.
-# "early_leave" added by owner request (2026-10-02): a same-day time range.
-DATE_CATEGORIES = {"leave", "work_from_home"}
-TIME_CATEGORIES = {"early_leave"}
+# D-006 categories replaced 2026-10-05 (owner): request types are free-named;
+# a visible allocation `unit` decides the measured input — none (no amount),
+# unit (whole-count quantity) or hour (quarter-hour amount, stored as minutes
+# in allocation rows). requires_allocation is derived from unit.
 
 
 class RequestType(models.Model):
     """HR-managed request type. Routing config (requires_hr) applies to new
     cycles only — submitted work keeps its route snapshot (D-004/D-006)."""
 
-    class Category(models.TextChoices):
-        LEAVE = "leave", "Leave"
-        EQUIPMENT = "equipment", "Equipment"
-        HR_SERVICE = "hr_service", "HR service"
-        WORK_FROM_HOME = "work_from_home", "Work from home"
-        EARLY_LEAVE = "early_leave", "Early leave"
-        GENERAL = "general", "General"
+    class Unit(models.TextChoices):
+        NONE = "none", "Not measurable"
+        UNIT = "unit", "Units"
+        HOUR = "hour", "Hours"
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     organization = models.ForeignKey(
@@ -28,10 +25,11 @@ class RequestType(models.Model):
     )
     code = models.CharField(max_length=40)
     name = models.CharField(max_length=120)
-    category = models.CharField(max_length=20, choices=Category.choices)
+    unit = models.CharField(max_length=20, choices=Unit.choices, default=Unit.NONE)
     help_text = models.TextField(blank=True)
     requires_manager = models.BooleanField(default=True)
     requires_hr = models.BooleanField(default=False)
+    requires_allocation = models.BooleanField(default=False)
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -46,6 +44,12 @@ class RequestType(models.Model):
 
     def __str__(self):
         return f"{self.name} ({self.code})"
+
+    def save(self, *args, **kwargs):
+        # The unit IS the allocation switch — keep the flag derived so every
+        # existing requires_allocation check stays consistent.
+        self.requires_allocation = self.unit != self.Unit.NONE
+        super().save(*args, **kwargs)
 
     def clean(self):
         if not self.code or not self.code.strip():
@@ -88,6 +92,9 @@ class EmployeeRequest(models.Model):
     end_time = models.TimeField(null=True, blank=True)
     equipment_item = models.CharField(max_length=120, blank=True)
     quantity = models.PositiveIntegerField(null=True, blank=True)
+    hours = models.DecimalField(
+        max_digits=5, decimal_places=2, null=True, blank=True
+    )
     status = models.CharField(max_length=20, choices=Status.choices, default=Status.DRAFT)
     cycle = models.PositiveIntegerField(default=0)
     version = models.PositiveIntegerField(default=1)
@@ -130,6 +137,8 @@ class EmployeeRequest(models.Model):
             errors["end_time"] = "End time must be after the start time."
         if self.quantity is not None and self.quantity < 1:
             errors["quantity"] = "Quantity must be at least 1."
+        if self.hours is not None and self.hours <= 0:
+            errors["hours"] = "Hours must be positive."
         if self.description and len(self.description) > 5000:
             errors["description"] = "Description cannot exceed 5000 characters."
         if errors:
@@ -215,3 +224,152 @@ class RequestEvent(models.Model):
 
     def __str__(self):
         return f"{self.event_type} on {self.request_id} (cycle {self.cycle})"
+
+
+class EmployeeAllocationGrant(models.Model):
+    class Unit(models.TextChoices):
+        # "hour" rows store whole minutes in `amount`-typed columns.
+        UNIT = "unit", "Units"
+        HOUR = "hour", "Hours"
+
+    class Status(models.TextChoices):
+        ACTIVE = "active", "Active"
+        VOID = "void", "Removed"
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    organization = models.ForeignKey(
+        "organizations.Organization", on_delete=models.PROTECT, related_name="allocation_grants"
+    )
+    employee = models.ForeignKey(
+        "accounts.EmployeeProfile", on_delete=models.PROTECT, related_name="allocation_grants"
+    )
+    request_type = models.ForeignKey(
+        RequestType, on_delete=models.PROTECT, related_name="allocation_grants"
+    )
+    unit = models.CharField(max_length=16, choices=Unit.choices)
+    start_date = models.DateField()
+    end_date = models.DateField()
+    initial_amount = models.PositiveIntegerField()
+    status = models.CharField(max_length=8, choices=Status.choices, default=Status.ACTIVE)
+    version = models.PositiveIntegerField(default=1)
+    granted_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, null=True, on_delete=models.SET_NULL,
+        related_name="granted_allocations",
+    )
+    voided_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL,
+        related_name="voided_allocations",
+    )
+    void_reason = models.TextField(blank=True)
+    voided_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        indexes = [models.Index(fields=["organization", "employee", "request_type", "status"])]
+        constraints = [
+            models.CheckConstraint(
+                condition=models.Q(initial_amount__gt=0), name="allocation_positive_award"
+            ),
+            models.CheckConstraint(
+                condition=models.Q(end_date__gte=models.F("start_date")),
+                name="allocation_dates_ordered",
+            ),
+        ]
+
+    def __str__(self):
+        return f"{self.employee_id} / {self.request_type_id} ({self.start_date}–{self.end_date})"
+
+    def clean(self):
+        errors = {}
+        if self.end_date and self.start_date and self.end_date < self.start_date:
+            errors["end_date"] = "End date must not precede start date."
+        if self.initial_amount is not None and self.initial_amount < 1:
+            errors["initial_amount"] = "Award must be positive."
+        if (
+            self.employee_id and self.organization_id
+            and self.employee.organization_id != self.organization_id
+        ):
+            errors["employee"] = "Employee must belong to this organization."
+        if (
+            self.request_type_id and self.organization_id
+            and self.request_type.organization_id != self.organization_id
+        ):
+            errors["request_type"] = "Request type must belong to this organization."
+        if self.request_type_id and self.unit != self.request_type.unit:
+            errors["unit"] = "Unit must match the request type's unit."
+        if errors:
+            raise ValidationError(errors)
+
+
+class AllocationAdjustment(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    grant = models.ForeignKey(
+        EmployeeAllocationGrant, on_delete=models.PROTECT, related_name="adjustments"
+    )
+    delta = models.IntegerField()
+    actor = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT)
+    reason = models.TextField()
+    occurred_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.CheckConstraint(condition=~models.Q(delta=0), name="allocation_nonzero_delta")
+        ]
+
+    def __str__(self):
+        return f"{self.delta:+d} for {self.grant_id}"
+
+
+class AllocationGrantChange(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    grant = models.ForeignKey(
+        EmployeeAllocationGrant, on_delete=models.PROTECT, related_name="changes"
+    )
+    action = models.CharField(max_length=20)
+    previous = models.JSONField(default=dict)
+    current = models.JSONField(default=dict)
+    actor = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT)
+    reason = models.TextField()
+    occurred_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.action} for {self.grant_id}"
+
+
+class RequestAllocationCommitment(models.Model):
+    class Disposition(models.TextChoices):
+        RESERVED = "reserved", "Reserved"
+        USED = "used", "Used"
+        RELEASED = "released", "Released"
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    request = models.ForeignKey(
+        EmployeeRequest, on_delete=models.PROTECT, related_name="allocation_commitments"
+    )
+    grant = models.ForeignKey(
+        EmployeeAllocationGrant, on_delete=models.PROTECT, related_name="commitments"
+    )
+    cycle = models.PositiveIntegerField()
+    amount = models.PositiveIntegerField()
+    unit = models.CharField(max_length=16, choices=EmployeeAllocationGrant.Unit.choices)
+    disposition = models.CharField(
+        max_length=10, choices=Disposition.choices, default=Disposition.RESERVED
+    )
+    snapshot = models.JSONField(default=dict)
+    created_at = models.DateTimeField(auto_now_add=True)
+    decided_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["request", "cycle"], name="uniq_allocation_request_cycle"
+            ),
+            models.CheckConstraint(
+                condition=models.Q(amount__gt=0), name="allocation_positive_commitment"
+            ),
+        ]
+        indexes = [models.Index(fields=["grant", "disposition"])]
+
+    def __str__(self):
+        return f"{self.amount} {self.unit} for {self.request_id} cycle {self.cycle}"

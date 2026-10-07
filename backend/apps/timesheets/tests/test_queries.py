@@ -129,6 +129,30 @@ class TestScopedList:
         assert totals == sorted(totals, reverse=True)
         assert len(totals) >= 2
 
+    def test_search_matches_scoped_employee_fields(
+        self, api_client, org, emp, emp2, manager, hr_user
+    ):
+        _submit_sheet(api_client, emp, date(2026, 9, 14))
+        _submit_sheet(api_client, emp2, date(2026, 9, 14))
+        outsider = make_user(org, "outside@acme.test")
+        make_profile(org, outsider, "E802")  # not a direct report
+        _submit_sheet(api_client, outsider, date(2026, 9, 14))
+
+        h = authed(api_client, hr_user)
+
+        def codes(response):
+            return {x["employee_code"] for x in response.json()["results"]}
+
+        assert codes(h.get(f"{TS}?search=E801")) == {"E801"}
+        assert codes(h.get(f"{TS}?search=emp2@acme")) == {"E801"}
+        assert codes(h.get(f"{TS}?search=E8")) == {"E800", "E801", "E802"}
+
+        # Role scope applies before the text filter: the outsider's sheet is
+        # invisible to the manager even when the search term matches.
+        m = authed(api_client, manager)
+        assert codes(m.get(f"{TS}?search=E802")) == set()
+        assert codes(m.get(f"{TS}?search=E8")) == {"E800", "E801"}
+
     def test_period_filter(self, api_client, emp, hr_user):
         _sheet_with_entry(api_client, emp, date(2026, 9, 14))
         _sheet_with_entry(api_client, emp, date(2026, 9, 21))

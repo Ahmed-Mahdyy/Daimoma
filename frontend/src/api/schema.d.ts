@@ -4,6 +4,118 @@
  */
 
 export interface paths {
+    "/api/v1/allocations/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["allocations_list"];
+        put?: never;
+        post: operations["allocations_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/allocations/{id}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["allocations_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch: operations["allocations_partial_update"];
+        trace?: never;
+    };
+    "/api/v1/allocations/{id}/adjust/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["allocations_adjust_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/allocations/{id}/adjustments/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["allocations_adjustments_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/allocations/{id}/changes/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["allocations_changes_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/allocations/{id}/void/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["allocations_void_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/allocations/mine/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["allocations_mine_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/audit-events/": {
         parameters: {
             query?: never;
@@ -653,7 +765,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get?: never;
+        get: operations["request_types_retrieve"];
         put?: never;
         post?: never;
         delete?: never;
@@ -772,6 +884,22 @@ export interface paths {
         get?: never;
         put?: never;
         post: operations["requests_submit_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/requests/allocation-preview/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["requests_allocation_preview_retrieve"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -1021,6 +1149,85 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        AllocationAdjust: {
+            delta: number;
+            reason: string;
+            version: number;
+        };
+        AllocationChange: {
+            /** Format: uuid */
+            readonly id: string;
+            readonly action: string;
+            readonly previous: unknown;
+            readonly current: unknown;
+            readonly reason: string;
+            /** Format: uuid */
+            readonly actor: string;
+            /** Format: date-time */
+            readonly occurred_at: string;
+        };
+        AllocationCreate: {
+            /** Format: uuid */
+            employee: string;
+            /** Format: uuid */
+            request_type: string;
+            /** Format: date */
+            start_date: string;
+            /** Format: date */
+            end_date: string;
+            initial_amount: number;
+        };
+        AllocationGrant: {
+            /** Format: uuid */
+            readonly id: string;
+            /** Format: uuid */
+            readonly employee: string;
+            readonly employee_name: string;
+            /** Format: uuid */
+            readonly request_type: string;
+            readonly type_name: string;
+            readonly unit: components["schemas"]["AllocationGrantUnitEnum"];
+            /** Format: date */
+            readonly start_date: string;
+            /** Format: date */
+            readonly end_date: string;
+            readonly initial_amount: number;
+            readonly status: components["schemas"]["AllocationGrantStatusEnum"];
+            readonly version: number;
+            readonly granted: number;
+            readonly reserved: number;
+            readonly used: number;
+            readonly remaining: number;
+            /** Format: date-time */
+            readonly created_at: string;
+            /** Format: date-time */
+            readonly voided_at: string | null;
+        };
+        /**
+         * @description * `active` - Active
+         *     * `void` - Removed
+         * @enum {string}
+         */
+        AllocationGrantStatusEnum: "active" | "void";
+        /**
+         * @description * `unit` - Units
+         *     * `hour` - Hours
+         * @enum {string}
+         */
+        AllocationGrantUnitEnum: "unit" | "hour";
+        AllocationPreview: {
+            required: boolean;
+            amount: number;
+            unit?: string;
+            status: string;
+            remaining?: number | null;
+            /** Format: uuid */
+            grant?: string | null;
+        };
+        AllocationVoid: {
+            reason: string;
+            version: number;
+        };
         ApprovalStep: {
             cycle: number;
             sequence: number;
@@ -1064,16 +1271,6 @@ export interface components {
         };
         /** @enum {unknown} */
         BlankEnum: "";
-        /**
-         * @description * `leave` - Leave
-         *     * `equipment` - Equipment
-         *     * `hr_service` - HR service
-         *     * `work_from_home` - Work from home
-         *     * `early_leave` - Early leave
-         *     * `general` - General
-         * @enum {string}
-         */
-        CategoryEnum: "leave" | "equipment" | "hr_service" | "work_from_home" | "early_leave" | "general";
         Dashboard: {
             period: components["schemas"]["DashboardPeriod"];
             scope: string;
@@ -1085,6 +1282,24 @@ export interface components {
             };
             approved_minutes: number;
             pending_review: number;
+            allocations?: components["schemas"]["DashboardAllocation"][];
+        };
+        DashboardAllocation: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            request_type: string;
+            type_name: string;
+            unit: string;
+            /** Format: date */
+            start_date: string;
+            /** Format: date */
+            end_date: string;
+            granted: number;
+            reserved: number;
+            used: number;
+            remaining: number;
+            expired: boolean;
         };
         DashboardPeriod: {
             /** Format: date */
@@ -1097,6 +1312,9 @@ export interface components {
             /** Format: uuid */
             readonly id: string;
             name: string;
+            /** Format: uuid */
+            manager?: string | null;
+            readonly manager_name: string | null;
             is_active?: boolean;
             /** Format: date-time */
             readonly created_at: string;
@@ -1196,7 +1414,7 @@ export interface components {
             /** Format: uuid */
             readonly type: string;
             readonly type_name: string;
-            readonly type_category: string;
+            readonly type_unit: string;
             readonly title: string;
             readonly description: string;
             /** Format: date */
@@ -1209,6 +1427,8 @@ export interface components {
             readonly end_time: string | null;
             readonly equipment_item: string;
             readonly quantity: number | null;
+            /** Format: decimal */
+            readonly hours: string | null;
             readonly status: components["schemas"]["EmployeeRequestStatusEnum"];
             readonly cycle: number;
             readonly version: number;
@@ -1312,6 +1532,10 @@ export interface components {
             readonly event_key: string;
             readonly kind: string;
             readonly summary: string;
+            readonly summary_key: string;
+            readonly summary_params: {
+                [key: string]: string;
+            };
             readonly target_type: string;
             /** Format: uuid */
             readonly target_id: string | null;
@@ -1336,6 +1560,7 @@ export interface components {
             name: string;
             timezone?: string;
             week_start?: number;
+            working_weekdays?: unknown;
             /**
              * Format: uuid
              * @description Eligible non-self HR reviewer used when no manager can review (D-004).
@@ -1375,10 +1600,21 @@ export interface components {
             /** Format: email */
             email: string;
         };
+        PatchedAllocationDateEdit: {
+            /** Format: date */
+            start_date?: string;
+            /** Format: date */
+            end_date?: string;
+            reason?: string;
+            version?: number;
+        };
         PatchedDepartment: {
             /** Format: uuid */
             readonly id?: string;
             name?: string;
+            /** Format: uuid */
+            manager?: string | null;
+            readonly manager_name?: string | null;
             is_active?: boolean;
             /** Format: date-time */
             readonly created_at?: string;
@@ -1450,6 +1686,7 @@ export interface components {
             name?: string;
             timezone?: string;
             week_start?: number;
+            working_weekdays?: unknown;
             /**
              * Format: uuid
              * @description Eligible non-self HR reviewer used when no manager can review (D-004).
@@ -1457,7 +1694,7 @@ export interface components {
             fallback_reviewer?: string | null;
         };
         /**
-         * @description Draft input allowlist — category-typed fields only; ownership/status/
+         * @description Draft input allowlist — typed fields only; ownership/status/
          *     workflow fields are rejected (mass-assignment protection).
          */
         PatchedRequestDraft: {
@@ -1477,13 +1714,18 @@ export interface components {
             /** @default  */
             equipment_item: string;
             quantity?: number | null;
+            /** Format: decimal */
+            hours?: string | null;
             version?: number;
         };
-        /** @description HR type configuration — organization assigned server-side. */
+        /**
+         * @description HR type configuration — organization and code assigned server-side;
+         *     a measurable unit means the type draws from allocations.
+         */
         PatchedRequestTypeWrite: {
-            code?: string;
             name?: string;
-            category?: components["schemas"]["CategoryEnum"];
+            /** @default none */
+            unit: components["schemas"]["Unit68dEnum"];
             /** @default  */
             help_text: string;
             /** @default true */
@@ -1532,7 +1774,7 @@ export interface components {
             note: string;
         };
         /**
-         * @description Draft input allowlist — category-typed fields only; ownership/status/
+         * @description Draft input allowlist — typed fields only; ownership/status/
          *     workflow fields are rejected (mass-assignment protection).
          */
         RequestDraft: {
@@ -1552,6 +1794,8 @@ export interface components {
             /** @default  */
             equipment_item: string;
             quantity?: number | null;
+            /** Format: decimal */
+            hours?: string | null;
             version?: number;
         };
         RequestEvent: {
@@ -1583,21 +1827,25 @@ export interface components {
         RequestType: {
             /** Format: uuid */
             readonly id: string;
-            code: string;
+            readonly code: string;
             name: string;
-            category: components["schemas"]["CategoryEnum"];
+            unit?: components["schemas"]["Unit68dEnum"];
             help_text?: string;
             requires_manager?: boolean;
             requires_hr?: boolean;
+            readonly requires_allocation: boolean;
             is_active?: boolean;
             /** Format: date-time */
             readonly created_at: string;
         };
-        /** @description HR type configuration — organization assigned server-side. */
+        /**
+         * @description HR type configuration — organization and code assigned server-side;
+         *     a measurable unit means the type draws from allocations.
+         */
         RequestTypeWrite: {
-            code: string;
             name: string;
-            category: components["schemas"]["CategoryEnum"];
+            /** @default none */
+            unit: components["schemas"]["Unit68dEnum"];
             /** @default  */
             help_text: string;
             /** @default true */
@@ -1750,6 +1998,13 @@ export interface components {
             token: string;
             password: string;
         };
+        /**
+         * @description * `none` - Not measurable
+         *     * `unit` - Units
+         *     * `hour` - Hours
+         * @enum {string}
+         */
+        Unit68dEnum: "none" | "unit" | "hour";
         UnreadCount: {
             unread_count: number;
         };
@@ -1791,6 +2046,213 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    allocations_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AllocationGrant"][];
+                };
+            };
+        };
+    };
+    allocations_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AllocationCreate"];
+                "application/x-www-form-urlencoded": components["schemas"]["AllocationCreate"];
+                "multipart/form-data": components["schemas"]["AllocationCreate"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AllocationGrant"];
+                };
+            };
+        };
+    };
+    allocations_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AllocationGrant"];
+                };
+            };
+        };
+    };
+    allocations_partial_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["PatchedAllocationDateEdit"];
+                "application/x-www-form-urlencoded": components["schemas"]["PatchedAllocationDateEdit"];
+                "multipart/form-data": components["schemas"]["PatchedAllocationDateEdit"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AllocationGrant"];
+                };
+            };
+        };
+    };
+    allocations_adjust_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AllocationAdjust"];
+                "application/x-www-form-urlencoded": components["schemas"]["AllocationAdjust"];
+                "multipart/form-data": components["schemas"]["AllocationAdjust"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AllocationGrant"];
+                };
+            };
+        };
+    };
+    allocations_adjustments_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AllocationChange"][];
+                };
+            };
+        };
+    };
+    allocations_changes_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AllocationChange"][];
+                };
+            };
+        };
+    };
+    allocations_void_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AllocationVoid"];
+                "application/x-www-form-urlencoded": components["schemas"]["AllocationVoid"];
+                "multipart/form-data": components["schemas"]["AllocationVoid"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AllocationGrant"];
+                };
+            };
+        };
+    };
+    allocations_mine_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AllocationGrant"][];
+                };
+            };
+        };
+    };
     audit_events_list: {
         parameters: {
             query?: never;
@@ -2751,6 +3213,27 @@ export interface operations {
             };
         };
     };
+    request_types_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RequestType"];
+                };
+            };
+        };
+    };
     request_types_partial_update: {
         parameters: {
             query?: never;
@@ -2995,6 +3478,34 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["EmployeeRequest"];
+                };
+            };
+        };
+    };
+    requests_allocation_preview_retrieve: {
+        parameters: {
+            query: {
+                end_date?: string;
+                end_time?: string;
+                equipment_item?: string;
+                hours?: string;
+                quantity?: number;
+                start_date?: string;
+                start_time?: string;
+                type: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AllocationPreview"];
                 };
             };
         };

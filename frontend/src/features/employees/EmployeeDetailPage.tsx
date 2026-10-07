@@ -51,7 +51,7 @@ export function EmployeeDetailPage() {
   });
   const { data: departments } = useQuery({
     queryKey: ["departments"],
-    queryFn: listDepartments,
+    queryFn: () => listDepartments(),
     enabled: isHr,
   });
   const { data: managers } = useQuery({
@@ -141,7 +141,6 @@ export function EmployeeDetailPage() {
     const patch: Record<string, unknown> = { ...form, version: employee.version };
     for (const key of [
       "birth_date",
-      "employment_start_date",
       "contract_start_date",
       "contract_end_date",
       "graduation_year",

@@ -24,6 +24,8 @@ const NOTIF = {
   event_key: "req:1",
   kind: "request_decision",
   summary: "Your request was approved.",
+  summary_key: "",
+  summary_params: {},
   target_type: "employee_requests.employeerequest",
   target_id: "r1",
   is_read: false,

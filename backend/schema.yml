@@ -3,6 +3,227 @@ info:
   title: Daimoma API
   version: 0.1.0
 paths:
+  /api/v1/allocations/:
+    get:
+      operationId: allocations_list
+      tags:
+      - allocations
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AllocationGrant'
+          description: ''
+    post:
+      operationId: allocations_create
+      tags:
+      - allocations
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AllocationCreate'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/AllocationCreate'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/AllocationCreate'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AllocationGrant'
+          description: ''
+  /api/v1/allocations/{id}/:
+    get:
+      operationId: allocations_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - allocations
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AllocationGrant'
+          description: ''
+    patch:
+      operationId: allocations_partial_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - allocations
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedAllocationDateEdit'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedAllocationDateEdit'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedAllocationDateEdit'
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AllocationGrant'
+          description: ''
+  /api/v1/allocations/{id}/adjust/:
+    post:
+      operationId: allocations_adjust_create
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - allocations
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AllocationAdjust'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/AllocationAdjust'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/AllocationAdjust'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AllocationGrant'
+          description: ''
+  /api/v1/allocations/{id}/adjustments/:
+    get:
+      operationId: allocations_adjustments_list
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - allocations
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AllocationChange'
+          description: ''
+  /api/v1/allocations/{id}/changes/:
+    get:
+      operationId: allocations_changes_list
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - allocations
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AllocationChange'
+          description: ''
+  /api/v1/allocations/{id}/void/:
+    post:
+      operationId: allocations_void_create
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - allocations
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AllocationVoid'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/AllocationVoid'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/AllocationVoid'
+        required: true
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AllocationGrant'
+          description: ''
+  /api/v1/allocations/mine/:
+    get:
+      operationId: allocations_mine_list
+      tags:
+      - allocations
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AllocationGrant'
+          description: ''
   /api/v1/audit-events/:
     get:
       operationId: audit_events_list
@@ -1069,6 +1290,26 @@ paths:
                 $ref: '#/components/schemas/RequestType'
           description: ''
   /api/v1/request-types/{id}/:
+    get:
+      operationId: request_types_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - request-types
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RequestType'
+          description: ''
     patch:
       operationId: request_types_partial_update
       parameters:
@@ -1349,6 +1590,62 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/EmployeeRequest'
+          description: ''
+  /api/v1/requests/allocation-preview/:
+    get:
+      operationId: requests_allocation_preview_retrieve
+      parameters:
+      - in: query
+        name: end_date
+        schema:
+          type: string
+          format: date
+      - in: query
+        name: end_time
+        schema:
+          type: string
+          format: time
+      - in: query
+        name: equipment_item
+        schema:
+          type: string
+      - in: query
+        name: hours
+        schema:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,3}(?:\.\d{0,2})?$
+      - in: query
+        name: quantity
+        schema:
+          type: integer
+          minimum: 1
+      - in: query
+        name: start_date
+        schema:
+          type: string
+          format: date
+      - in: query
+        name: start_time
+        schema:
+          type: string
+          format: time
+      - in: query
+        name: type
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - requests
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AllocationPreview'
           description: ''
   /api/v1/timesheets/:
     get:
@@ -1807,6 +2104,210 @@ paths:
           description: ''
 components:
   schemas:
+    AllocationAdjust:
+      type: object
+      properties:
+        delta:
+          type: integer
+        reason:
+          type: string
+          maxLength: 1000
+        version:
+          type: integer
+          minimum: 1
+      required:
+      - delta
+      - reason
+      - version
+    AllocationChange:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        action:
+          type: string
+          readOnly: true
+        previous:
+          readOnly: true
+        current:
+          readOnly: true
+        reason:
+          type: string
+          readOnly: true
+        actor:
+          type: string
+          format: uuid
+          readOnly: true
+        occurred_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - action
+      - actor
+      - current
+      - id
+      - occurred_at
+      - previous
+      - reason
+    AllocationCreate:
+      type: object
+      properties:
+        employee:
+          type: string
+          format: uuid
+        request_type:
+          type: string
+          format: uuid
+        start_date:
+          type: string
+          format: date
+        end_date:
+          type: string
+          format: date
+        initial_amount:
+          type: integer
+          minimum: 1
+      required:
+      - employee
+      - end_date
+      - initial_amount
+      - request_type
+      - start_date
+    AllocationGrant:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        employee:
+          type: string
+          format: uuid
+          readOnly: true
+        employee_name:
+          type: string
+          readOnly: true
+        request_type:
+          type: string
+          format: uuid
+          readOnly: true
+        type_name:
+          type: string
+          readOnly: true
+        unit:
+          allOf:
+          - $ref: '#/components/schemas/AllocationGrantUnitEnum'
+          readOnly: true
+        start_date:
+          type: string
+          format: date
+          readOnly: true
+        end_date:
+          type: string
+          format: date
+          readOnly: true
+        initial_amount:
+          type: integer
+          readOnly: true
+        status:
+          allOf:
+          - $ref: '#/components/schemas/AllocationGrantStatusEnum'
+          readOnly: true
+        version:
+          type: integer
+          readOnly: true
+        granted:
+          type: integer
+          readOnly: true
+        reserved:
+          type: integer
+          readOnly: true
+        used:
+          type: integer
+          readOnly: true
+        remaining:
+          type: integer
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        voided_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+      required:
+      - created_at
+      - employee
+      - employee_name
+      - end_date
+      - granted
+      - id
+      - initial_amount
+      - remaining
+      - request_type
+      - reserved
+      - start_date
+      - status
+      - type_name
+      - unit
+      - used
+      - version
+      - voided_at
+    AllocationGrantStatusEnum:
+      enum:
+      - active
+      - void
+      type: string
+      description: |-
+        * `active` - Active
+        * `void` - Removed
+    AllocationGrantUnitEnum:
+      enum:
+      - unit
+      - hour
+      type: string
+      description: |-
+        * `unit` - Units
+        * `hour` - Hours
+    AllocationPreview:
+      type: object
+      properties:
+        required:
+          type: boolean
+        amount:
+          type: integer
+        unit:
+          type: string
+        status:
+          type: string
+        remaining:
+          type: integer
+          nullable: true
+        grant:
+          type: string
+          format: uuid
+          nullable: true
+      required:
+      - amount
+      - required
+      - status
+    AllocationVoid:
+      type: object
+      properties:
+        reason:
+          type: string
+          maxLength: 1000
+        version:
+          type: integer
+          minimum: 1
+      required:
+      - reason
+      - version
     ApprovalStep:
       type: object
       properties:
@@ -1901,22 +2402,6 @@ components:
     BlankEnum:
       enum:
       - ''
-    CategoryEnum:
-      enum:
-      - leave
-      - equipment
-      - hr_service
-      - work_from_home
-      - early_leave
-      - general
-      type: string
-      description: |-
-        * `leave` - Leave
-        * `equipment` - Equipment
-        * `hr_service` - HR service
-        * `work_from_home` - Work from home
-        * `early_leave` - Early leave
-        * `general` - General
     Dashboard:
       type: object
       properties:
@@ -1934,6 +2419,10 @@ components:
           type: integer
         pending_review:
           type: integer
+        allocations:
+          type: array
+          items:
+            $ref: '#/components/schemas/DashboardAllocation'
       required:
       - approved_minutes
       - pending_review
@@ -1941,6 +2430,47 @@ components:
       - requests
       - scope
       - timesheets
+    DashboardAllocation:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        request_type:
+          type: string
+          format: uuid
+        type_name:
+          type: string
+        unit:
+          type: string
+        start_date:
+          type: string
+          format: date
+        end_date:
+          type: string
+          format: date
+        granted:
+          type: integer
+        reserved:
+          type: integer
+        used:
+          type: integer
+        remaining:
+          type: integer
+        expired:
+          type: boolean
+      required:
+      - end_date
+      - expired
+      - granted
+      - id
+      - remaining
+      - request_type
+      - reserved
+      - start_date
+      - type_name
+      - unit
+      - used
     DashboardPeriod:
       type: object
       properties:
@@ -1966,6 +2496,14 @@ components:
         name:
           type: string
           maxLength: 120
+        manager:
+          type: string
+          format: uuid
+          nullable: true
+        manager_name:
+          type: string
+          nullable: true
+          readOnly: true
         is_active:
           type: boolean
         created_at:
@@ -1975,6 +2513,7 @@ components:
       required:
       - created_at
       - id
+      - manager_name
       - name
     DetailResponse:
       type: object
@@ -2207,7 +2746,7 @@ components:
         type_name:
           type: string
           readOnly: true
-        type_category:
+        type_unit:
           type: string
           readOnly: true
         title:
@@ -2241,6 +2780,12 @@ components:
           readOnly: true
         quantity:
           type: integer
+          readOnly: true
+          nullable: true
+        hours:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,3}(?:\.\d{0,2})?$
           readOnly: true
           nullable: true
         status:
@@ -2283,6 +2828,7 @@ components:
       - end_date
       - end_time
       - equipment_item
+      - hours
       - id
       - quantity
       - start_date
@@ -2291,8 +2837,8 @@ components:
       - submitted_at
       - title
       - type
-      - type_category
       - type_name
+      - type_unit
       - updated_at
       - version
     EmployeeRequestStatusEnum:
@@ -2508,6 +3054,14 @@ components:
         summary:
           type: string
           readOnly: true
+        summary_key:
+          type: string
+          readOnly: true
+        summary_params:
+          type: object
+          additionalProperties:
+            type: string
+          readOnly: true
         target_type:
           type: string
           readOnly: true
@@ -2536,6 +3090,8 @@ components:
       - kind
       - read_at
       - summary
+      - summary_key
+      - summary_params
       - target_id
       - target_type
     NotificationDetail:
@@ -2576,6 +3132,7 @@ components:
           type: integer
           maximum: 32767
           minimum: 0
+        working_weekdays: {}
         fallback_reviewer:
           type: string
           format: uuid
@@ -2676,6 +3233,21 @@ components:
           format: email
       required:
       - email
+    PatchedAllocationDateEdit:
+      type: object
+      properties:
+        start_date:
+          type: string
+          format: date
+        end_date:
+          type: string
+          format: date
+        reason:
+          type: string
+          maxLength: 1000
+        version:
+          type: integer
+          minimum: 1
     PatchedDepartment:
       type: object
       properties:
@@ -2686,6 +3258,14 @@ components:
         name:
           type: string
           maxLength: 120
+        manager:
+          type: string
+          format: uuid
+          nullable: true
+        manager_name:
+          type: string
+          nullable: true
+          readOnly: true
         is_active:
           type: boolean
         created_at:
@@ -2840,6 +3420,7 @@ components:
           type: integer
           maximum: 32767
           minimum: 0
+        working_weekdays: {}
         fallback_reviewer:
           type: string
           format: uuid
@@ -2849,7 +3430,7 @@ components:
     PatchedRequestDraft:
       type: object
       description: |-
-        Draft input allowlist — category-typed fields only; ownership/status/
+        Draft input allowlist — typed fields only; ownership/status/
         workflow fields are rejected (mass-assignment protection).
       properties:
         type:
@@ -2886,21 +3467,27 @@ components:
           type: integer
           minimum: 1
           nullable: true
+        hours:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,3}(?:\.\d{0,2})?$
+          nullable: true
         version:
           type: integer
           minimum: 1
     PatchedRequestTypeWrite:
       type: object
-      description: HR type configuration — organization assigned server-side.
+      description: |-
+        HR type configuration — organization and code assigned server-side;
+        a measurable unit means the type draws from allocations.
       properties:
-        code:
-          type: string
-          maxLength: 40
         name:
           type: string
           maxLength: 120
-        category:
-          $ref: '#/components/schemas/CategoryEnum'
+        unit:
+          allOf:
+          - $ref: '#/components/schemas/Unit68dEnum'
+          default: none
         help_text:
           type: string
           default: ''
@@ -2994,7 +3581,7 @@ components:
     RequestDraft:
       type: object
       description: |-
-        Draft input allowlist — category-typed fields only; ownership/status/
+        Draft input allowlist — typed fields only; ownership/status/
         workflow fields are rejected (mass-assignment protection).
       properties:
         type:
@@ -3030,6 +3617,11 @@ components:
         quantity:
           type: integer
           minimum: 1
+          nullable: true
+        hours:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,3}(?:\.\d{0,2})?$
           nullable: true
         version:
           type: integer
@@ -3117,18 +3709,21 @@ components:
           readOnly: true
         code:
           type: string
-          maxLength: 40
+          readOnly: true
         name:
           type: string
           maxLength: 120
-        category:
-          $ref: '#/components/schemas/CategoryEnum'
+        unit:
+          $ref: '#/components/schemas/Unit68dEnum'
         help_text:
           type: string
         requires_manager:
           type: boolean
         requires_hr:
           type: boolean
+        requires_allocation:
+          type: boolean
+          readOnly: true
         is_active:
           type: boolean
         created_at:
@@ -3136,23 +3731,24 @@ components:
           format: date-time
           readOnly: true
       required:
-      - category
       - code
       - created_at
       - id
       - name
+      - requires_allocation
     RequestTypeWrite:
       type: object
-      description: HR type configuration — organization assigned server-side.
+      description: |-
+        HR type configuration — organization and code assigned server-side;
+        a measurable unit means the type draws from allocations.
       properties:
-        code:
-          type: string
-          maxLength: 40
         name:
           type: string
           maxLength: 120
-        category:
-          $ref: '#/components/schemas/CategoryEnum'
+        unit:
+          allOf:
+          - $ref: '#/components/schemas/Unit68dEnum'
+          default: none
         help_text:
           type: string
           default: ''
@@ -3166,8 +3762,6 @@ components:
           type: boolean
           default: true
       required:
-      - category
-      - code
       - name
     RequiredRoleEnum:
       enum:
@@ -3537,6 +4131,16 @@ components:
       required:
       - password
       - token
+    Unit68dEnum:
+      enum:
+      - none
+      - unit
+      - hour
+      type: string
+      description: |-
+        * `none` - Not measurable
+        * `unit` - Units
+        * `hour` - Hours
     UnreadCount:
       type: object
       properties:

@@ -5,6 +5,7 @@ export interface OrgSettings {
   name: string;
   timezone: string;
   week_start: number;
+  working_weekdays: number[];
   fallback_reviewer: string | null;
 }
 

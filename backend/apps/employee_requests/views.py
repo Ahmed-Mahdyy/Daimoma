@@ -4,15 +4,31 @@ from rest_framework import serializers, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from apps.accounts.models import EmployeeProfile
 from apps.accounts.pagination import DefaultPagination
-from apps.accounts.permissions import IsActiveAuthenticated, IsHR
-from apps.employee_requests.models import RequestType
+from apps.accounts.permissions import IsActiveAuthenticated, IsHR, is_hr
+from apps.employee_requests.allocations import (
+    adjust_grant,
+    create_grant,
+    edit_grant_dates,
+    preview,
+    void_grant,
+)
+from apps.employee_requests.models import EmployeeAllocationGrant, RequestType
 from apps.employee_requests.selectors import (
     active_request_types,
     request_queryset,
     scoped_requests,
 )
 from apps.employee_requests.serializers import (
+    AllocationAdjustmentSerializer,
+    AllocationAdjustSerializer,
+    AllocationChangeSerializer,
+    AllocationCreateSerializer,
+    AllocationDateEditSerializer,
+    AllocationGrantSerializer,
+    AllocationPreviewSerializer,
+    AllocationVoidSerializer,
     ApprovalStepSerializer,
     EmployeeRequestSerializer,
     RequestDraftSerializer,
@@ -39,6 +55,17 @@ def _visible_request(user, pk):
         )
     except Exception:
         raise Http404 from None
+
+
+def _new_type_code(name):
+    """Server-generated internal code — never shown or edited in the UI; the
+    random suffix keeps the (org, code) uniqueness constraint satisfied."""
+    from uuid import uuid4
+
+    from django.utils.text import slugify
+
+    base = slugify(name)[:30] or "type"
+    return f"{base}-{uuid4().hex[:8]}"
 
 
 class RequestListView(APIView):
@@ -194,17 +221,12 @@ class RequestTypeListView(APIView):
             from rest_framework.exceptions import PermissionDenied
 
             raise PermissionDenied
-        ser = RequestTypeWriteSerializer(data=request.data)
+        ser = RequestTypeWriteSerializer(data=request.data, context={"request": request})
         ser.is_valid(raise_exception=True)
-        from rest_framework.exceptions import ValidationError
-
-        if RequestType.objects.filter(
-            organization_id=request.user.organization_id,
-            code__iexact=ser.validated_data["code"].strip(),
-        ).exists():
-            raise ValidationError({"code": ["A type with this code already exists."]})
         req_type = RequestType.objects.create(
-            organization_id=request.user.organization_id, **ser.validated_data
+            organization_id=request.user.organization_id,
+            code=_new_type_code(ser.validated_data["name"]),
+            **ser.validated_data,
         )
         return Response(RequestTypeSerializer(req_type).data, status=status.HTTP_201_CREATED)
 
@@ -218,27 +240,203 @@ class RequestTypeDetailView(APIView):
         except (RequestType.DoesNotExist, ValueError):
             raise Http404 from None
 
+    @extend_schema(responses={200: RequestTypeSerializer})
+    def get(self, request, pk):
+        return Response(RequestTypeSerializer(self._type(request, pk)).data)
+
     @extend_schema(
         request=RequestTypeWriteSerializer,
         responses={200: RequestTypeSerializer},
     )
     def patch(self, request, pk):
         req_type = self._type(request, pk)
-        ser = RequestTypeWriteSerializer(instance=req_type, data=request.data, partial=True)
+        ser = RequestTypeWriteSerializer(
+            instance=req_type, data=request.data, partial=True, context={"request": request}
+        )
         ser.is_valid(raise_exception=True)
-        data = ser.validated_data
-        if (code := data.get("code")) and code.strip().lower() != req_type.code.lower():
-            from rest_framework.exceptions import ValidationError
-
-            if RequestType.objects.filter(
-                organization_id=request.user.organization_id,
-                code__iexact=code.strip(),
-            ).exists():
-                raise ValidationError({"code": ["A type with this code already exists."]})
-        for f, v in data.items():
+        for f, v in ser.validated_data.items():
             setattr(req_type, f, v)
         req_type.save()
         return Response(RequestTypeSerializer(req_type).data)
+
+
+def _allocation_queryset():
+    return EmployeeAllocationGrant.objects.select_related(
+        "employee", "request_type"
+    ).prefetch_related("adjustments", "commitments")
+
+
+def _visible_grant(user, pk):
+    qs = _allocation_queryset().filter(organization_id=user.organization_id)
+    if not is_hr(user):
+        qs = qs.filter(employee__user=user, status="active")
+    try:
+        return qs.get(pk=pk)
+    except (EmployeeAllocationGrant.DoesNotExist, ValueError):
+        raise Http404 from None
+
+
+AllocationPreviewResponse = inline_serializer(
+    name="AllocationPreview",
+    fields={
+        "required": serializers.BooleanField(),
+        "amount": serializers.IntegerField(),
+        "unit": serializers.CharField(required=False),
+        "status": serializers.CharField(),
+        "remaining": serializers.IntegerField(allow_null=True, required=False),
+        "grant": serializers.UUIDField(allow_null=True, required=False),
+    },
+)
+
+
+class AllocationPreviewView(APIView):
+    permission_classes = [IsActiveAuthenticated]
+
+    @extend_schema(
+        parameters=[AllocationPreviewSerializer], responses={200: AllocationPreviewResponse}
+    )
+    def get(self, request):
+        ser = AllocationPreviewSerializer(data=request.query_params)
+        ser.is_valid(raise_exception=True)
+        req_type = RequestType.objects.filter(
+            pk=ser.validated_data["type"], organization_id=request.user.organization_id,
+            is_active=True,
+        ).first()
+        if req_type is None:
+            from rest_framework.exceptions import ValidationError
+            raise ValidationError({"type": ["Unknown or inactive request type."]})
+        return Response(preview(request.user, req_type, ser.validated_data))
+
+
+class AllocationMineView(APIView):
+    permission_classes = [IsActiveAuthenticated]
+
+    @extend_schema(responses={200: AllocationGrantSerializer(many=True)})
+    def get(self, request):
+        qs = _allocation_queryset().filter(
+            organization_id=request.user.organization_id,
+            employee__user=request.user,
+            status="active",
+        ).order_by("-end_date", "pk")
+        paginator = DefaultPagination()
+        page = paginator.paginate_queryset(qs, request)
+        return paginator.get_paginated_response(AllocationGrantSerializer(page, many=True).data)
+
+
+class AllocationListView(APIView):
+    permission_classes = [IsHR]
+
+    @extend_schema(responses={200: AllocationGrantSerializer(many=True)})
+    def get(self, request):
+        qs = _allocation_queryset().filter(organization_id=request.user.organization_id)
+        if employee := request.query_params.get("employee"):
+            try:
+                qs = qs.filter(employee_id=serializers.UUIDField().run_validation(employee))
+            except serializers.ValidationError:
+                raise serializers.ValidationError(
+                    {"employee": ["Invalid employee ID."]}
+                ) from None
+        if grant_status := request.query_params.get("status"):
+            if grant_status not in EmployeeAllocationGrant.Status.values:
+                raise serializers.ValidationError({"status": ["Invalid allocation status."]})
+            qs = qs.filter(status=grant_status)
+        qs = qs.order_by("-created_at", "pk")
+        paginator = DefaultPagination()
+        page = paginator.paginate_queryset(qs, request)
+        return paginator.get_paginated_response(AllocationGrantSerializer(page, many=True).data)
+
+    @extend_schema(request=AllocationCreateSerializer, responses={201: AllocationGrantSerializer})
+    def post(self, request):
+        ser = AllocationCreateSerializer(data=request.data)
+        ser.is_valid(raise_exception=True)
+        data = ser.validated_data
+        from rest_framework.exceptions import ValidationError
+
+        try:
+            employee = EmployeeProfile.objects.get(
+                pk=data["employee"], organization_id=request.user.organization_id
+            )
+            req_type = RequestType.objects.get(
+                pk=data["request_type"], organization_id=request.user.organization_id
+            )
+        except (EmployeeProfile.DoesNotExist, RequestType.DoesNotExist):
+            raise ValidationError(
+                {"detail": ["Employee or type not found in this organization."]}
+            ) from None
+        grant = create_grant(
+            request.user, employee, req_type, data["start_date"], data["end_date"],
+            data["initial_amount"],
+        )
+        return Response(AllocationGrantSerializer(grant).data, status=status.HTTP_201_CREATED)
+
+
+class AllocationDetailView(APIView):
+    permission_classes = [IsActiveAuthenticated]
+
+    @extend_schema(responses={200: AllocationGrantSerializer})
+    def get(self, request, pk):
+        return Response(AllocationGrantSerializer(_visible_grant(request.user, pk)).data)
+
+    @extend_schema(request=AllocationDateEditSerializer, responses={200: AllocationGrantSerializer})
+    def patch(self, request, pk):
+        if not is_hr(request.user):
+            from rest_framework.exceptions import PermissionDenied
+            raise PermissionDenied
+        _visible_grant(request.user, pk)
+        ser = AllocationDateEditSerializer(data=request.data)
+        ser.is_valid(raise_exception=True)
+        grant = edit_grant_dates(request.user, pk, **ser.validated_data)
+        return Response(AllocationGrantSerializer(grant).data)
+
+
+class AllocationAdjustView(APIView):
+    permission_classes = [IsHR]
+
+    @extend_schema(request=AllocationAdjustSerializer, responses={200: AllocationGrantSerializer})
+    def post(self, request, pk):
+        _visible_grant(request.user, pk)
+        ser = AllocationAdjustSerializer(data=request.data)
+        ser.is_valid(raise_exception=True)
+        grant = adjust_grant(request.user, pk, **ser.validated_data)
+        return Response(AllocationGrantSerializer(grant).data)
+
+
+class AllocationVoidView(APIView):
+    permission_classes = [IsHR]
+
+    @extend_schema(request=AllocationVoidSerializer, responses={200: AllocationGrantSerializer})
+    def post(self, request, pk):
+        _visible_grant(request.user, pk)
+        ser = AllocationVoidSerializer(data=request.data)
+        ser.is_valid(raise_exception=True)
+        grant = void_grant(request.user, pk, **ser.validated_data)
+        return Response(AllocationGrantSerializer(grant).data)
+
+
+class AllocationHistoryView(APIView):
+    permission_classes = [IsHR]
+    kind = ""
+
+    @extend_schema(responses={200: AllocationChangeSerializer(many=True)})
+    def get(self, request, pk):
+        grant = _visible_grant(request.user, pk)
+        if self.kind == "adjustments":
+            qs = grant.adjustments.order_by("-occurred_at", "pk")
+            serializer = AllocationAdjustmentSerializer
+        else:
+            qs = grant.changes.order_by("-occurred_at", "pk")
+            serializer = AllocationChangeSerializer
+        paginator = DefaultPagination()
+        page = paginator.paginate_queryset(qs, request)
+        return paginator.get_paginated_response(serializer(page, many=True).data)
+
+
+class AllocationAdjustmentsView(AllocationHistoryView):
+    kind = "adjustments"
+
+
+class AllocationChangesView(AllocationHistoryView):
+    kind = "changes"
 
 
 # Schema-only detail serializer for documented error bodies.

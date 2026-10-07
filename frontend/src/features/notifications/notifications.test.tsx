@@ -4,6 +4,8 @@ import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import { LanguageProvider } from "../../app/LanguageProvider";
+
 vi.mock("../../api/notifications", () => ({
   listNotifications: vi.fn(),
   getUnreadCount: vi.fn(),
@@ -25,6 +27,8 @@ const NOTIF = {
   event_key: "audit:1",
   kind: "account_reactivated",
   summary: "Your account was reactivated by HR.",
+  summary_key: "notification.accountReactivated",
+  summary_params: {},
   target_type: "accounts.employeeprofile",
   target_id: "x",
   is_read: false,
@@ -32,13 +36,16 @@ const NOTIF = {
   created_at: new Date().toISOString(),
 };
 
-function renderBell() {
+function renderBell(lang: "en" | "ar" = "en") {
+  localStorage.setItem("daimoma-lang", lang);
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
     <QueryClientProvider client={qc}>
-      <MemoryRouter>
-        <NotificationBell />
-      </MemoryRouter>
+      <LanguageProvider>
+        <MemoryRouter>
+          <NotificationBell />
+        </MemoryRouter>
+      </LanguageProvider>
     </QueryClientProvider>,
   );
 }
@@ -95,10 +102,10 @@ describe("NotificationBell", () => {
     await userEvent.click(
       await screen.findByRole("button", { name: /unread/i }),
     );
-    expect(await screen.findByRole("menu")).toBeInTheDocument();
+    expect(await screen.findByRole("region", { name: "Notifications" })).toBeInTheDocument();
     await userEvent.keyboard("{Escape}");
     await waitFor(() =>
-      expect(screen.queryByRole("menu")).not.toBeInTheDocument(),
+      expect(screen.queryByRole("region", { name: "Notifications" })).not.toBeInTheDocument(),
     );
   });
 
@@ -118,5 +125,30 @@ describe("NotificationBell", () => {
       screen.getByRole("button", { name: /mark all read/i }),
     );
     await waitFor(() => expect(markAllNotificationsRead).toHaveBeenCalled());
+  });
+
+  it("renders structured notification summaries in Arabic", async () => {
+    vi.mocked(listNotifications).mockResolvedValue({
+      count: 1,
+      next: null,
+      previous: null,
+      unread_count: 1,
+      results: [
+        {
+          ...NOTIF,
+          kind: "request_review",
+          summary: "Equipment keyboard awaits your review.",
+          summary_key: "notification.requestReview",
+          summary_params: { title: "Equipment keyboard" },
+        },
+      ],
+    });
+    renderBell("ar");
+    await userEvent.click(
+      await screen.findByRole("button", { name: /الإشعارات/ }),
+    );
+    expect(
+      await screen.findByText("«Equipment keyboard» بانتظار مراجعتك."),
+    ).toBeInTheDocument();
   });
 });

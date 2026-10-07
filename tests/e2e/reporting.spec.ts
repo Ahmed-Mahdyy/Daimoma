@@ -142,18 +142,21 @@ test.describe.serial("dashboards and reporting", () => {
     await signOut(page);
   });
 
-  test("HR can add and rename a department", async ({ page }) => {
+  test("HR can add and edit a department from its details", async ({ page }) => {
     await loginAs(page, "hr-e2e@acme.test");
     await page.getByRole("navigation", { name: "Main" }).getByRole("link", { name: "Departments", exact: true }).click();
     const name = `Demo department ${Date.now()}`;
     await page.getByRole("textbox", { name: "New department name" }).fill(name);
+    await page.getByRole("combobox", { name: "Manager" }).selectOption({ label: "Manny Manager" });
     await page.getByRole("button", { name: "Add department" }).click();
     const row = page.getByRole("row").filter({ hasText: name });
     await expect(row).toBeVisible();
-    await row.getByRole("button", { name: "Rename" }).click();
-    await page.getByRole("textbox", { name: `Rename ${name}` }).fill(`${name} updated`);
+    await row.getByRole("link", { name: "Edit" }).click();
+    await expect(page.getByText("Employees count")).toBeVisible();
+    await expect(page.getByRole("link", { name: "Manny Manager" })).toBeVisible();
+    await page.getByRole("textbox", { name: "Name" }).fill(`${name} updated`);
     await page.getByRole("button", { name: "Save", exact: true }).click();
-    await expect(page.getByText(`${name} updated`)).toBeVisible();
+    await expect(page.getByRole("heading", { name: `${name} updated` })).toBeVisible();
     await signOut(page);
   });
 

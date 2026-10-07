@@ -3,9 +3,12 @@ import { useState } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 
-import { ApiError } from "../../api/client";
+import { ApiError, apiErrorMessage } from "../../api/client";
 import {
+  ALLOCATION_UNIT_LABELS,
   createRequest,
+  formatAllocationAmount,
+  getAllocationPreview,
   listRequestTypes,
   type RequestDraftInput,
 } from "../../api/requests";
@@ -22,13 +25,12 @@ interface FormValues {
   end_time: string;
   equipment_item: string;
   quantity: string;
+  hours: string;
 }
 
-const DATE_CATEGORIES = new Set(["leave", "work_from_home"]);
-const TIME_CATEGORIES = new Set(["early_leave"]);
-
-/** New-request form (FR-001): typed fields adapt to the selected type's
- * category — date ranges for leave/WFH, item+quantity for equipment. */
+/** New-request form (FR-001/008): the selected type's unit decides the
+ * measured input — a quantity for "unit" types, an hours amount for "hour"
+ * types, nothing for "none". Dates/times stay optional context. */
 export function RequestFormPage() {
   const { t } = useLanguage();
   const navigate = useNavigate();
@@ -49,11 +51,41 @@ export function RequestFormPage() {
     handleSubmit,
     control,
     formState: { errors },
-  } = useForm<FormValues>({ defaultValues: { quantity: "", start_date: selectedDate, end_date: selectedDate } });
+  } = useForm<FormValues>({ defaultValues: { quantity: "", hours: "", start_date: selectedDate, end_date: selectedDate } });
 
   const typeId = useWatch({ control, name: "type" });
+  const values = useWatch({ control });
   const selectedType = types?.results.find((t) => t.id === typeId);
-  const category = selectedType?.category;
+  const unit = selectedType?.unit;
+
+  // Advisory allocation preview (008): mirrors the server's calculation so
+  // the employee sees the charged amount before submitting. The submit path
+  // recalculates under locks — this estimate never reserves anything.
+  const previewInput = (() => {
+    if (!selectedType?.requires_allocation || !unit || !typeId) return null;
+    const base: { type: string; start_date?: string; end_date?: string } = { type: typeId };
+    if (values.start_date) base.start_date = values.start_date;
+    if (values.end_date) base.end_date = values.end_date;
+    if (unit === "unit") {
+      const quantity = Number(values.quantity);
+      if (!Number.isInteger(quantity) || quantity < 1) return null;
+      return { ...base, quantity };
+    }
+    if (unit === "hour") {
+      const hours = Number(values.hours);
+      if (!Number.isFinite(hours) || hours <= 0) return null;
+      // The server stores whole minutes; send hours as entered.
+      return { ...base, hours };
+    }
+    return null;
+  })();
+
+  const preview = useQuery({
+    queryKey: ["allocation-preview", previewInput],
+    queryFn: () => getAllocationPreview(previewInput!),
+    enabled: previewInput !== null,
+    retry: false,
+  });
 
   const mutation = useMutation({
     mutationFn: (input: RequestDraftInput) => createRequest(input),
@@ -63,7 +95,7 @@ export function RequestFormPage() {
     },
     onError: (e) => {
       if (e instanceof ApiError) {
-        setServerError(e.message);
+        setServerError(apiErrorMessage(e));
         if (e.fieldErrors) {
           const mapped: Record<string, string> = {};
           for (const [k, v] of Object.entries(e.fieldErrors)) {
@@ -85,18 +117,16 @@ export function RequestFormPage() {
       title: values.title,
       description: values.description,
     };
-    if (category && DATE_CATEGORIES.has(category)) {
-      input.start_date = values.start_date || null;
-      input.end_date = values.end_date || null;
-    }
-    if (category && TIME_CATEGORIES.has(category)) {
-      input.start_date = values.start_date || null;
-      input.start_time = values.start_time || null;
-      input.end_time = values.end_time || null;
-    }
-    if (category === "equipment") {
+    if (values.start_date) input.start_date = values.start_date;
+    if (values.end_date || values.start_date) input.end_date = values.end_date || values.start_date;
+    if (values.start_time) input.start_time = values.start_time;
+    if (values.end_time) input.end_time = values.end_time;
+    if (unit === "unit") {
       input.equipment_item = values.equipment_item;
       input.quantity = values.quantity ? Number(values.quantity) : null;
+    }
+    if (unit === "hour") {
+      input.hours = values.hours ? Number(values.hours) : null;
     }
     mutation.mutate(input);
   };
@@ -116,6 +146,8 @@ export function RequestFormPage() {
       )}
     </>
   );
+
+  const previewUnit = preview.data?.unit ?? "unit";
 
   return (
     <div className="mx-auto max-w-2xl">
@@ -180,57 +212,113 @@ export function RequestFormPage() {
             {err("description")}
           </div>
 
-          {category && DATE_CATEGORIES.has(category) && (
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label htmlFor="start_date" className="block text-sm font-medium">
-                  {t("Start date")}
-                </label>
-                <input
-                  id="start_date"
-                  type="date"
-                  className={input}
-                  aria-invalid={!!errors.start_date || !!fieldErrors.start_date}
-                  {...register("start_date", {
-                    required: t("Start date is required for this type."),
-                  })}
-                />
-                {err("start_date")}
+          {unit === "unit" && (
+            <>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label
+                    htmlFor="equipment_item"
+                    className="block text-sm font-medium"
+                  >
+                    {t("Item")}
+                  </label>
+                  <input
+                    id="equipment_item"
+                    className={input}
+                    aria-invalid={!!errors.equipment_item || !!fieldErrors.equipment_item}
+                    {...register("equipment_item")}
+                  />
+                  {err("equipment_item")}
+                </div>
+                <div>
+                  <label htmlFor="quantity" className="block text-sm font-medium">
+                    {t("Quantity")}
+                  </label>
+                  <input
+                    id="quantity"
+                    type="number"
+                    min={1}
+                    className={input}
+                    aria-invalid={!!errors.quantity || !!fieldErrors.quantity}
+                    {...register("quantity", {
+                      required: t("Quantity is required for this type."),
+                      min: { value: 1, message: t("Quantity must be at least 1.") },
+                    })}
+                  />
+                  {err("quantity")}
+                </div>
               </div>
-              <div>
-                <label htmlFor="end_date" className="block text-sm font-medium">
-                  {t("End date")}
-                </label>
-                <input
-                  id="end_date"
-                  type="date"
-                  className={input}
-                  aria-invalid={!!errors.end_date || !!fieldErrors.end_date}
-                  {...register("end_date", {
-                    required: t("End date is required for this type."),
-                  })}
-                />
-                {err("end_date")}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label htmlFor="start_date" className="block text-sm font-medium">
+                    {t("Start date")}
+                  </label>
+                  <input
+                    id="start_date"
+                    type="date"
+                    className={input}
+                    aria-invalid={!!errors.start_date || !!fieldErrors.start_date}
+                    {...register("start_date")}
+                  />
+                  {err("start_date")}
+                </div>
+                <div>
+                  <label htmlFor="end_date" className="block text-sm font-medium">
+                    {t("End date")}
+                  </label>
+                  <input
+                    id="end_date"
+                    type="date"
+                    className={input}
+                    aria-invalid={!!errors.end_date || !!fieldErrors.end_date}
+                    {...register("end_date", {
+                      validate: (v, formValues) =>
+                        !v ||
+                        !formValues.start_date ||
+                        v >= formValues.start_date ||
+                        t("End date must not be before the start date."),
+                    })}
+                  />
+                  {err("end_date")}
+                </div>
               </div>
-            </div>
+            </>
           )}
 
-          {category && TIME_CATEGORIES.has(category) && (
+          {unit === "hour" && (
             <>
-              <div>
-                <label htmlFor="start_date" className="block text-sm font-medium">
-                  {t("Date")}
-                </label>
-                <input
-                  id="start_date"
-                  type="date"
-                  className={input}
-                  aria-invalid={!!errors.start_date || !!fieldErrors.start_date}
-                  {...register("start_date", {
-                    required: t("The date is required for this type."),
-                  })}
-                />
-                {err("start_date")}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label htmlFor="start_date" className="block text-sm font-medium">
+                    {t("Date")}
+                  </label>
+                  <input
+                    id="start_date"
+                    type="date"
+                    className={input}
+                    aria-invalid={!!errors.start_date || !!fieldErrors.start_date}
+                    {...register("start_date")}
+                  />
+                  {err("start_date")}
+                </div>
+                <div>
+                  <label htmlFor="hours" className="block text-sm font-medium">
+                    {t("Hours")}
+                  </label>
+                  <input
+                    id="hours"
+                    type="number"
+                    min={0.25}
+                    step={0.25}
+                    className={input}
+                    aria-invalid={!!errors.hours || !!fieldErrors.hours}
+                    {...register("hours", {
+                      required: t("Hours are required for this type."),
+                      min: { value: 0.25, message: t("Use quarter-hour steps (0.25, 0.5, ...).") },
+                    })}
+                  />
+                  {err("hours")}
+                </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
@@ -242,9 +330,7 @@ export function RequestFormPage() {
                     type="time"
                     className={input}
                     aria-invalid={!!errors.start_time || !!fieldErrors.start_time}
-                    {...register("start_time", {
-                      required: t("Start time is required for this type."),
-                    })}
+                    {...register("start_time")}
                   />
                   {err("start_time")}
                 </div>
@@ -258,11 +344,10 @@ export function RequestFormPage() {
                     className={input}
                     aria-invalid={!!errors.end_time || !!fieldErrors.end_time}
                     {...register("end_time", {
-                      required: t("End time is required for this type."),
-                      validate: (v, values) =>
-                        !values.start_time ||
+                      validate: (v, formValues) =>
                         !v ||
-                        v > values.start_time ||
+                        !formValues.start_time ||
+                        v > formValues.start_time ||
                         t("End time must be after the start time."),
                     })}
                   />
@@ -272,42 +357,39 @@ export function RequestFormPage() {
             </>
           )}
 
-          {category === "equipment" && (
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label
-                  htmlFor="equipment_item"
-                  className="block text-sm font-medium"
-                >
-                  {t("Item")}
-                </label>
-                <input
-                  id="equipment_item"
-                  className={input}
-                  aria-invalid={!!errors.equipment_item || !!fieldErrors.equipment_item}
-                  {...register("equipment_item", {
-                    required: t("Item is required for equipment requests."),
+          {previewInput && (
+            <div aria-live="polite">
+              {preview.isPending && (
+                <p className="text-sm text-gray-500">{t("Checking allocation…")}</p>
+              )}
+              {preview.error && (
+                <p role="status" className="rounded-md border border-amber-300 bg-amber-50 p-2 text-sm text-amber-800 dark:border-amber-800/60 dark:bg-amber-950/50 dark:text-amber-200">
+                  {apiErrorMessage(preview.error)}
+                </p>
+              )}
+              {preview.data?.status === "no_grant" && (
+                <p role="status" className="rounded-md border border-amber-300 bg-amber-50 p-2 text-sm text-amber-800 dark:border-amber-800/60 dark:bg-amber-950/50 dark:text-amber-200">
+                  {t("No allocation covers this period — ask HR to assign one before submitting.")}
+                </p>
+              )}
+              {preview.data?.status === "insufficient" && (
+                <p role="status" className="rounded-md border border-amber-300 bg-amber-50 p-2 text-sm text-amber-800 dark:border-amber-800/60 dark:bg-amber-950/50 dark:text-amber-200">
+                  {t("This needs {amount} {unit} but only {remaining} remain.", {
+                    amount: formatAllocationAmount(preview.data.amount, previewUnit),
+                    unit: t(ALLOCATION_UNIT_LABELS[previewUnit]),
+                    remaining: formatAllocationAmount(preview.data.remaining ?? 0, previewUnit),
                   })}
-                />
-                {err("equipment_item")}
-              </div>
-              <div>
-                <label htmlFor="quantity" className="block text-sm font-medium">
-                  {t("Quantity")}
-                </label>
-                <input
-                  id="quantity"
-                  type="number"
-                  min={1}
-                  className={input}
-                  aria-invalid={!!errors.quantity || !!fieldErrors.quantity}
-                  {...register("quantity", {
-                    required: t("Quantity is required for equipment requests."),
-                    min: { value: 1, message: t("Quantity must be at least 1.") },
+                </p>
+              )}
+              {preview.data?.status === "available" && (
+                <p className="rounded-md border border-emerald-300 bg-emerald-50 p-2 text-sm text-emerald-800 dark:border-emerald-800/60 dark:bg-emerald-950/50 dark:text-emerald-200">
+                  {t("Estimated charge: {amount} {unit} — {remaining} remaining.", {
+                    amount: formatAllocationAmount(preview.data.amount, previewUnit),
+                    unit: t(ALLOCATION_UNIT_LABELS[previewUnit]),
+                    remaining: formatAllocationAmount(preview.data.remaining ?? 0, previewUnit),
                   })}
-                />
-                {err("quantity")}
-              </div>
+                </p>
+              )}
             </div>
           )}
 

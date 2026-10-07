@@ -3,6 +3,7 @@
  * params narrow within the caller's scope, never widen it (D-003/D-009).
  */
 import { apiFetch, type Paged } from "./client";
+import type { AllocationGrant } from "./requests";
 
 export interface DashboardPeriod {
   from: string;
@@ -17,6 +18,7 @@ export interface Dashboard {
   timesheets: { by_status: Record<string, number> };
   approved_minutes: number;
   pending_review: number;
+  allocations?: (AllocationGrant & { expired: boolean })[];
 }
 
 export interface HoursRow {
@@ -32,7 +34,7 @@ export interface RequestReportRow {
   id: string;
   title: string;
   type: string;
-  category: string;
+  unit: string;
   status: string;
   submitted_at: string | null;
   employee_id: string;

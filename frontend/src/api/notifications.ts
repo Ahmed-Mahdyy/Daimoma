@@ -5,6 +5,8 @@ export interface NotificationRow {
   event_key: string;
   kind: string;
   summary: string;
+  summary_key: string;
+  summary_params: Record<string, string>;
   target_type: string;
   target_id: string | null;
   is_read: boolean;

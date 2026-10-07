@@ -33,10 +33,13 @@ body { background: #f5f7f6; color: #172b34; }
 ::selection { background: #bce8df; color: #123a38; }
 :focus-visible { outline: 3px solid #d4a542; outline-offset: 3px; }
 
-.workspace { background: radial-gradient(circle at 92% 8%, #e6f4f0 0, transparent 35%), #f6f8f7; }
+.workspace { background: #f0f4f0; }
+.workspace-stage { position: relative; isolation: isolate; min-height: 100vh; background: linear-gradient(153deg, #dfeee8 0%, #f3f7f2 38%, #edf4ef 65%, #f3eade 100%); }
+.workspace-stage::before { content: ""; position: absolute; pointer-events: none; inset-inline: 0; top: 5.5rem; bottom: 0; z-index: 0; background: radial-gradient(circle at 90% 18%, #f5dfb292 0 12%, transparent 34%), radial-gradient(ellipse at 12% 12%, #a6d7ca 0%, transparent 58%), repeating-linear-gradient(128deg, #0b56500b 0 1px, transparent 1px 28px), linear-gradient(122deg, #c2e3d8 0%, #d9ede4 47%, #e6ede1 100%); }
+.workspace-stage .workspace-content { position: relative; z-index: 1; }
 .skip-link { position: fixed; z-index: 100; top: -4rem; left: 1rem; padding: .75rem 1rem; border-radius: .75rem; background: #0b5650; color: white; }
 .skip-link:focus { top: 1rem; }
-.workspace-sidebar { background: #edf4f1; color: #213b3b; border-inline-end: 1px solid #d9e7e2; }
+.workspace-sidebar { background-color: #edf4f1; background-image: linear-gradient(165deg, #f4f8f2 0%, #e9f3ed 55%, #e6f0ea 100%); color: #213b3b; border-inline-end: 1px solid #d9e7e2; }
 .workspace-brand { display: flex; align-items: center; gap: .8rem; min-height: 5.5rem; padding: 1.25rem 1.5rem; border-bottom: 1px solid #d9e7e2; transition: background-color .18s ease; }
 .workspace-brand:hover { background: #e2eee8; }
 .workspace-brand-mark { display: grid; place-items: center; width: 2.8rem; height: 2.8rem; border: 1px solid #d5e7df; border-radius: .9rem; background: white; box-shadow: 0 5px 16px #1b514019; }
@@ -64,6 +67,8 @@ body { background: #f5f7f6; color: #172b34; }
 .workspace-menu-toggle { display: grid; place-items: center; width: 2.5rem; height: 2.5rem; border: 1px solid #dce7e3; border-radius: .7rem; color: #174d47; font-size: 1.2rem; }
 .workspace-content { animation: workspace-enter .38s ease-out both; }
 .workspace-content h1 { letter-spacing: -.04em; }
+.workspace-content .text-gray-600 { color: #304743; }
+.workspace-content .text-muted-foreground { color: #35524c; }
 .workspace-content > div > .mb-4:first-child { margin-bottom: 1.5rem; }
 .workspace-content input, .workspace-content select, .workspace-content textarea { background-color: white; border-color: #d9e5e0; border-radius: .65rem; min-height: 2.45rem; }
 .workspace-content input:focus, .workspace-content select:focus, .workspace-content textarea:focus { border-color: #16887b; }
@@ -229,8 +234,10 @@ html[dir="rtl"] .workspace-nav-link:hover { transform: translateX(-2px); }
 :root { --primary: #0b6a60; --primary-foreground: #ffffff; --ring: #16887b; --accent: #e0f2f0; --accent-foreground: #0b4b45; }
 .dark { --background: #23383e; --foreground: #edf6f4; --card: #2d4a51; --card-foreground: #edf6f4; --popover: #2d4a51; --popover-foreground: #edf6f4; --muted: #3a585e; --muted-foreground: #c3d9d4; --border: #5a787e; --primary: #8bd6c2; --primary-foreground: #102b2b; --ring: #8bd6c2; --accent: #3d6266; --accent-foreground: #eaf8f3; }
 .dark body { background: #23383e; color: #edf6f4; }
-.dark .workspace { background: radial-gradient(circle at 95% 5%, #35585a 0, transparent 38%), #23383e; }
-.dark .workspace-sidebar { background: #2a464a; color: #edf6f4; border-color: #49696b; }
+.dark .workspace { background: #192c33; }
+.dark .workspace-stage { background: linear-gradient(158deg, #24464a 0%, #20383f 40%, #1a2e36 72%, #283b3a 100%); }
+.dark .workspace-stage::before { background: radial-gradient(circle at 90% 14%, #ab884542 0 11%, transparent 34%), radial-gradient(ellipse at 10% 8%, #3b7770 0%, transparent 57%), repeating-linear-gradient(128deg, #b2e5d60c 0 1px, transparent 1px 28px), linear-gradient(122deg, #2e625f 0%, #2b4e52 49%, #354d4a 100%); }
+.dark .workspace-sidebar { background-color: #2a464a; background-image: linear-gradient(165deg, #2b484b, #253d43 58%, #284147); color: #edf6f4; border-color: #49696b; }
 .dark .workspace-brand { border-color: #49696b; }
 .dark .workspace-brand:hover { background: #385a5c; }
 .dark .workspace-brand-mark { background: #e8f2ec; border-color: #89afa1; box-shadow: 0 6px 18px #0a252633; }
@@ -244,6 +251,7 @@ html[dir="rtl"] .workspace-nav-link:hover { transform: translateX(-2px); }
 .dark .workspace-panel, .dark .workspace-content .bg-white { background: #2d4a51; border-color: #5a787e; color: #edf6f4; }
 .dark .workspace-content input, .dark .workspace-content select, .dark .workspace-content textarea { background-color: #294649; color: #f1faf6; border-color: #587679; }
 .dark .workspace-content th { background: #304f53; color: #d6e9df; }
+.dark .workspace-content .text-muted-foreground { color: #cce7de; }
 .dark .workspace-content tbody tr:hover { background: #2c5154; }
 .dark .workspace-content .text-slate-800, .dark .workspace-content .text-slate-900, .dark .workspace-content .text-gray-900, .dark .workspace-content .text-gray-800, .dark .workspace-content h1, .dark .workspace-content h2 { color: #f1faf6; }
 .dark .workspace-content .text-gray-500, .dark .workspace-content .text-gray-600, .dark .workspace-content .text-gray-700, .dark .workspace-content .text-slate-700, .dark .workspace-content .text-slate-600, .dark .workspace-content .text-slate-500 { color: #c9dfda; }
@@ -258,6 +266,9 @@ html[dir="rtl"] .workspace-nav-link:hover { transform: translateX(-2px); }
 .dark .workspace-content .bg-green-100 { background: #143d2b; }
 .dark .workspace-content .bg-red-100 { background: #472730; }
 .dark .workspace-content .bg-slate-50, .dark .workspace-content .bg-gray-100, .dark .workspace-content .bg-brand-50 { background: #2c5154; }
+.dark .workspace-content .bg-gray-200 { background: #3a585e; }
+.dark .workspace-content .bg-blue-100 { background: #1e3a52; }
+.dark .workspace-content .text-blue-800 { color: #a8ccf0; }
 .dark .workspace-content .hover\:bg-gray-50:hover { background: #2c5154; }
 .dark .workspace-content .divide-gray-100 > :not([hidden]) ~ :not([hidden]) { border-color: #426066; }
 .dark .workspace-content .border-slate-200 { border-color: #587679; }

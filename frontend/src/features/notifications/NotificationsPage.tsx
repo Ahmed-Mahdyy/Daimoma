@@ -14,6 +14,7 @@ import { useLanguage } from "../../app/LanguageProvider";
 import { formatDateTime } from "../../lib/dates";
 import { AsyncState } from "../../components/ui/AsyncState";
 import { PaginationControls } from "../../components/ui/PaginationControls";
+import { notificationSummary } from "./notificationText";
 import { useState } from "react";
 
 const KIND_OPTIONS = [
@@ -160,7 +161,7 @@ export function NotificationsPage() {
                 />
                 <span className="min-w-0">
                   <span className={n.is_read ? "text-gray-500" : "font-medium"}>
-                    {n.summary}
+                    {notificationSummary(n, t)}
                   </span>
                   <time className="block text-xs text-gray-400">
                     {formatDateTime(n.created_at)}

@@ -5,6 +5,8 @@
 **Status**: Approved basis — D-009 reporting limits approved 2026-10-02 (owner): request reports use submitted date and exclude drafts; grouping by current team assignment; report range ≤ 366 days; CSV-only exports ≤ 10,000 rows; notification badge polls every 60s (paused when tab hidden); inbox 50/page; retention indefinite pending a D-008 retention decision; dashboard scopes per D-003.
 **Source**: Brief sections 4-6, 9-12, 15; phase 002 scope and phase 003/004 events.
 
+**Feature 008 extension (accepted 2026-10-05)**: [Request allocations](../008-request-allocations/spec.md) adds a self-only allocation breakdown to the personal dashboard, independently of the request report's date window. Team and organization dashboards do not expose individual grant balances; existing reporting/notification scopes and completed history remain unchanged.
+
 ## User Scenarios & Testing
 
 ### User Story 1 - Understand relevant work (Priority: P1)

@@ -18,6 +18,8 @@ pytestmark = pytest.mark.django_db
 PROTECTED_GETS = [
     "/api/v1/employees/",
     "/api/v1/requests/",
+    "/api/v1/allocations/",
+    "/api/v1/allocations/mine/",
     "/api/v1/timesheets/",
     "/api/v1/audit-events/",
     "/api/v1/notifications/",
@@ -51,6 +53,7 @@ class TestRoleEscalation:
     """An ordinary employee must never reach reviewer/admin/org surfaces."""
 
     HR_ONLY = [
+        "/api/v1/allocations/",
         "/api/v1/dashboards/organization/",
         "/api/v1/audit-events/",
         "/api/v1/reports/working-hours/export/",
@@ -151,7 +154,7 @@ class TestFieldInjection:
             organization=org,
             code="gen",
             name="General",
-            category="general",
+            unit="none",
             is_active=True,
         )
         resp = authed(employee).post(

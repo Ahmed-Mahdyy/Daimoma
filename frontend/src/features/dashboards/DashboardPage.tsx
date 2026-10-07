@@ -12,8 +12,10 @@ import {
   type Dashboard,
   type DashboardScope,
 } from "../../api/reporting";
+import { ALLOCATION_UNIT_LABELS, formatAllocationAmount } from "../../api/requests";
 import { useLanguage } from "../../app/LanguageProvider";
 import { AsyncState } from "../../components/ui/AsyncState";
+import { formatDate } from "../../lib/dates";
 import { formatMinutes } from "../timesheets/timezone";
 import { useAuth } from "../auth/auth-context";
 
@@ -56,9 +58,79 @@ function StatusChips({
   );
 }
 
+/** Personal allocation breakdown (008): each card is a dated grant — an
+ * empty list means no allocation assigned, not a zero balance; expired
+ * grants are labeled history and cannot fund new requests. */
+function AllocationCards({ allocations }: { allocations: NonNullable<Dashboard["allocations"]> }) {
+  const { t } = useLanguage();
+  return (
+    <div className="mt-7">
+      <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200">{t("Allocations")}</h3>
+      {allocations.length === 0 ? (
+        <p className="mt-3 text-sm text-slate-600 dark:text-slate-400">
+          {t("No allocations assigned.")}
+        </p>
+      ) : (
+        <ul className="mt-3 grid gap-3 sm:grid-cols-2">
+          {allocations.map((a) => (
+            <li
+              key={a.id}
+              className="rounded-2xl border border-slate-200/80 bg-white p-4 dark:border-white/10 dark:bg-white/5"
+            >
+              <div className="flex items-start justify-between gap-2">
+                <div>
+                  <p className="font-semibold text-slate-800 dark:text-slate-100">{a.type_name}</p>
+                  <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
+                    {formatDate(a.start_date)} → {formatDate(a.end_date)} · {t(ALLOCATION_UNIT_LABELS[a.unit])}
+                  </p>
+                </div>
+                {a.expired && (
+                  <span className="shrink-0 rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-700 dark:bg-white/10 dark:text-slate-300">
+                    {t("Expired")}
+                  </span>
+                )}
+              </div>
+              <dl className="mt-3 grid grid-cols-4 gap-2 text-center">
+                {(
+                  [
+                    [t("Granted"), formatAllocationAmount(a.granted, a.unit)],
+                    [t("Reserved"), formatAllocationAmount(a.reserved, a.unit)],
+                    [t("Used"), formatAllocationAmount(a.used, a.unit)],
+                    [t("Remaining"), formatAllocationAmount(a.remaining, a.unit)],
+                  ] as const
+                ).map(([label, value]) => (
+                  <div key={label}>
+                    <dt className="text-xs text-slate-500 dark:text-slate-400">{label}</dt>
+                    <dd
+                      className={`mt-0.5 text-lg font-bold ${
+                        label === t("Remaining") && a.remaining <= 0
+                          ? "text-amber-700 dark:text-amber-300"
+                          : "text-slate-800 dark:text-slate-100"
+                      }`}
+                    >
+                      {value}
+                    </dd>
+                  </div>
+                ))}
+              </dl>
+              {a.expired && (
+                <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
+                  {a.reserved > 0
+                    ? t("Expired — pending requests keep their reservation; it cannot fund new requests.")
+                    : t("Expired — it cannot fund new requests.")}
+                </p>
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
 function DashboardCard({ scope }: { scope: DashboardScope }) {
   const { t, lang } = useLanguage();
-  const { data, isLoading, error } = useQuery<Dashboard>({
+  const { data, isLoading, error, refetch } = useQuery<Dashboard>({
     queryKey: ["dashboard", scope],
     queryFn: () => getDashboard(scope),
   });
@@ -79,7 +151,7 @@ function DashboardCard({ scope }: { scope: DashboardScope }) {
         {scope === "personal" && <Link to="/reports" className="text-sm font-semibold workspace-link-quiet">{t("Explore insights")} <span aria-hidden="true">↗</span></Link>}
       </div>
       <div className="p-5 sm:p-7">
-        <AsyncState isLoading={isLoading} error={error}>
+        <AsyncState isLoading={isLoading} error={error} onRetry={() => void refetch()}>
           {data && (
             <>
               <p className="text-xs font-medium text-slate-600">{t("Period {from} → {to} ({tz})", { from: data.period.from, to: data.period.to, tz: data.period.timezone })}</p>
@@ -95,6 +167,9 @@ function DashboardCard({ scope }: { scope: DashboardScope }) {
                   <span className="mt-2 block text-xs text-slate-600">{t("Items waiting for a decision")} <span className="font-semibold text-amber-800 opacity-0 transition group-hover:opacity-100 dark:text-amber-200">{t("View")} →</span></span>
                 </Link>
               </div>
+              {scope === "personal" && data.allocations && (
+                <AllocationCards allocations={data.allocations} />
+              )}
               <div className="mt-7 grid gap-6 lg:grid-cols-2">
                 <div><h3 className="text-sm font-bold text-slate-800 dark:text-slate-200">{t("Requests")}</h3><StatusChips byStatus={data.requests.by_status} basePath="/requests" /></div>
                 <div><h3 className="text-sm font-bold text-slate-800 dark:text-slate-200">{t("Timesheets")}</h3><StatusChips byStatus={data.timesheets.by_status} basePath="/timesheets" /></div>
