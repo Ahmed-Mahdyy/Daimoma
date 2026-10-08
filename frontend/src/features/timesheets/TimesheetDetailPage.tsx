@@ -29,6 +29,8 @@ import {
   formatMinutes,
   formatTimeInZone,
   localDate,
+  nowInZone,
+  todayInZone,
   zonedToUtc,
 } from "./timezone";
 import { DayStatusBadge, TimesheetStatusBadge } from "./TimesheetStatusBadge";
@@ -185,6 +187,7 @@ function EntryDialog({
             <input
               type="datetime-local"
               value={start}
+              max={nowInZone(sheet.timezone)}
               onChange={(e) => setStart(e.target.value)}
               className={input}
             />
@@ -195,6 +198,7 @@ function EntryDialog({
             <input
               type="datetime-local"
               value={end}
+              max={nowInZone(sheet.timezone)}
               onChange={(e) => setEnd(e.target.value)}
               className={input}
             />
@@ -458,10 +462,10 @@ export function TimesheetDetailPage() {
     <div>
       <p className="mb-2 text-sm">
         <Link to="/timesheets" className="workspace-link-quiet">
-          ← {t("Timesheets")}
+          <span aria-hidden="true" className="inline-block rtl:-scale-x-100">←</span> {t("Timesheets")}
         </Link>
       </p>
-      <div className="flex flex-wrap items-start justify-between gap-3">
+      <div className="workspace-panel flex flex-wrap items-start justify-between gap-3 p-4 sm:p-5">
         <div>
           <h1 className="text-2xl font-semibold">
             {t("Week {from} – {to}", { from: sheet.period_start, to: sheet.period_end })}
@@ -492,20 +496,23 @@ export function TimesheetDetailPage() {
       <div className="mt-4 space-y-3">
         {weekDates.map((d) => {
           const day = daysByDate.get(d);
+          const isFutureDay = d > todayInZone(sheet.timezone);
           const dayEditable =
             sheetEditable &&
+            !isFutureDay &&
             (!day || EDITABLE_DAYS.has(day.status));
           const activeEntries =
             day?.entries.filter((e) => !e.voided_at) ?? [];
           const canSubmitDay =
             sheetEditable &&
+            !isFutureDay &&
             day &&
             EDITABLE_DAYS.has(day.status) &&
             activeEntries.length > 0;
           return (
             <section
               key={d}
-              className="rounded-md border bg-white p-4"
+              className={`rounded-md border bg-white p-4${isFutureDay ? " opacity-60" : ""}`}
               aria-label={`Day ${d}`}
             >
               <div className="flex flex-wrap items-center justify-between gap-2">
@@ -521,6 +528,11 @@ export function TimesheetDetailPage() {
                       : d}
                   </h2>
                   {day && <DayStatusBadge status={day.status} />}
+                  {isFutureDay && (
+                    <span className="rounded bg-gray-100 px-1.5 py-0.5 text-xs text-gray-500">
+                      {t("Upcoming")}
+                    </span>
+                  )}
                   <span className="text-sm text-gray-500">
                     {formatMinutes(day?.total_minutes ?? 0, lang)}
                   </span>

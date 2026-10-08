@@ -126,16 +126,23 @@ export function DepartmentDetailPage() {
 
   return (
     <div>
-      <span className="text-xs font-bold uppercase tracking-widest text-brand-700">{t("HR / ORGANIZATION")}</span>
-      <div className="mt-1 flex flex-wrap items-center gap-3">
-        <h1 className="text-3xl font-bold">{dept.name}</h1>
-        <Badge variant={dept.is_active ? "default" : "secondary"}>
-          {dept.is_active ? t("Active") : t("Inactive")}
-        </Badge>
-      </div>
-      <p className="mt-1 text-sm text-muted-foreground">
-        {t("Department record — members below reflect the current assignment.")}
+      <p className="mb-2 text-sm">
+        <Link to="/departments" className="workspace-backlink">
+          <span aria-hidden="true" className="inline-block rtl:-scale-x-100">←</span> {t("Departments")}
+        </Link>
       </p>
+      <div className="workspace-panel p-4 sm:p-5">
+        <span className="text-xs font-bold uppercase tracking-widest text-brand-700">{t("HR / ORGANIZATION")}</span>
+        <div className="mt-1 flex flex-wrap items-center gap-3">
+          <h1 className="text-2xl font-bold sm:text-3xl">{dept.name}</h1>
+          <Badge variant={dept.is_active ? "default" : "secondary"}>
+            {dept.is_active ? t("Active") : t("Inactive")}
+          </Badge>
+        </div>
+        <p className="mt-1 text-sm text-muted-foreground">
+          {t("Department record — members below reflect the current assignment.")}
+        </p>
+      </div>
       {errorMessage && <div className="mt-4"><Alert kind="error">{errorMessage}</Alert></div>}
       {notice && <div className="mt-4"><Alert kind="success">{notice}</Alert></div>}
       <div className="mt-6 grid gap-4 sm:grid-cols-3">

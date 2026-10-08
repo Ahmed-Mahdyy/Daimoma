@@ -54,6 +54,21 @@ class TestEmployeeProfile:
         with pytest.raises(IntegrityError):
             make_profile(org, make_user(org, "c@x.test"), "E1")
 
+    def test_phone_unique_per_org(self, org, other_org):
+        make_profile(org, make_user(org, "a@x.test"), "E1", phone="01055550000")
+        # Same phone in another org is allowed
+        make_profile(
+            other_org, make_user(other_org, "b@x.test"), "E1", phone="01055550000"
+        )
+        with pytest.raises(IntegrityError):
+            make_profile(
+                org, make_user(org, "c@x.test"), "E2", phone="01055550000"
+            )
+
+    def test_blank_phones_do_not_collide(self, org):
+        make_profile(org, make_user(org, "a@x.test"), "E1")
+        make_profile(org, make_user(org, "b@x.test"), "E2")
+
     def test_self_manager_rejected_at_db_level(self, org):
         profile = make_profile(org, make_user(org, "a@x.test"), "E1")
         profile.manager = profile

@@ -2,13 +2,21 @@ import * as React from "react"
 import { cn } from "cn"
 import { Tabs as TabsPrimitive } from "radix-ui"
 
+import { useLanguage } from "../../app/LanguageProvider"
+
 function Tabs({
   className,
+  dir,
   ...props
 }: React.ComponentProps<typeof TabsPrimitive.Root>) {
+  // Radix defaults dir to "ltr" and renders it on the root element, which
+  // would override the document's RTL direction for the whole tab subtree —
+  // always follow the active locale unless the caller overrides it.
+  const { dir: langDir } = useLanguage();
   return (
     <TabsPrimitive.Root
       data-slot="tabs"
+      dir={dir ?? langDir}
       className={cn("flex flex-col gap-4", className)}
       {...props}
     />

@@ -5,7 +5,7 @@ field — including is_staff/is_superuser/organization — must be rejected."""
 import pytest
 from rest_framework.test import APIClient
 
-from .conftest import TEST_PASSWORD
+from .conftest import TEST_PASSWORD, make_profile, make_user
 
 ME_URL = "/api/v1/me/"
 
@@ -92,6 +92,16 @@ class TestMeUpdate:
         assert employee.profile.display_name == "Sara K."
         # Separators are normalized away on write.
         assert employee.profile.phone == "+201000000000"
+
+    def test_duplicate_phone_rejected(self, logged_in, employee, org):
+        make_profile(
+            org, make_user(org, "other@acme.test"), "E099", phone="01055550000"
+        )
+        response = logged_in.patch(ME_URL, {"phone": "010 5555 0000"}, format="json")
+        assert response.status_code == 400
+        assert "phone" in response.json()["field_errors"]
+        employee.profile.refresh_from_db()
+        assert employee.profile.phone != "01055550000"
 
     def test_non_egyptian_phone_rejected(self, logged_in, employee):
         for bad in ("+1 555 000 0000", "12345", "+201812345678"):

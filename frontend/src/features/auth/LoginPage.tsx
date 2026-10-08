@@ -97,7 +97,7 @@ export function LoginPage() {
       </div>
       <div className="flex min-w-0 flex-col justify-center px-6 py-12 sm:px-12 lg:px-16 xl:px-24">
         <div className="login-card mx-auto w-full max-w-md rounded-3xl border border-[#e3ebe6] bg-white p-6 shadow-[0_24px_70px_#1b4d3920] sm:p-10">
-      <div className="mb-8 flex items-center justify-center lg:hidden"><img src={lang === "ar" ? "/brand/logo-ar.png" : "/brand/logo-en.png"} alt={t("brand.name")} className="h-28 w-auto" /></div>
+      <div className="mb-8 flex items-center justify-center lg:hidden"><img src={lang === "ar" ? "/brand/logo-ar.png" : "/brand/logo-en.png"} alt={t("brand.name")} className="h-28 w-auto dark:hidden" /><img src={lang === "ar" ? "/brand/logo-ar-dark.png" : "/brand/logo-en-dark.png"} alt="" aria-hidden="true" className="hidden h-28 w-auto dark:block" /></div>
       <div className="flex items-center justify-between gap-2"><span className="text-xs font-bold uppercase tracking-[.16em] text-brand-700">{t("login.welcomeBack")}</span><div className="flex items-center gap-1"><Button type="button" size="icon" variant="ghost" aria-label={lang === "en" ? t("shell.languageToArabic") : t("shell.languageToEnglish")} title={lang === "en" ? t("shell.languageToArabic") : t("shell.languageToEnglish")} onClick={() => setLang(lang === "en" ? "ar" : "en")}><Languages className="size-4" /></Button><Button type="button" size="icon" variant="ghost" aria-label={mode === "dark" ? t("shell.themeToLight") : t("shell.themeToDark")} onClick={toggle}>{mode === "dark" ? <Sun /> : <Moon />}</Button></div></div>
       <h1 className="mt-2 text-3xl font-bold tracking-tight text-slate-900">{t("login.signIn")}</h1>
       <p className="mt-2 text-sm text-slate-600">{t("login.tagline")}</p>

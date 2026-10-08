@@ -147,6 +147,11 @@ class EmployeeProfile(models.Model):
                 fields=["organization", "employee_code"],
                 name="profile_unique_employee_code_per_org",
             ),
+            models.UniqueConstraint(
+                fields=["organization", "phone"],
+                condition=~models.Q(phone=""),
+                name="profile_unique_phone_per_org",
+            ),
             models.CheckConstraint(
                 condition=~models.Q(manager=models.F("pk")),
                 name="profile_no_self_manager",

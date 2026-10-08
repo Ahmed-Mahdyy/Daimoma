@@ -151,16 +151,18 @@ export function RequestFormPage() {
 
   return (
     <div className="mx-auto max-w-2xl">
-      <h1 className="text-2xl font-semibold">{t("New request")}</h1>
-      <p className="mt-1 text-sm text-gray-600">
-        {t("Saved as a draft — nothing is sent to a reviewer until you submit.")}
-      </p>
       <AsyncState isLoading={isLoading} error={error}>
         <form
           onSubmit={handleSubmit(onSubmit)}
-          className="mt-6 flex flex-col gap-4"
+          className="workspace-panel flex flex-col gap-4 p-6"
           noValidate
         >
+          <div>
+            <h1 className="text-2xl font-semibold">{t("New request")}</h1>
+            <p className="mt-1 text-sm text-gray-600">
+              {t("Saved as a draft — nothing is sent to a reviewer until you submit.")}
+            </p>
+          </div>
           <div>
             <label htmlFor="type" className="block text-sm font-medium">
               {t("Request type")}

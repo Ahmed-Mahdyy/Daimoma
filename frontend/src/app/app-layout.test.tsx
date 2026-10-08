@@ -82,6 +82,13 @@ describe("AppLayout role-aware navigation", () => {
 
   it("groups request types and allocations under Requests for HR", () => {
     renderLayout(["HR"]);
+    // Menus start collapsed — expand them to reach the child links.
+    fireEvent.click(
+      screen.getByRole("button", { name: "Expand Requests Menu" }),
+    );
+    fireEvent.click(
+      screen.getByRole("button", { name: "Expand Settings Menu" }),
+    );
     expect(screen.getByRole("link", { name: "Audit" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Departments" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Settings" })).toBeInTheDocument();
@@ -110,6 +117,11 @@ describe("AppLayout role-aware navigation", () => {
     expect(document.documentElement).toHaveAttribute("dir", "rtl");
     expect(localStorage.getItem("daimoma-lang")).toBe("ar");
     expect(screen.getByRole("link", { name: "الطلبات" })).toBeInTheDocument();
+    // Directional icons mirror in RTL so "expand" points left.
+    const expandIcon = screen
+      .getByRole("button", { name: "توسيع قائمة الإعدادات" })
+      .querySelector("svg");
+    expect(expandIcon).toHaveClass("rtl:-scale-x-100");
 
     fireEvent.click(
       screen.getByRole("button", { name: "التبديل إلى الإنجليزية" }),

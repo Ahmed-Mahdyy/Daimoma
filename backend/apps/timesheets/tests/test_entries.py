@@ -245,6 +245,26 @@ class TestDaySubmission:
         resp = c.post(f"{TS}{sheet.id}/days/2026-09-14/submit/")
         assert resp.status_code == 400
 
+    def test_future_day_submit_rejected(self, api_client, emp, org):
+        """A sheet whose period still runs into the future (e.g. opened under
+        a previous week-start) must refuse actions on its upcoming days."""
+        from apps.timesheets.models import Timesheet
+
+        today = timezone.localdate()
+        sheet = Timesheet.objects.create(
+            employee=emp.profile,
+            organization=org,
+            period_start=today - timedelta(days=3),
+            period_end=today + timedelta(days=3),
+            timezone=org.timezone,
+        )
+        c = authed(api_client, emp)
+        resp = c.post(
+            f"{TS}{sheet.id}/days/{(today + timedelta(days=1)).isoformat()}/submit/"
+        )
+        assert resp.status_code == 400
+        assert "future" in str(resp.json()).lower()
+
     def test_double_submit_conflict(self, api_client, emp, sheet):
         c = authed(api_client, emp)
         self._add(c, sheet)

@@ -123,3 +123,28 @@ test("mobile viewport: request form is usable at 360px", async ({ page }) => {
   await expect(page.getByLabel(/request type/i)).toBeVisible();
   await expect(page.getByLabel(/^title$/i)).toBeVisible();
 });
+
+test("employee bulk-deletes a draft via row selection", async ({ page }) => {
+  await loginAs(page, "employee-e2e@acme.test");
+  const draftTitle = `E2E delete ${Date.now()}`;
+
+  await page.goto("/requests/new");
+  await page.getByLabel(/request type/i).selectOption({ label: "General request" });
+  await page.getByLabel(/^title$/i).fill(draftTitle);
+  await page.getByLabel(/details/i).fill("Disposable e2e draft");
+  await page.getByRole("button", { name: /save draft/i }).click();
+  await expect(page.getByRole("heading", { name: draftTitle })).toBeVisible();
+
+  // List: only draft rows offer a selection checkbox.
+  await page.goto("/requests?status=draft");
+  const row = page.getByRole("row").filter({ hasText: draftTitle });
+  await row.getByRole("checkbox").check();
+  await expect(page.getByText("1 selected")).toBeVisible();
+
+  await page.getByRole("button", { name: /delete selected/i }).click();
+  const dialog = page.getByRole("dialog");
+  await expect(dialog).toBeVisible();
+  await dialog.getByRole("button", { name: /^delete$/i }).click();
+  await expect(row).toHaveCount(0);
+  await signOut(page);
+});

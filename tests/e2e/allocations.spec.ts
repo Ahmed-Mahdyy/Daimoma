@@ -21,6 +21,13 @@ async function loginAs(page: Page, email: string) {
   await expect(page.getByText(/my dashboard/i)).toBeVisible();
 }
 
+async function openFilters(page: Page) {
+  const toggle = page.getByRole("button", { name: /^filters/i });
+  if ((await toggle.getAttribute("aria-expanded")) === "false") {
+    await toggle.click();
+  }
+}
+
 async function expectNoSeriousViolations(page: Page, name: string) {
   const results = await new AxeBuilder({ page })
     .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"])
@@ -46,9 +53,16 @@ test.describe.serial("request allocations", () => {
     // Wait for the list to finish loading before deciding the type is absent.
     await expect(page.getByRole("row", { name: /General request/ })).toBeVisible();
     if ((await row.count()) === 0) {
+      await page.getByRole("link", { name: /new request type/i }).click();
+      await expect(
+        page.getByRole("heading", { name: "New request type" }),
+      ).toBeVisible();
       await page.getByLabel(/^name$/i).fill(TYPE_NAME);
       await page.getByLabel(/unit/i).selectOption({ label: "Units" });
       await page.getByRole("button", { name: /add type/i }).click();
+      await expect(
+        page.getByRole("heading", { name: "Request types" }),
+      ).toBeVisible();
       await expect(row).toBeVisible();
     }
     // The unit column doubles as the allocation flag — "Yes" means the type
@@ -59,6 +73,7 @@ test.describe.serial("request allocations", () => {
     await expect(
       page.getByRole("heading", { name: "Employee allocations" }),
     ).toBeVisible();
+    await openFilters(page);
     await page.getByRole("combobox", { name: "Employee" }).first().selectOption({ label: EMPLOYEE_NAME });
     const grantRow = page.getByRole("row", { name: new RegExp(TYPE_NAME) });
     // Wait for the filtered list to settle before deciding the grant is absent.
@@ -80,6 +95,7 @@ test.describe.serial("request allocations", () => {
       await expect(
         page.getByRole("heading", { name: "Employee allocations" }),
       ).toBeVisible();
+      await openFilters(page);
       await page.getByRole("combobox", { name: "Employee" }).first().selectOption({ label: EMPLOYEE_NAME });
       await expect(page.getByRole("row", { name: new RegExp(TYPE_NAME) })).toBeVisible();
     }
@@ -118,6 +134,7 @@ test.describe.serial("request allocations", () => {
   }) => {
     await loginAs(page, "hr-e2e@acme.test");
     await page.goto("/settings/allocations");
+    await openFilters(page);
     await page.getByRole("combobox", { name: "Employee" }).first().selectOption({ label: EMPLOYEE_NAME });
     const row = page.getByRole("row", { name: new RegExp(TYPE_NAME) });
     await expect(row).toBeVisible();

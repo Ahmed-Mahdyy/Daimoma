@@ -1076,6 +1076,34 @@ paths:
               schema:
                 $ref: '#/components/schemas/OrgSettings'
           description: ''
+  /api/v1/organization/settings/test-email/:
+    post:
+      operationId: organization_settings_test_email_create
+      description: |-
+        POST — HR verifies the SMTP connection; a probe email goes to the
+        caller. Optional body overrides test unsaved form values.
+      tags:
+      - organization
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OrgEmailTest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/OrgEmailTest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/OrgEmailTest'
+      security:
+      - cookieAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrgDetailResponse'
+          description: ''
   /api/v1/reports/requests/:
     get:
       operationId: reports_requests_retrieve
@@ -2522,6 +2550,14 @@ components:
           type: string
       required:
       - detail
+    EmailModeEnum:
+      enum:
+      - env
+      - smtp
+      type: string
+      description: |-
+        * `env` - Environment default
+        * `smtp` - Custom SMTP
     EmployeeDetail:
       type: object
       description: Safe directory fields — never exposes auth internals.
@@ -3115,6 +3151,37 @@ components:
           type: string
       required:
       - detail
+    OrgEmailTest:
+      type: object
+      description: |-
+        Optional overrides for the test-connection call; omitted fields fall
+        back to the stored organization config. A blank password means 'use the
+        stored one'.
+      properties:
+        email_host:
+          type: string
+          maxLength: 255
+        email_port:
+          type: integer
+          maximum: 65535
+          minimum: 1
+        email_host_user:
+          type: string
+          maxLength: 255
+        email_host_password:
+          type: string
+          maxLength: 255
+        email_use_tls:
+          type: boolean
+        email_use_ssl:
+          type: boolean
+        email_timeout:
+          type: integer
+          maximum: 300
+          minimum: 1
+        email_from:
+          type: string
+          maxLength: 255
     OrgSettings:
       type: object
       properties:
@@ -3139,7 +3206,38 @@ components:
           nullable: true
           description: Eligible non-self HR reviewer used when no manager can review
             (D-004).
+        email_mode:
+          $ref: '#/components/schemas/EmailModeEnum'
+        email_host:
+          type: string
+          maxLength: 255
+        email_port:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+        email_host_user:
+          type: string
+          maxLength: 255
+        email_host_password:
+          type: string
+          writeOnly: true
+          maxLength: 255
+        email_password_set:
+          type: boolean
+          readOnly: true
+        email_use_tls:
+          type: boolean
+        email_use_ssl:
+          type: boolean
+        email_timeout:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+        email_from:
+          type: string
+          maxLength: 255
       required:
+      - email_password_set
       - id
       - name
     PagedAuditEvents:
@@ -3427,6 +3525,36 @@ components:
           nullable: true
           description: Eligible non-self HR reviewer used when no manager can review
             (D-004).
+        email_mode:
+          $ref: '#/components/schemas/EmailModeEnum'
+        email_host:
+          type: string
+          maxLength: 255
+        email_port:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+        email_host_user:
+          type: string
+          maxLength: 255
+        email_host_password:
+          type: string
+          writeOnly: true
+          maxLength: 255
+        email_password_set:
+          type: boolean
+          readOnly: true
+        email_use_tls:
+          type: boolean
+        email_use_ssl:
+          type: boolean
+        email_timeout:
+          type: integer
+          maximum: 2147483647
+          minimum: 0
+        email_from:
+          type: string
+          maxLength: 255
     PatchedRequestDraft:
       type: object
       description: |-

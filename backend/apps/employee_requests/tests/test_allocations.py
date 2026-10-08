@@ -218,6 +218,48 @@ def test_other_organization_grant_does_not_leak(api_client, allocation_cast, oth
     ).status_code == 404
 
 
+def test_grant_list_search_matches_employee_and_type(api_client, org, allocation_cast, other_org):
+    from apps.employee_requests.allocations import create_grant
+    from apps.employee_requests.models import EmployeeAllocationGrant
+
+    employee, _, hr = allocation_cast
+    employee.profile.display_name = "Nadia Saleh"
+    employee.profile.save(update_fields=["display_name"])
+    eq = RequestType.objects.create(
+        organization=org, code="EQ", name="Equipment", unit="unit",
+    )
+    wfh = RequestType.objects.create(
+        organization=org, code="WFH", name="Remote days", unit="unit",
+    )
+    grant = create_grant(hr, employee.profile, eq, date(2026, 10, 1), date(2026, 10, 31), 2)
+    other = create_grant(hr, employee.profile, wfh, date(2026, 10, 1), date(2026, 10, 31), 3)
+    both = {str(grant.pk), str(other.pk)}
+
+    foreign = make_profile(other_org, make_user(other_org, "nadia-clone@other.test"), "F200")
+    foreign_type = RequestType.objects.create(
+        organization=other_org, code="EQ", name="Equipment", unit="unit",
+    )
+    EmployeeAllocationGrant.objects.create(
+        organization=other_org, employee=foreign, request_type=foreign_type,
+        unit="unit", start_date=date(2026, 10, 1), end_date=date(2026, 10, 31),
+        initial_amount=2,
+    )
+
+    assert login(api_client, hr).status_code == 200
+    url = "/api/v1/allocations/"
+
+    # Employee name, code and email all match both of the employee's grants.
+    for term in ("nadia", "A100", "allocation-employee@acme.test"):
+        results = api_client.get(url, {"search": term}).json()["results"]
+        assert {r["id"] for r in results} == both
+    # Type name narrows to a single grant.
+    by_type = api_client.get(url, {"search": "equipment"}).json()["results"]
+    assert [r["id"] for r in by_type] == [str(grant.pk)]
+    # No-match and cross-org isolation.
+    assert api_client.get(url, {"search": "no-such-thing"}).json()["count"] == 0
+    assert api_client.get(url, {"search": "nadia-clone"}).json()["count"] == 0
+
+
 def test_preview_shows_billed_minutes_without_reserving(api_client, org, allocation_cast):
     from apps.employee_requests.allocations import create_grant
 

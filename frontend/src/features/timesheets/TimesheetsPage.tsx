@@ -12,12 +12,14 @@ import {
 } from "@/lib/table-sorting";
 import { FilterBar, FilterSelect, SearchField } from "@/components/ui/filter-bar";
 import { Input } from "@/components/ui/input";
+import { PageHeader } from "@/components/ui/page-header";
 import {
   getOrCreateTimesheet,
   listTimesheets,
   type Timesheet,
 } from "../../api/timesheets";
 import { apiErrorMessage } from "../../api/client";
+import { localToday } from "../../lib/dates";
 import { useLanguage } from "../../app/LanguageProvider";
 import { AsyncState } from "../../components/ui/AsyncState";
 import { PaginationControls } from "../../components/ui/PaginationControls";
@@ -33,12 +35,6 @@ const STATUS_OPTIONS = [
   { value: "returned", label: "Returned" },
   { value: "rejected", label: "Rejected" },
 ];
-
-/** Local "today" for the week picker — UTC slicing would drift near midnight. */
-function localToday() {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-}
 
 const columns = (
   t: (key: string, params?: Record<string, string | number>) => string,
@@ -141,39 +137,49 @@ export function TimesheetsPage() {
 
   return (
     <div>
-      <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
-        <div><span className="text-xs font-bold uppercase tracking-widest text-brand-700">{t("WORKSPACE / TIME")}</span><h1 className="mt-1 text-3xl font-bold">{t("Timesheets")}</h1><p className="mt-1 text-sm text-slate-600">{t("Record time and follow each week's progress.")}</p></div>
-        <div className="flex items-center gap-2">
-          <label className="text-sm text-gray-600">
-            <span className="sr-only">{t("Week containing date")}</span>
-            <Input
-              type="date"
-              value={anchorDate}
-              max={localToday()}
-              onChange={(e) => setAnchorDate(e.target.value)}
-              className="rounded-md border border-gray-300 px-2 py-1.5 text-sm"
-            />
-          </label>
-          <Button type="button" onClick={() => openWeek.mutate(anchorDate)} disabled={openWeek.isPending}>
-            {t("Open week")}
-          </Button>
-        </div>
-      </div>
       {openWeek.isError && (
         <p role="alert" className="mb-3 text-sm text-red-700">
           {apiErrorMessage(openWeek.error)}
         </p>
       )}
 
-      <FilterBar>
-        <SearchField
-          label={t("Search")}
-          ariaLabel={t("Search timesheets")}
-          value={searchInput}
-          onChange={setSearchInput}
-          onSearch={(v) => setParam("search", v)}
-          placeholder={t("Employee name, code or email…")}
-        />
+      <FilterBar
+        header={
+          <PageHeader
+            eyebrow={t("WORKSPACE / TIME")}
+            title={t("Timesheets")}
+            description={t("Record time and follow each week's progress.")}
+            actions={
+              <>
+                <label className="text-sm text-gray-600">
+                  <span className="sr-only">{t("Week containing date")}</span>
+                  <Input
+                    type="date"
+                    value={anchorDate}
+                    max={localToday()}
+                    onChange={(e) => setAnchorDate(e.target.value)}
+                    className="rounded-md border border-gray-300 px-2 py-1.5 text-sm"
+                  />
+                </label>
+                <Button type="button" onClick={() => openWeek.mutate(anchorDate)} disabled={openWeek.isPending || anchorDate > localToday()}>
+                  {t("Open week")}
+                </Button>
+              </>
+            }
+          />
+        }
+        activeFilters={[filters.status].filter(Boolean).length}
+        search={
+          <SearchField
+            label={t("Search")}
+            ariaLabel={t("Search timesheets")}
+            value={searchInput}
+            onChange={setSearchInput}
+            onSearch={(v) => setParam("search", v)}
+            placeholder={t("Employee name, code or email…")}
+          />
+        }
+      >
         <FilterSelect
           label={t("Status")}
           value={filters.status}

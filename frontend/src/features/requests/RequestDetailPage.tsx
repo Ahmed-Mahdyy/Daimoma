@@ -1,10 +1,12 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Trash2 } from "lucide-react";
 import { useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 
 import { ApiError } from "../../api/client";
 import {
   approveRequest,
+  deleteRequest,
   getRequest,
   getRequestHistory,
   rejectRequest,
@@ -116,9 +118,11 @@ export function RequestDetailPage() {
   const { t } = useLanguage();
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const [serverError, setServerError] = useState<string | null>(null);
   const [reasonAction, setReasonAction] = useState<"reject" | "return" | null>(null);
   const [confirmApprove, setConfirmApprove] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   const { data: req, isLoading, error } = useQuery({
     queryKey: ["request", id],
@@ -180,6 +184,16 @@ export function RequestDetailPage() {
     onError,
   });
 
+  const del = useMutation({
+    mutationFn: (id: string) => deleteRequest(id),
+    onSuccess: () => {
+      setConfirmDelete(false);
+      void queryClient.invalidateQueries({ queryKey: ["requests"] });
+      navigate("/requests");
+    },
+    onError,
+  });
+
   const isOwner = !!user && !!req && req.employee_email === user.email;
   const isReviewer =
     !!user && !!req?.current_step && req.current_step.reviewer_email === user.email;
@@ -190,17 +204,21 @@ export function RequestDetailPage() {
       <AsyncState isLoading={isLoading} error={error} emptyText="">
         {req && (
           <>
-            <div className="mb-1 flex items-center justify-between">
-              <Link to="/requests" className="text-sm workspace-link-quiet workspace-link-muted">
-                ← {t("Requests")}
+            <p className="mb-2 text-sm">
+              <Link to="/requests" className="workspace-link-quiet workspace-link-muted">
+                <span aria-hidden="true" className="inline-block rtl:-scale-x-100">←</span> {t("Requests")}
               </Link>
+            </p>
+            <div className="workspace-panel mb-4 flex flex-wrap items-start justify-between gap-3 p-4 sm:p-5">
+              <div className="min-w-0">
+                <h1 className="text-2xl font-semibold">{req.title}</h1>
+                <p className="mt-1 text-sm text-gray-600">
+                  {req.type_name} · {req.employee_name || req.employee_email}
+                  {req.cycle > 0 && ` · ${t("cycle {n}", { n: req.cycle })}`}
+                </p>
+              </div>
               <StatusBadge status={req.status} />
             </div>
-            <h1 className="text-2xl font-semibold">{req.title}</h1>
-            <p className="mt-1 text-sm text-gray-600">
-              {req.type_name} · {req.employee_name || req.employee_email}
-              {req.cycle > 0 && ` · ${t("cycle {n}", { n: req.cycle })}`}
-            </p>
 
             {serverError && (
               <p
@@ -327,6 +345,17 @@ export function RequestDetailPage() {
                       ? t("Submit for review")
                       : t("Resubmit")}
                 </button>
+                {req.status === "draft" && (
+                  <button
+                    type="button"
+                    disabled={del.isPending}
+                    onClick={() => setConfirmDelete(true)}
+                    className="ms-auto inline-flex items-center gap-1.5 rounded-md border border-[#f2c9c2] px-3 py-1.5 text-sm font-semibold text-[#b42318] transition-colors hover:bg-[#fdf2f0] disabled:opacity-60 dark:border-[#d5715b]/30 dark:hover:bg-[#b42318]/15"
+                  >
+                    <Trash2 className="size-4" aria-hidden="true" />
+                    {t("Delete draft")}
+                  </button>
+                )}
               </div>
             )}
 
@@ -381,6 +410,17 @@ export function RequestDetailPage() {
               confirmLabel={t("Approve")}
               onConfirm={() => decide.mutate({ action: "approve" })}
               onCancel={() => setConfirmApprove(false)}
+            />
+            <ConfirmDialog
+              open={confirmDelete}
+              danger
+              title={t("Delete this draft?")}
+              body={t("This will permanently delete “{title}”. This cannot be undone.", {
+                title: req.title,
+              })}
+              confirmLabel={t("Delete")}
+              onConfirm={() => del.mutate(req.id)}
+              onCancel={() => setConfirmDelete(false)}
             />
           </>
         )}

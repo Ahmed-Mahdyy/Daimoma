@@ -10,7 +10,7 @@ import {
   orderingToSorting,
   sortingToOrdering,
 } from "@/lib/table-sorting";
-import { FilterInput, FilterSelect } from "@/components/ui/filter-bar";
+import { FilterInput, FilterSelect, FiltersToggle } from "@/components/ui/filter-bar";
 import { listEmployees } from "../../api/employees";
 import { listRequestTypes } from "../../api/requests";
 import {
@@ -316,6 +316,15 @@ export function ReportsPage() {
     setParams(next);
   };
 
+  const reportActiveFilters = [
+    filters.from,
+    filters.to,
+    filters.status,
+    filters.employee,
+    filters.type,
+  ].filter(Boolean).length;
+  const [filtersOpen, setFiltersOpen] = useState(reportActiveFilters > 0);
+
   const sorting = orderingToSorting(filters.ordering);
   const onSortingChange: OnChangeFn<SortingState> = (u) =>
     setFilter("ordering", sortingToOrdering(applySortingUpdater(u, sorting)));
@@ -368,6 +377,16 @@ export function ReportsPage() {
       </div>
 
       <div className="mt-4 flex flex-wrap items-end gap-x-4 gap-y-3">
+        <FiltersToggle
+          open={filtersOpen}
+          activeFilters={reportActiveFilters}
+          onToggle={() => setFiltersOpen((v) => !v)}
+        />
+        <div
+          className={`${
+            filtersOpen ? "flex" : "hidden"
+          } w-full flex-wrap items-end gap-x-4 gap-y-3 max-md:[&>*]:w-full`}
+        >
         <FilterInput
           label={t("From")}
           type="date"
@@ -416,6 +435,7 @@ export function ReportsPage() {
             onChange={(v) => setFilter("type", v)}
           />
         )}
+        </div>
         <ExportButton
           kind={tab === "hours" ? "working-hours" : "requests"}
           params={tab === "hours" ? hoursParams : requestsParams}

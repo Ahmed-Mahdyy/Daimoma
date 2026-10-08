@@ -89,12 +89,13 @@ export function PunchWidget() {
         <button
           type="button"
           disabled={action.isPending}
+          aria-label={t("punch.checkIn")}
+          title={t("punch.checkIn")}
           onClick={() => action.mutate("in")}
-          className="inline-flex items-center gap-1.5 rounded-full border border-brand-700/30 bg-brand-700/10 px-3 py-1.5 text-xs font-bold text-brand-800 transition-colors hover:bg-brand-700 hover:text-white disabled:opacity-60 dark:border-[#8bd6c2]/40 dark:bg-[#8bd6c2]/10 dark:text-[#8bd6c2] dark:hover:bg-[#8bd6c2] dark:hover:text-[#102b2b]"
+          className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-brand-700/30 bg-brand-700/10 px-3 py-1.5 text-xs font-bold text-brand-800 transition-colors hover:bg-brand-700 hover:text-white disabled:opacity-60 dark:border-[#8bd6c2]/40 dark:bg-[#8bd6c2]/10 dark:text-[#8bd6c2] dark:hover:bg-[#8bd6c2] dark:hover:text-[#102b2b]"
         >
           <LogIn className="size-3.5" aria-hidden="true" />
           <span className="hidden sm:inline">{action.isPending ? "…" : t("punch.checkIn")}</span>
-          <span className="sm:hidden">{action.isPending ? "…" : t("punch.checkIn")}</span>
         </button>
       ) : (
         <div className="inline-flex items-center gap-1 rounded-full border border-emerald-600/40 bg-emerald-600/10 py-1 pe-1 ps-2.5 dark:border-[#8bd6c2]/40 dark:bg-[#8bd6c2]/10">

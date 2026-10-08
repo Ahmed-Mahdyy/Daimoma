@@ -668,6 +668,26 @@ export interface paths {
         patch: operations["organization_settings_partial_update"];
         trace?: never;
     };
+    "/api/v1/organization/settings/test-email/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * @description POST — HR verifies the SMTP connection; a probe email goes to the
+         *     caller. Optional body overrides test unsaved form values.
+         */
+        post: operations["organization_settings_test_email_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/reports/requests/": {
         parameters: {
             query?: never;
@@ -1322,6 +1342,12 @@ export interface components {
         DetailResponse: {
             detail: string;
         };
+        /**
+         * @description * `env` - Environment default
+         *     * `smtp` - Custom SMTP
+         * @enum {string}
+         */
+        EmailModeEnum: "env" | "smtp";
         /** @description Safe directory fields — never exposes auth internals. */
         EmployeeDetail: {
             /** Format: uuid */
@@ -1554,6 +1580,21 @@ export interface components {
         OrgDetailResponse: {
             detail: string;
         };
+        /**
+         * @description Optional overrides for the test-connection call; omitted fields fall
+         *     back to the stored organization config. A blank password means 'use the
+         *     stored one'.
+         */
+        OrgEmailTest: {
+            email_host?: string;
+            email_port?: number;
+            email_host_user?: string;
+            email_host_password?: string;
+            email_use_tls?: boolean;
+            email_use_ssl?: boolean;
+            email_timeout?: number;
+            email_from?: string;
+        };
         OrgSettings: {
             /** Format: uuid */
             readonly id: string;
@@ -1566,6 +1607,16 @@ export interface components {
              * @description Eligible non-self HR reviewer used when no manager can review (D-004).
              */
             fallback_reviewer?: string | null;
+            email_mode?: components["schemas"]["EmailModeEnum"];
+            email_host?: string;
+            email_port?: number;
+            email_host_user?: string;
+            email_host_password?: string;
+            readonly email_password_set: boolean;
+            email_use_tls?: boolean;
+            email_use_ssl?: boolean;
+            email_timeout?: number;
+            email_from?: string;
         };
         PagedAuditEvents: {
             count: number;
@@ -1692,6 +1743,16 @@ export interface components {
              * @description Eligible non-self HR reviewer used when no manager can review (D-004).
              */
             fallback_reviewer?: string | null;
+            email_mode?: components["schemas"]["EmailModeEnum"];
+            email_host?: string;
+            email_port?: number;
+            email_host_user?: string;
+            email_host_password?: string;
+            readonly email_password_set?: boolean;
+            email_use_tls?: boolean;
+            email_use_ssl?: boolean;
+            email_timeout?: number;
+            email_from?: string;
         };
         /**
          * @description Draft input allowlist — typed fields only; ownership/status/
@@ -3053,6 +3114,31 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["OrgSettings"];
+                };
+            };
+        };
+    };
+    organization_settings_test_email_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["OrgEmailTest"];
+                "application/x-www-form-urlencoded": components["schemas"]["OrgEmailTest"];
+                "multipart/form-data": components["schemas"]["OrgEmailTest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrgDetailResponse"];
                 };
             };
         };

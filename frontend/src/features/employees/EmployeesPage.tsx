@@ -11,6 +11,7 @@ import {
   sortingToOrdering,
 } from "@/lib/table-sorting";
 import { FilterBar, FilterSelect, SearchField } from "@/components/ui/filter-bar";
+import { PageHeader } from "@/components/ui/page-header";
 
 import { listDepartments } from "../../api/departments";
 import { listEmployees, type EmployeeSummary } from "../../api/employees";
@@ -108,20 +109,34 @@ export function EmployeesPage() {
 
   return (
     <div>
-      <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
-        <div><span className="text-xs font-bold uppercase tracking-widest text-brand-700">{t("PEOPLE / DIRECTORY")}</span><h1 className="mt-1 text-3xl font-bold">{t("Employees")}</h1><p className="mt-1 text-sm text-slate-600">{t("Find teammates and manage your organization.")}</p></div>
-        {isHr && <div className="flex flex-wrap items-center gap-2"><Button asChild variant="outline"><Link to="/departments">{t("Departments")}</Link></Button><Button asChild><Link to="/employees/new">{t("New employee")}</Link></Button></div>}
-      </div>
-
-      <FilterBar>
-        <SearchField
-          label={t("Search")}
-          ariaLabel={t("Search employees")}
-          value={searchInput}
-          onChange={setSearchInput}
-          onSearch={(v) => setParam("search", v)}
-          placeholder={t("Name, code or email…")}
-        />
+      <FilterBar
+        header={
+          <PageHeader
+            eyebrow={t("PEOPLE / DIRECTORY")}
+            title={t("Employees")}
+            description={t("Find teammates and manage your organization.")}
+            actions={
+              isHr ? (
+                <>
+                  <Button asChild variant="outline"><Link to="/departments">{t("Departments")}</Link></Button>
+                  <Button asChild><Link to="/employees/new">{t("New employee")}</Link></Button>
+                </>
+              ) : undefined
+            }
+          />
+        }
+        activeFilters={[filters.is_active, filters.role, filters.department].filter(Boolean).length}
+        search={
+          <SearchField
+            label={t("Search")}
+            ariaLabel={t("Search employees")}
+            value={searchInput}
+            onChange={setSearchInput}
+            onSearch={(v) => setParam("search", v)}
+            placeholder={t("Name, code or email…")}
+          />
+        }
+      >
         <FilterSelect
           label={t("Status")}
           ariaLabel={t("Filter by status")}

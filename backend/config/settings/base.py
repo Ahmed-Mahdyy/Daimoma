@@ -96,10 +96,21 @@ CSRF_COOKIE_SAMESITE = "Lax"
 # Origins allowed to submit unsafe requests — the SPA origin, env-driven.
 CSRF_TRUSTED_ORIGINS = env.list("DJANGO_CSRF_TRUSTED_ORIGINS", default=[])
 
+# Email delivery — fully env-driven. Development defaults to the console
+# backend; production sets the SMTP backend plus host/credential vars.
+# USE_TLS and USE_SSL are mutually exclusive (Django raises if both are true).
 EMAIL_BACKEND = env(
     "DJANGO_EMAIL_BACKEND", default="django.core.mail.backends.console.EmailBackend"
 )
+EMAIL_HOST = env("DJANGO_EMAIL_HOST", default="localhost")
+EMAIL_PORT = env.int("DJANGO_EMAIL_PORT", default=25)
+EMAIL_HOST_USER = env("DJANGO_EMAIL_HOST_USER", default="")
+EMAIL_HOST_PASSWORD = env("DJANGO_EMAIL_HOST_PASSWORD", default="")
+EMAIL_USE_TLS = env.bool("DJANGO_EMAIL_USE_TLS", default=False)
+EMAIL_USE_SSL = env.bool("DJANGO_EMAIL_USE_SSL", default=False)
+EMAIL_TIMEOUT = env.int("DJANGO_EMAIL_TIMEOUT", default=30)
 DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL", default="no-reply@daimoma.local")
+SERVER_EMAIL = env("DJANGO_SERVER_EMAIL", default=DEFAULT_FROM_EMAIL)
 FRONTEND_BASE_URL = env("FRONTEND_BASE_URL", default="http://localhost:5173")
 
 INVITATION_TOKEN_HOURS = env.int("INVITATION_TOKEN_HOURS", default=48)

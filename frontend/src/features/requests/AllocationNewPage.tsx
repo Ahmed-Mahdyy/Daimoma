@@ -109,22 +109,23 @@ export function AllocationNewPage() {
 
   return (
     <div className="mx-auto max-w-2xl">
-      <span className="text-xs font-bold uppercase tracking-widest text-brand-700">
-        {t("HR / WORKFLOWS")}
-      </span>
-      <h1 className="mt-1 text-3xl font-bold">{t("Add allocation")}</h1>
-      <p className="mt-1 text-sm text-gray-600">
-        {t("Award a dated allowance in the request type's unit. Requests draw from it while they fit inside the period; overlapping allocations for the same employee and type are not allowed.")}
-      </p>
-
       {serverError && (
-        <div className="mt-3">
+        <div className="mb-3">
           <Alert kind="error">{serverError}</Alert>
         </div>
       )}
 
       <AsyncState isLoading={loadingEmployees || loadingTypes} error={employeesError ?? typesError}>
-        <form className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2" noValidate onSubmit={submit}>
+        <form className="workspace-panel grid grid-cols-1 gap-4 p-6 sm:grid-cols-2" noValidate onSubmit={submit}>
+          <div className="sm:col-span-2">
+            <span className="text-xs font-bold uppercase tracking-widest text-brand-700">
+              {t("HR / WORKFLOWS")}
+            </span>
+            <h1 className="mt-1 text-2xl font-bold sm:text-3xl">{t("Add allocation")}</h1>
+            <p className="mt-1 text-sm text-gray-600">
+              {t("Award a dated allowance in the request type's unit. Requests draw from it while they fit inside the period; overlapping allocations for the same employee and type are not allowed.")}
+            </p>
+          </div>
           <label className="block text-sm font-medium">
             {t("Employee")}
             <select

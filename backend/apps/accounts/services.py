@@ -5,6 +5,7 @@ here. Raw tokens are never stored or logged — only their SHA-256 digest."""
 import logging
 import secrets
 from datetime import timedelta
+from email.mime.image import MIMEImage
 
 from config.exceptions import InvalidCredentials, InvalidToken
 from django.conf import settings
@@ -13,7 +14,7 @@ from django.contrib.auth.password_validation import validate_password
 from django.contrib.sessions.models import Session
 from django.core.cache import cache
 from django.core.exceptions import ValidationError as DjangoValidationError
-from django.core.mail import send_mail
+from django.core.mail import EmailMultiAlternatives
 from django.db import transaction
 from django.utils import timezone
 from rest_framework.exceptions import PermissionDenied, Throttled, ValidationError
@@ -51,12 +52,86 @@ def _issue_token(user, purpose, ttl):
     return raw
 
 
-def _send_link(user, raw_token, path, subject):
-    """Delivery via configured backend (console/file locally). The token lives
-    only inside the emailed link — never in logs."""
+def _org_mail_connection(org):
+    """HR-configured SMTP (Settings > Email) or None for the env default."""
+    if org is None or org.email_mode != "smtp" or not org.email_host.strip():
+        return None
+    from django.core.mail import get_connection
+
+    return get_connection(
+        backend="django.core.mail.backends.smtp.EmailBackend",
+        host=org.email_host,
+        port=org.email_port,
+        username=org.email_host_user,
+        password=org.email_host_password,
+        use_tls=org.email_use_tls,
+        use_ssl=org.email_use_ssl,
+        timeout=org.email_timeout,
+    )
+
+
+def _send_link(user, raw_token, path, subject, *, heading, intro, action, expiry):
+    """Branded multipart email: plain-text fallback + HTML with the logo
+    embedded as a related part (works without a public asset host).
+    Delivery via the org's SMTP config when enabled, else the environment
+    backend. The token lives only inside the emailed link — never in logs."""
     link = f"{settings.FRONTEND_BASE_URL}{path}?token={raw_token}"
+    org = getattr(user, "organization", None)
+    connection = _org_mail_connection(org)
+    from_email = (org.email_from or None) if connection is not None else None
+    logo_path = settings.BASE_DIR / "assets" / "brand" / "logo.png"
+    logo_html = (
+        '<img src="cid:daimoma-logo" alt="Daimoma" width="150" '
+        'style="display:block;margin:0 auto;max-width:150px;height:auto">'
+        if logo_path.exists()
+        else '<span style="font-size:24px;font-weight:700;color:#0F6B63">Daimoma</span>'
+    )
+    name = getattr(getattr(user, "profile", None), "display_name", "") or "there"
+    text = f"Hello {name},\n\n{intro}\n\n{action}: {link}\n\n{expiry}\n"
+    html = f"""\
+<div style="background:#f4f4f5;padding:32px 16px;
+  font-family:'Segoe UI',Arial,sans-serif">
+  <div style="max-width:560px;margin:0 auto;background:#ffffff;
+    border:1px solid #e4e4e7;border-radius:12px;overflow:hidden">
+    <div style="padding:24px 32px;border-bottom:1px solid #f0f0f2;
+      text-align:center">{logo_html}</div>
+    <div style="padding:32px;color:#27272a">
+      <h1 style="margin:0 0 16px;font-size:20px;color:#0F6B63">{heading}</h1>
+      <p style="margin:0 0 16px;font-size:15px;line-height:1.6">Hello {name},</p>
+      <p style="margin:0 0 24px;font-size:15px;line-height:1.6">{intro}</p>
+      <p style="margin:0 0 24px;text-align:center">
+        <a href="{link}" style="display:inline-block;background:#0F6B63;
+          color:#ffffff;font-size:15px;font-weight:600;padding:12px 32px;
+          border-radius:8px;text-decoration:none">{action}</a>
+      </p>
+      <p style="margin:0 0 16px;font-size:13px;line-height:1.5;
+        color:#52525b">{expiry}</p>
+      <p style="margin:0;font-size:12px;line-height:1.5;color:#71717a;
+        word-break:break-all">
+        If the button doesn't work, copy this link into your browser:<br>
+        <a href="{link}" style="color:#0F6B63">{link}</a>
+      </p>
+    </div>
+    <div style="padding:16px 32px;background:#fafafa;
+      border-top:1px solid #f0f0f2;text-align:center;font-size:12px;color:#a1a1aa">
+      Daimoma — employee operations.
+      If you weren't expecting this email, you can safely ignore it.
+    </div>
+  </div>
+</div>"""
     try:
-        send_mail(subject, f"Use this link to continue: {link}", None, [user.email])
+        msg = EmailMultiAlternatives(
+            subject, text, from_email, [user.email], connection=connection
+        )
+        msg.attach_alternative(html, "text/html")
+        if logo_path.exists():
+            msg.mixed_subtype = "related"
+            with open(logo_path, "rb") as f:
+                img = MIMEImage(f.read())
+            img.add_header("Content-ID", "<daimoma-logo>")
+            img.add_header("Content-Disposition", "inline", filename="logo.png")
+            msg.attach(img)
+        msg.send()
     except Exception:  # delivery failure must not reverse the transition
         logger.exception("mail_delivery_failed purpose_path=%s", path)
 
@@ -69,7 +144,20 @@ def issue_invitation(user):
         EmailToken.Purpose.INVITATION,
         timedelta(hours=settings.INVITATION_TOKEN_HOURS),
     )
-    _send_link(user, raw, "/accept-invitation", "You have been invited to Daimoma")
+    _send_link(
+        user,
+        raw,
+        "/accept-invitation",
+        "You've been invited to Daimoma",
+        heading="Welcome to Daimoma",
+        intro=(
+            "Your HR team has created an account for you. "
+            "Activate it by setting your password — it only takes a minute."
+        ),
+        action="Activate your account",
+        expiry="This link works once and expires in 48 hours. "
+        "If it has expired, ask your HR team to resend the invitation.",
+    )
     _audit(
         user.organization,
         actor=None,
@@ -86,7 +174,19 @@ def issue_recovery_token(user):
         EmailToken.Purpose.RECOVERY,
         timedelta(minutes=settings.RECOVERY_TOKEN_MINUTES),
     )
-    _send_link(user, raw, "/reset-password/confirm", "Daimoma password recovery")
+    _send_link(
+        user,
+        raw,
+        "/reset-password/confirm",
+        "Reset your Daimoma password",
+        heading="Password reset",
+        intro=(
+            "We received a request to reset the password for your account. "
+            "If this wasn't you, you can ignore this email — your password stays unchanged."
+        ),
+        action="Reset your password",
+        expiry="This link works once and expires in 30 minutes.",
+    )
     _audit(user.organization, actor=None, action="recovery_issued", target_id=user.id)
     return raw
 

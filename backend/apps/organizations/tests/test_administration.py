@@ -2,6 +2,8 @@
 provisioning, roles, reporting lines, last-HR protection, deactivation/
 reactivation, departments, and organization settings."""
 
+from unittest.mock import patch
+
 import pytest
 from django.contrib.auth.models import Group
 from django.core import mail
@@ -118,6 +120,16 @@ class TestProvision:
         )
         assert response.status_code == 400
 
+    def test_duplicate_phone_rejected(self, hr_user, employee, org):
+        employee.profile.phone = "01055550000"
+        employee.profile.save(update_fields=["phone"])
+        response = hr_client(hr_user).post(
+            EMPLOYEES, {**self.PAYLOAD, "phone": "010 5555 0000"}, format="json"
+        )
+        assert response.status_code == 400
+        assert "phone" in response.json()["field_errors"]
+        assert not User.objects.filter(email=self.PAYLOAD["email"]).exists()
+
     def test_cross_org_manager_rejected(self, hr_user, other_org):
         foreign = make_profile(other_org, make_user(other_org, "m@x.test"), "M9")
         response = hr_client(hr_user).post(
@@ -177,6 +189,19 @@ class TestAdminUpdate:
         assert self._patch(
             c, employee.profile, {"contract_end_date": "2027-12-31"}
         ).status_code == 200
+
+    def test_duplicate_phone_rejected(self, hr_user, employee, org):
+        other = make_profile(
+            org, make_user(org, "other@x.test"), "E2", phone="01055550000"
+        )
+        c = hr_client(hr_user)
+        response = self._patch(c, employee.profile, {"phone": "010 5555 0000"})
+        assert response.status_code == 400
+        assert "phone" in response.json()["field_errors"]
+        # Keeping the same value on the same employee is allowed.
+        assert self._patch(c, other, {"phone": "010 5555 0000"}).status_code == 200
+        # Blank phones don't collide.
+        assert self._patch(c, employee.profile, {"phone": ""}).status_code == 200
 
     def test_non_egyptian_phones_rejected(self, hr_user, employee):
         c = hr_client(hr_user)
@@ -451,3 +476,123 @@ class TestOrgSettings:
 
     def test_non_hr_forbidden(self, manager):
         assert authed_client(manager).get(SETTINGS).status_code == 403
+
+    def test_email_settings_round_trip_and_password_hidden(self, hr_user, org):
+        c = hr_client(hr_user)
+        response = c.patch(
+            SETTINGS,
+            {
+                "email_mode": "smtp", "email_host": "smtp.test", "email_port": 587,
+                "email_host_user": "mailer", "email_host_password": "s3cret!",
+                "email_use_tls": True, "email_from": "no-reply@x.test",
+            },
+            format="json",
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert data["email_password_set"] is True
+        assert "email_host_password" not in data
+        org.refresh_from_db()
+        assert org.email_host_password == "s3cret!"
+
+        # A blank password keeps the stored one; a non-blank replaces it.
+        response = c.patch(SETTINGS, {"email_host_user": "u2"}, format="json")
+        org.refresh_from_db()
+        assert org.email_host_password == "s3cret!"
+        c.patch(SETTINGS, {"email_host_password": "n3w!"}, format="json")
+        org.refresh_from_db()
+        assert org.email_host_password == "n3w!"
+
+        # The credential never appears in audit metadata.
+        for event in AuditEvent.objects.filter(action="organization_settings_updated"):
+            assert "s3cret" not in str(event.metadata) and "n3w" not in str(event.metadata)
+
+    def test_email_settings_validation(self, hr_user, org):
+        c = hr_client(hr_user)
+        response = c.patch(
+            SETTINGS, {"email_use_tls": True, "email_use_ssl": True}, format="json"
+        )
+        assert response.status_code == 400
+        response = c.patch(
+            SETTINGS, {"email_mode": "smtp", "email_host": "  "}, format="json"
+        )
+        assert response.status_code == 400
+
+    def test_email_test_endpoint_permissions_and_probe(self, hr_user, employee, org):
+        org.email_mode = "smtp"
+        org.email_host = "smtp.test"
+        org.email_host_password = "s3cret!"
+        org.save()
+        url = f"{SETTINGS}test-email/"
+
+        assert authed_client(employee).post(url, {}, format="json").status_code == 403
+
+        c = hr_client(hr_user)
+        with patch("django.core.mail.get_connection") as get_conn:
+            response = c.post(url, {}, format="json")
+        assert response.status_code == 200
+        kwargs = get_conn.call_args.kwargs
+        assert kwargs["host"] == "smtp.test" and kwargs["password"] == "s3cret!"
+        sent = get_conn.return_value.send_messages.call_args.args[0][0]
+        assert sent.to == [hr_user.email]
+
+        # Overrides let HR verify unsaved form values; a blank password still
+        # means the stored one.
+        with patch("django.core.mail.get_connection") as get_conn:
+            response = c.post(
+                url, {"email_host": "smtp2.test", "email_host_password": ""}, format="json"
+            )
+        assert response.status_code == 200
+        kwargs = get_conn.call_args.kwargs
+        assert kwargs["host"] == "smtp2.test" and kwargs["password"] == "s3cret!"
+
+    def test_invitation_uses_org_smtp_when_enabled(self, hr_user, employee, org):
+        from apps.accounts.services import issue_invitation
+
+        org.email_mode = "smtp"
+        org.email_host = "smtp.test"
+        org.email_use_tls = True
+        org.email_from = "noreply@x.test"
+        org.save()
+        with (
+            patch("apps.accounts.services.EmailMultiAlternatives") as mail_cls,
+            patch("django.core.mail.get_connection") as get_conn,
+        ):
+            issue_invitation(employee)
+        kwargs = get_conn.call_args.kwargs
+        assert kwargs["host"] == "smtp.test" and kwargs["use_tls"] is True
+        call = mail_cls.call_args
+        assert call.args[2] == "noreply@x.test"  # from_email
+        assert call.kwargs["connection"] is get_conn.return_value
+        mail_cls.return_value.send.assert_called_once_with()
+
+        # env mode never builds a custom connection
+        org.email_mode = "env"
+        org.save()
+        with (
+            patch("apps.accounts.services.EmailMultiAlternatives") as mail_cls,
+            patch("django.core.mail.get_connection") as get_conn,
+        ):
+            issue_invitation(employee)
+        get_conn.assert_not_called()
+        assert mail_cls.call_args.kwargs["connection"] is None
+
+    def test_email_test_failure_is_safe(self, hr_user, org):
+        from smtplib import SMTPAuthenticationError
+
+        org.email_mode = "smtp"
+        org.email_host = "smtp.test"
+        org.email_host_password = "s3cret!"
+        org.save()
+        with patch("django.core.mail.get_connection") as get_conn:
+            get_conn.return_value.send_messages.side_effect = SMTPAuthenticationError(
+                535, b"s3cret! rejected"
+            )
+            response = hr_client(hr_user).post(
+                f"{SETTINGS}test-email/", {}, format="json"
+            )
+        assert response.status_code == 400
+        # Classified, safe message — the raw server reply/credential never leaks.
+        body = str(response.json())
+        assert "s3cret" not in body
+        assert AuditEvent.objects.filter(action="email_connection_test_failed").exists()

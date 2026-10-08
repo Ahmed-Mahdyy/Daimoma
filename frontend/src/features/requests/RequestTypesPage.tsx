@@ -1,14 +1,12 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { type ColumnDef } from "@tanstack/react-table";
 import { useState } from "react";
-import { useForm } from "react-hook-form";
 
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DataTable } from "@/components/ui/data-table";
+import { PageHeaderCard } from "@/components/ui/page-header";
 import { apiErrorMessage } from "../../api/client";
 import {
-  createRequestType,
   listRequestTypes,
   updateRequestType,
   type RequestType,
@@ -18,16 +16,8 @@ import { useLanguage } from "../../app/LanguageProvider";
 import { formatDate } from "../../lib/dates";
 import { Alert } from "../../components/ui/Alert";
 import { AsyncState } from "../../components/ui/AsyncState";
-import { UNIT_OPTIONS, UNIT_LABELS } from "./requestTypeUnits";
+import { UNIT_LABELS } from "./requestTypeUnits";
 import { Link } from "react-router-dom";
-
-interface TypeForm {
-  name: string;
-  unit: RequestTypeWriteInput["unit"];
-  help_text: string;
-  requires_manager: boolean;
-  requires_hr: boolean;
-}
 
 /** HR request-type administration (FR-009): create typed categories and set
  * routing (requires_hr) + availability. Changes affect future submissions
@@ -40,21 +30,6 @@ export function RequestTypesPage() {
   const { data, isLoading, error } = useQuery({
     queryKey: ["request-types"],
     queryFn: listRequestTypes,
-  });
-
-  const { register, handleSubmit, reset, formState: { errors } } =
-    useForm<TypeForm>({
-      defaultValues: { unit: "none", requires_manager: true },
-    });
-
-  const create = useMutation({
-    mutationFn: (input: RequestTypeWriteInput) => createRequestType(input),
-    onSuccess: () => {
-      setServerError(null);
-      reset({ unit: "none", requires_manager: true });
-      queryClient.invalidateQueries({ queryKey: ["request-types"] });
-    },
-    onError: (e) => setServerError(apiErrorMessage(e)),
   });
 
   const patch = useMutation({
@@ -87,8 +62,6 @@ export function RequestTypesPage() {
       setServerError(apiErrorMessage(e));
     },
   });
-
-  const input = "rounded-md border border-gray-300 px-2 py-1.5 text-sm";
 
   const columns: ColumnDef<RequestType, unknown>[] = [
     {
@@ -197,10 +170,16 @@ export function RequestTypesPage() {
 
   return (
     <div>
-      <span className="text-xs font-bold uppercase tracking-widest text-brand-700">{t("HR / WORKFLOWS")}</span><h1 className="mt-1 text-3xl font-bold">{t("Request types")}</h1>
-      <p className="mt-1 text-sm text-gray-600">
-        {t("Each approval checkbox adds that stage to the review cycle — manager first, then HR. Unchecking both stages is not allowed; every request must have a reviewer. Changes apply to new submissions only — existing requests keep their original route.")}
-      </p>
+      <PageHeaderCard
+        eyebrow={t("HR / WORKFLOWS")}
+        title={t("Request types")}
+        description={t("Each approval checkbox adds that stage to the review cycle — manager first, then HR. Unchecking both stages is not allowed; every request must have a reviewer. Changes apply to new submissions only — existing requests keep their original route.")}
+        actions={
+          <Button asChild>
+            <Link to="/requests/types/new">{t("New request type")}</Link>
+          </Button>
+        }
+      />
       {serverError && (
         <div className="mt-3">
           <Alert kind="error">{serverError}</Alert>
@@ -218,76 +197,6 @@ export function RequestTypesPage() {
           />
         </div>
       </AsyncState>
-
-      <Card className="mt-8"><CardHeader><CardTitle>{t("Add a request type")}</CardTitle></CardHeader><CardContent><form
-        onSubmit={handleSubmit((v) => create.mutate({ ...v, is_active: true }))}
-        className="grid grid-cols-1 gap-3 sm:grid-cols-2"
-        noValidate
-      >
-        <div>
-          <label htmlFor="t-name" className="block text-sm font-medium">
-            {t("Name")}
-          </label>
-          <input
-            id="t-name"
-            className={`mt-1 w-full ${input}`}
-            {...register("name", { required: t("Name is required.") })}
-          />
-          {errors.name && (
-            <p role="alert" className="mt-1 text-sm text-red-700">
-              {errors.name.message}
-            </p>
-          )}
-        </div>
-        <div>
-          <label htmlFor="t-unit" className="block text-sm font-medium">
-            {t("Unit")}
-          </label>
-          <select
-            id="t-unit"
-            className={`mt-1 w-full ${input}`}
-            {...register("unit")}
-          >
-            {UNIT_OPTIONS.map((o) => (
-              <option key={o.value} value={o.value}>
-                {t(o.label)}
-              </option>
-            ))}
-          </select>
-          <p className="mt-1 text-xs text-muted-foreground">
-            {t("Units and hours draw from employee allocations; the employee enters the amount on the request. Not measurable types collect no amount.")}
-          </p>
-        </div>
-        <div>
-          <label htmlFor="t-help" className="block text-sm font-medium">
-            {t("Help text")}
-          </label>
-          <input id="t-help" className={`mt-1 w-full ${input}`} {...register("help_text")} />
-        </div>
-        <fieldset className="col-span-full">
-          <legend className="text-sm font-medium">{t("Approval stages")}</legend>
-          <div className="mt-1 flex flex-wrap items-center gap-4 text-sm">
-            <label className="flex items-center gap-2">
-              <input type="checkbox" {...register("requires_manager")} />
-              {t("Manager approval")}
-            </label>
-            <span className="text-gray-400 rtl:-rotate-180" aria-hidden="true">→</span>
-            <label className="flex items-center gap-2">
-              <input type="checkbox" {...register("requires_hr")} />
-              {t("HR approval")}
-            </label>
-          </div>
-          <p className="mt-1 text-xs text-gray-500">
-            {t("Checked stages run in order; at least one stage is required.")}
-          </p>
-        </fieldset>
-
-        <div>
-          <Button type="submit" disabled={create.isPending}>
-            {create.isPending ? t("Adding…") : t("Add type")}
-          </Button>
-        </div>
-      </form></CardContent></Card>
     </div>
   );
 }

@@ -7,7 +7,7 @@ from config.exceptions import ConflictError
 from django.contrib.auth.models import Group
 from django.db import transaction
 from django.utils import timezone
-from rest_framework.exceptions import ValidationError
+from rest_framework.exceptions import PermissionDenied, ValidationError
 
 from apps.accounts.models import EmployeeProfile
 from apps.accounts.permissions import ROLE_HR
@@ -98,6 +98,36 @@ def update_draft(request_obj, user, data):
         req.version += 1
         req.save()
         return req
+
+
+def delete_draft(request_obj, user):
+    """Delete a draft request. Owner-only — drafts never leave the owner's
+    scope — and draft-status only; anything submitted has a review trail and
+    must be decided, not deleted."""
+    if request_obj.employee.user_id != user.pk:
+        raise PermissionDenied("Only the owner can delete a request.")
+    if request_obj.status != EmployeeRequest.Status.DRAFT:
+        raise ValidationError({"detail": ["Only draft requests can be deleted."]})
+    request_obj.delete()
+
+
+@transaction.atomic
+def bulk_delete_drafts(user, ids):
+    """Bulk-delete the caller's own drafts. Ids that fall outside scope —
+    another user's, non-draft, or another org's — are reported as skipped
+    rather than erroring, keeping the response non-enumerating."""
+    qs = EmployeeRequest.objects.filter(
+        organization_id=user.organization_id,
+        employee__user_id=user.pk,
+        status=EmployeeRequest.Status.DRAFT,
+        id__in=ids,
+    )
+    deleted_ids = {str(pk) for pk in qs.values_list("id", flat=True)}
+    qs.delete()
+    return {
+        "deleted": len(deleted_ids),
+        "skipped": [str(i) for i in ids if str(i) not in deleted_ids],
+    }
 
 
 def _eligible_hr(user):

@@ -1,5 +1,6 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -9,6 +10,7 @@ vi.mock("../../api/reporting", () => ({
 vi.mock("../auth/auth-context", () => ({ useAuth: () => AUTH }));
 
 import { getDashboard, type Dashboard } from "../../api/reporting";
+import { LanguageProvider } from "../../app/LanguageProvider";
 import { DashboardPage } from "./DashboardPage";
 
 let AUTH = { user: { roles: ["Employee"] } };
@@ -28,9 +30,11 @@ function renderPage() {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
     <QueryClientProvider client={qc}>
-      <MemoryRouter>
-        <DashboardPage />
-      </MemoryRouter>
+      <LanguageProvider>
+        <MemoryRouter>
+          <DashboardPage />
+        </MemoryRouter>
+      </LanguageProvider>
     </QueryClientProvider>,
   );
 }
@@ -38,6 +42,7 @@ function renderPage() {
 describe("DashboardPage", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    localStorage.clear();
     AUTH = { user: { roles: ["Employee"] } };
     vi.mocked(getDashboard).mockResolvedValue(DASH);
   });
@@ -50,26 +55,50 @@ describe("DashboardPage", () => {
       screen.queryByText("Organization dashboard"),
     ).not.toBeInTheDocument();
     expect(await screen.findByText("8h 00m")).toBeInTheDocument(); // 480 min
-    expect(within(screen.getByRole("region", { name: "Personal overview" })).getByText("3")).toBeInTheDocument(); // pending_review
-    expect(screen.getByRole("link", { name: "Open timesheet" })).toHaveAttribute("href", expect.stringMatching(/^\/timesheets\?date=\d{4}-\d{2}-\d{2}$/));
+    expect(screen.queryByRole("tab", { name: "Team dashboard" })).not.toBeInTheDocument();
+    expect(screen.queryByText("Pending review items")).not.toBeInTheDocument();
+    expect(screen.queryByText("Plan your day")).not.toBeInTheDocument();
   });
 
-  it("adds the team dashboard for a manager", async () => {
+  it("separates the manager's work from team oversight", async () => {
+    const interaction = userEvent.setup();
     AUTH = { user: { roles: ["Manager"] } };
     renderPage();
-    expect(await screen.findByText("Team dashboard")).toBeInTheDocument();
-    expect(
-      screen.queryByText("Organization dashboard"),
-    ).not.toBeInTheDocument();
+    expect(await screen.findByRole("tab", { name: "Team dashboard" })).toBeInTheDocument();
+    expect(screen.queryByRole("tab", { name: "Organization dashboard" })).not.toBeInTheDocument();
+    expect(await screen.findByText("Pending review items")).toBeInTheDocument();
+    expect(within(screen.getByRole("region", { name: "Personal overview" })).getByText("3")).toBeInTheDocument(); // pending_review
+    expect(getDashboard).toHaveBeenCalledWith("personal");
+    expect(getDashboard).not.toHaveBeenCalledWith("team");
+    await interaction.click(screen.getByRole("tab", { name: "Team dashboard" }));
+    expect(await screen.findByRole("region", { name: "Team dashboard" })).toBeVisible();
+    expect(getDashboard).toHaveBeenCalledWith("team");
+    expect(screen.queryByRole("region", { name: "Personal overview" })).not.toBeInTheDocument();
+    expect(screen.queryByText("Pending review items")).not.toBeInTheDocument();
   });
 
-  it("adds team and organization dashboards for HR", async () => {
+  it("offers HR separate team and organization views", async () => {
+    const interaction = userEvent.setup();
     AUTH = { user: { roles: ["HR"] } };
     renderPage();
-    expect(await screen.findByText("Team dashboard")).toBeInTheDocument();
-    expect(
-      await screen.findByText("Organization dashboard"),
-    ).toBeInTheDocument();
+    expect(await screen.findByRole("tab", { name: "Team dashboard" })).toBeInTheDocument();
+    await interaction.click(screen.getByRole("tab", { name: "Organization dashboard" }));
+    expect(await screen.findByRole("region", { name: "Organization dashboard" })).toBeVisible();
+    expect(screen.queryByRole("region", { name: "Personal overview" })).not.toBeInTheDocument();
+  });
+
+  it("localizes the role-aware views in Arabic", async () => {
+    localStorage.setItem("daimoma-lang", "ar");
+    AUTH = { user: { roles: ["Manager"] } };
+    const interaction = userEvent.setup();
+    renderPage();
+    const tablist = await screen.findByRole("tablist", { name: "عروض لوحة التحكم" });
+    expect(tablist).toBeInTheDocument();
+    // The Tabs subtree must inherit RTL — Radix defaults to dir="ltr".
+    expect(tablist.closest("[data-slot='tabs']")).toHaveAttribute("dir", "rtl");
+    expect(await screen.findByText("عناصر بانتظار المراجعة")).toBeInTheDocument();
+    await interaction.click(screen.getByRole("tab", { name: "لوحة الفريق" }));
+    expect(await screen.findByRole("region", { name: "لوحة الفريق" })).toBeVisible();
   });
 
   it("shows the error state when the endpoint fails", async () => {

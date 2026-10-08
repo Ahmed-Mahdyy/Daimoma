@@ -51,8 +51,12 @@ test.describe.serial("dashboards and reporting", () => {
     page,
   }) => {
     await loginAs(page, "manager-e2e@acme.test");
-    await expect(page.getByText("Team dashboard")).toBeVisible();
-    await expect(page.getByText("Organization dashboard")).not.toBeVisible();
+    await expect(page.getByRole("tab", { name: "Team dashboard" })).toBeVisible();
+    await expect(page.getByRole("tab", { name: "Organization dashboard" })).not.toBeVisible();
+    await page.getByRole("tab", { name: "Team dashboard" }).click();
+    await expect(page.getByRole("region", { name: "Team dashboard" })).toBeVisible();
+    await expect(page.getByRole("region", { name: "Personal overview" })).not.toBeVisible();
+    await expect(page.getByText("Pending review items")).not.toBeVisible();
 
     await page.getByRole("link", { name: "Reports" }).click();
     await expect(
@@ -76,8 +80,11 @@ test.describe.serial("dashboards and reporting", () => {
     page,
   }) => {
     await loginAs(page, "hr-e2e@acme.test");
-    await expect(page.getByText("Team dashboard")).toBeVisible();
-    await expect(page.getByText("Organization dashboard")).toBeVisible();
+    await expect(page.getByRole("tab", { name: "Team dashboard" })).toBeVisible();
+    await expect(page.getByRole("tab", { name: "Organization dashboard" })).toBeVisible();
+    await page.getByRole("tab", { name: "Organization dashboard" }).click();
+    await expect(page.getByRole("region", { name: "Organization dashboard" })).toBeVisible();
+    await expect(page.getByRole("region", { name: "Personal overview" })).not.toBeVisible();
 
     await page.getByRole("link", { name: "Reports" }).click();
     await page.getByRole("tab", { name: "Requests" }).click();
@@ -146,9 +153,16 @@ test.describe.serial("dashboards and reporting", () => {
     await loginAs(page, "hr-e2e@acme.test");
     await page.getByRole("navigation", { name: "Main" }).getByRole("link", { name: "Departments", exact: true }).click();
     const name = `Demo department ${Date.now()}`;
-    await page.getByRole("textbox", { name: "New department name" }).fill(name);
+    await page.getByRole("link", { name: /new department/i }).click();
+    await expect(
+      page.getByRole("heading", { name: "New department" }),
+    ).toBeVisible();
+    await page.getByLabel("Name", { exact: true }).fill(name);
     await page.getByRole("combobox", { name: "Manager" }).selectOption({ label: "Manny Manager" });
     await page.getByRole("button", { name: "Add department" }).click();
+    await expect(
+      page.getByRole("heading", { name: "Departments", exact: true }),
+    ).toBeVisible();
     const row = page.getByRole("row").filter({ hasText: name });
     await expect(row).toBeVisible();
     await row.getByRole("link", { name: "Edit" }).click();
@@ -160,26 +174,22 @@ test.describe.serial("dashboards and reporting", () => {
     await signOut(page);
   });
 
-  test("HR breadcrumbs link back from employee creation", async ({ page }) => {
+  test("HR back link returns from employee creation", async ({ page }) => {
     await loginAs(page, "hr-e2e@acme.test");
-    await page.getByRole("navigation", { name: "HR actions" }).getByRole("link", { name: "Add employee" }).click();
-    const breadcrumb = page.getByRole("navigation", { name: "Breadcrumb" });
-    await expect(breadcrumb.getByText("New employee")).toBeVisible();
-    await breadcrumb.getByRole("link", { name: "Employees" }).click();
+    await page.getByRole("navigation", { name: "Quick actions" }).getByRole("link", { name: "Add Employee" }).click();
+    await expect(page.getByRole("heading", { name: "New employee" })).toBeVisible();
+    await page.getByRole("link", { name: /back to employees/i }).click();
     await expect(page.getByRole("heading", { name: "Employees" })).toBeVisible();
     await signOut(page);
   });
 
-  test("calendar selection carries the date into a new request", async ({ page }) => {
+  test("dashboard quick action opens a dedicated request form", async ({ page }) => {
     await loginAs(page, "employee-e2e@acme.test");
-    await page.getByRole("button", { name: /15th/ }).first().click();
-    const selected = await page.getByText(/Selected: \d{4}-\d{2}-15/).textContent();
-    const date = selected?.match(/\d{4}-\d{2}-15/)?.[0];
-    expect(date).toBeTruthy();
-    await page.getByRole("link", { name: "New request", exact: true }).last().click();
+    await expect(page.getByText("Plan your day")).not.toBeVisible();
+    await page.getByRole("link", { name: "New request", exact: true }).first().click();
+    await expect(page).toHaveURL(/\/requests\/new$/);
     await page.getByLabel("Request type").selectOption({ index: 1 });
-    await expect(page.getByLabel("Start date")).toHaveValue(date);
-    await expect(page.getByLabel("End date")).toHaveValue(date);
+    await expect(page.getByLabel("Start date")).toHaveValue("");
     await signOut(page);
   });
 
@@ -208,12 +218,28 @@ test.describe.serial("dashboards and reporting", () => {
     await signOut(page);
   });
 
+  test("Arabic dashboard tabs remain usable in RTL", async ({ page }) => {
+    await loginAs(page, "hr-e2e@acme.test");
+    await page.getByRole("button", { name: "Switch to Arabic" }).click();
+    await expect(page.locator("html")).toHaveAttribute("dir", "rtl");
+    // The tab subtree must follow the document direction — Radix defaults to dir="ltr".
+    await expect(page.locator('[data-slot="tabs"]')).toHaveAttribute("dir", "rtl");
+    await page.getByRole("tab", { name: "لوحة الفريق" }).click();
+    await expect(page.getByRole("region", { name: "لوحة الفريق" })).toBeVisible();
+    await page.getByRole("tab", { name: "لوحة المؤسسة" }).click();
+    await expect(page.getByRole("region", { name: "لوحة المؤسسة" })).toBeVisible();
+    await page.getByRole("button", { name: "التبديل إلى الإنجليزية" }).click();
+    await signOut(page);
+  });
+
   test("mobile viewport: dashboard and reports usable at 360px", async ({
     page,
   }) => {
     await page.setViewportSize({ width: 360, height: 800 });
     await loginAs(page, "hr-e2e@acme.test");
-    await expect(page.getByText("Organization dashboard")).toBeVisible();
+    await page.getByRole("tab", { name: "Organization dashboard" }).click();
+    await expect(page.getByRole("region", { name: "Organization dashboard" })).toBeVisible();
+    await expect(page.locator("body")).toHaveJSProperty("scrollWidth", 360);
     await page.getByRole("button", { name: "Open menu" }).click();
     await page.getByRole("link", { name: "Reports", exact: true }).click();
     await expect(

@@ -139,7 +139,7 @@ export function SettingsPage() {
       <Card className="overflow-hidden border-brand-100">
         <div className="relative bg-gradient-to-r from-[#103e3a] to-[#14554d] px-6 py-7 text-white">
           <img
-            src="/brand/logo-icon.png"
+            src="/brand/logo-icon-dark.png"
             alt=""
             aria-hidden="true"
             className="pointer-events-none absolute -right-8 -top-10 h-44 w-auto opacity-10"

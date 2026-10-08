@@ -191,10 +191,38 @@ class EmployeeUpdateSerializer(EmployeeInformationFields):
 
 
 class OrgSettingsSerializer(serializers.ModelSerializer):
+    email_host_password = serializers.CharField(
+        max_length=255, required=False, allow_blank=True, write_only=True
+    )
+    email_password_set = serializers.SerializerMethodField()
+
     class Meta:
         model = Organization
-        fields = ["id", "name", "timezone", "week_start", "working_weekdays", "fallback_reviewer"]
+        fields = [
+            "id", "name", "timezone", "week_start", "working_weekdays", "fallback_reviewer",
+            "email_mode", "email_host", "email_port", "email_host_user",
+            "email_host_password", "email_password_set", "email_use_tls",
+            "email_use_ssl", "email_timeout", "email_from",
+        ]
         read_only_fields = ["id"]
+
+    def get_email_password_set(self, obj) -> bool:
+        return bool(obj.email_host_password)
+
+    def validate(self, attrs):
+        use_tls = attrs.get("email_use_tls", getattr(self.instance, "email_use_tls", False))
+        use_ssl = attrs.get("email_use_ssl", getattr(self.instance, "email_use_ssl", False))
+        if use_tls and use_ssl:
+            raise serializers.ValidationError(
+                {"email_use_ssl": ["TLS and SSL are mutually exclusive."]}
+            )
+        mode = attrs.get("email_mode", getattr(self.instance, "email_mode", None))
+        host = attrs.get("email_host", getattr(self.instance, "email_host", ""))
+        if mode == Organization.EmailMode.SMTP and not (host or "").strip():
+            raise serializers.ValidationError(
+                {"email_host": ["SMTP mode requires a mail server host."]}
+            )
+        return attrs
 
     def validate_working_weekdays(self, value):
         if (
@@ -204,6 +232,21 @@ class OrgSettingsSerializer(serializers.ModelSerializer):
         ):
             raise serializers.ValidationError("Select distinct weekdays from 0 to 6.")
         return value
+
+
+class OrgEmailTestSerializer(serializers.Serializer):
+    """Optional overrides for the test-connection call; omitted fields fall
+    back to the stored organization config. A blank password means 'use the
+    stored one'."""
+
+    email_host = serializers.CharField(max_length=255, required=False, allow_blank=True)
+    email_port = serializers.IntegerField(required=False, min_value=1, max_value=65535)
+    email_host_user = serializers.CharField(max_length=255, required=False, allow_blank=True)
+    email_host_password = serializers.CharField(max_length=255, required=False, allow_blank=True)
+    email_use_tls = serializers.BooleanField(required=False)
+    email_use_ssl = serializers.BooleanField(required=False)
+    email_timeout = serializers.IntegerField(required=False, min_value=1, max_value=300)
+    email_from = serializers.CharField(max_length=255, required=False, allow_blank=True)
 
 
 class ReasonSerializer(serializers.Serializer):

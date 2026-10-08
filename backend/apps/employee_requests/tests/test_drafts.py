@@ -316,3 +316,110 @@ class TestDraftListScope:
     def test_unauthenticated_rejected(self, api_client):
         assert api_client.get(LIST).status_code == 403
         assert api_client.post(LIST, {}).status_code == 403
+
+
+BULK = "/api/v1/requests/bulk-delete/"
+
+
+class TestDraftDelete:
+    """Draft deletion is owner-only and draft-only; submitted work has a
+    review trail and must be decided, never deleted."""
+
+    def test_owner_deletes_own_draft(self, api_client, employee, draft):
+        client = authed(api_client, employee)
+        resp = client.delete(detail(draft.pk))
+        assert resp.status_code == 204
+        assert not EmployeeRequest.objects.filter(pk=draft.pk).exists()
+
+    def test_other_users_draft_is_not_visible(self, api_client, draft):
+        # Drafts are out of every non-owner's scope — non-enumerating 404.
+        from apps.conftest import make_profile, make_user
+        other = make_user(draft.organization, "other@acme.test")
+        make_profile(draft.organization, other, "E009")
+        client = authed(api_client, other)
+        assert client.delete(detail(draft.pk)).status_code == 404
+        assert EmployeeRequest.objects.filter(pk=draft.pk).exists()
+
+    def test_hr_cannot_delete_others_draft(self, api_client, hr_user, draft):
+        client = authed(api_client, hr_user)
+        assert client.delete(detail(draft.pk)).status_code == 404
+        assert EmployeeRequest.objects.filter(pk=draft.pk).exists()
+
+    def test_non_draft_cannot_be_deleted(self, api_client, employee, draft):
+        draft.status = EmployeeRequest.Status.PENDING_MANAGER
+        draft.save()
+        client = authed(api_client, employee)
+        assert client.delete(detail(draft.pk)).status_code == 400
+        assert EmployeeRequest.objects.filter(pk=draft.pk).exists()
+
+    def test_manager_cannot_delete_reports_request(
+        self, api_client, org, employee, manager, draft
+    ):
+        employee.profile.manager = manager.profile
+        employee.profile.save()
+        draft.status = EmployeeRequest.Status.PENDING_MANAGER
+        draft.save()
+        client = authed(api_client, manager)
+        # In scope (non-draft report request) but not owned -> 403.
+        assert client.delete(detail(draft.pk)).status_code == 403
+        assert EmployeeRequest.objects.filter(pk=draft.pk).exists()
+
+    def test_bulk_deletes_only_own_drafts(self, api_client, org, employee, draft, leave_type):
+        from apps.conftest import make_profile, make_user
+
+        other = make_user(org, "other@acme.test")
+        other_profile = make_profile(org, other, "E009")
+        others_draft = EmployeeRequest.objects.create(
+            organization=org, employee=other_profile, type=leave_type, title="Not mine"
+        )
+        submitted = EmployeeRequest.objects.create(
+            organization=org,
+            employee=employee.profile,
+            type=leave_type,
+            title="Submitted",
+            status=EmployeeRequest.Status.PENDING_MANAGER,
+        )
+        second_draft = EmployeeRequest.objects.create(
+            organization=org, employee=employee.profile, type=leave_type, title="Mine 2"
+        )
+        client = authed(api_client, employee)
+        resp = client.post(
+            BULK,
+            {"ids": [str(draft.pk), str(second_draft.pk), str(others_draft.pk), str(submitted.pk)]},
+            format="json",
+        )
+        assert resp.status_code == 200
+        body = resp.json()
+        assert body["deleted"] == 2
+        assert set(body["skipped"]) == {str(others_draft.pk), str(submitted.pk)}
+        remaining = set(
+            EmployeeRequest.objects.values_list("id", flat=True)
+        )
+        assert remaining == {others_draft.pk, submitted.pk}
+
+    def test_bulk_rejects_invalid_payload(self, api_client, employee):
+        client = authed(api_client, employee)
+        assert client.post(BULK, {"ids": []}, format="json").status_code == 400
+        assert client.post(BULK, {"ids": ["not-a-uuid"]}, format="json").status_code == 400
+        assert client.post(BULK, {}, format="json").status_code == 400
+
+    def test_bulk_cross_org_skipped(self, api_client, employee, other_org, other_org_type):
+        from apps.conftest import make_profile, make_user
+
+        foreign = make_user(other_org, "foreign@acme.test")
+        foreign_profile = make_profile(other_org, foreign, "F001")
+        foreign_draft = EmployeeRequest.objects.create(
+            organization=other_org,
+            employee=foreign_profile,
+            type=other_org_type,
+            title="Foreign",
+        )
+        client = authed(api_client, employee)
+        resp = client.post(BULK, {"ids": [str(foreign_draft.pk)]}, format="json")
+        assert resp.status_code == 200
+        assert resp.json() == {"deleted": 0, "skipped": [str(foreign_draft.pk)]}
+        assert EmployeeRequest.objects.filter(pk=foreign_draft.pk).exists()
+
+    def test_unauthenticated_delete_rejected(self, api_client, draft):
+        assert api_client.delete(detail(draft.pk)).status_code == 403
+        assert api_client.post(BULK, {"ids": [str(draft.pk)]}, format="json").status_code == 403

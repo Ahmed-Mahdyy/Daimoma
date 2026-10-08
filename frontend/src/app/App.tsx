@@ -17,6 +17,7 @@ import { LoginPage } from "../features/auth/LoginPage";
 import { RequestResetPage } from "../features/auth/RequestResetPage";
 import { SetPasswordPage } from "../features/auth/SetPasswordPage";
 import { DepartmentDetailPage } from "../features/departments/DepartmentDetailPage";
+import { DepartmentNewPage } from "../features/departments/DepartmentNewPage";
 import { DepartmentsPage } from "../features/departments/DepartmentsPage";
 import { EmployeeDetailPage } from "../features/employees/EmployeeDetailPage";
 import { EmployeesPage } from "../features/employees/EmployeesPage";
@@ -28,6 +29,7 @@ import { RequestEditPage } from "../features/requests/RequestEditPage";
 import { RequestFormPage } from "../features/requests/RequestFormPage";
 import { RequestsPage } from "../features/requests/RequestsPage";
 import { RequestTypeEditPage } from "../features/requests/RequestTypeEditPage";
+import { RequestTypeNewPage } from "../features/requests/RequestTypeNewPage";
 import { RequestTypesPage } from "../features/requests/RequestTypesPage";
 import { NotificationsPage } from "../features/notifications/NotificationsPage";
 import { OrgSettingsPage } from "../features/settings/OrgSettingsPage";
@@ -89,12 +91,14 @@ const router = createBrowserRouter([
           { path: "/requests", element: <RequestsPage /> },
           { path: "/requests/new", element: <RequestFormPage /> },
           { path: "/requests/types", element: <RequestTypesPage /> },
+          { path: "/requests/types/new", element: <RequireHr><RequestTypeNewPage /></RequireHr> },
           { path: "/requests/types/:id/edit", element: <RequireHr><RequestTypeEditPage /></RequireHr> },
           { path: "/requests/:id", element: <RequestDetailPage /> },
           { path: "/requests/:id/edit", element: <RequestEditPage /> },
           { path: "/timesheets", element: <TimesheetsPage /> },
           { path: "/timesheets/:id", element: <TimesheetDetailPage /> },
           { path: "/departments", element: <RequireHr><DepartmentsPage /></RequireHr> },
+          { path: "/departments/new", element: <RequireHr><DepartmentNewPage /></RequireHr> },
           { path: "/departments/:id", element: <RequireHr><DepartmentDetailPage /></RequireHr> },
           { path: "/audit", element: <AuditPage /> },
           { path: "/profile", element: <SettingsPage /> },

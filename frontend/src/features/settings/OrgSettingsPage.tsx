@@ -2,10 +2,18 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 
 import { managerChoices } from "../../api/employees";
-import { getOrgSettings, updateOrgSettings } from "../../api/organization";
+import {
+  getOrgSettings,
+  testOrgEmail,
+  updateOrgSettings,
+  type OrgEmailSettings,
+} from "../../api/organization";
+import { apiErrorMessage } from "../../api/client";
 import { useLanguage } from "../../app/LanguageProvider";
 import { Alert } from "../../components/ui/Alert";
 import { AsyncState } from "../../components/ui/AsyncState";
+import { Button } from "@/components/ui/button";
+import { PageHeaderCard } from "@/components/ui/page-header";
 
 const input = "w-full rounded-md border border-gray-300 px-2 py-1.5 text-sm";
 const WEEK_DAYS = [
@@ -39,17 +47,26 @@ export function OrgSettingsPage() {
     week_start?: number;
     fallback_reviewer?: string | null;
   } | null>(null);
+  const [emailForm, setEmailForm] = useState<Partial<OrgEmailSettings> | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [emailResult, setEmailResult] = useState<{ ok: boolean; text: string } | null>(null);
 
   const mutation = useMutation({
     mutationFn: updateOrgSettings,
     onSuccess: (updated) => {
       setForm(null);
+      setEmailForm(null);
       setNotice(t("Settings saved."));
       queryClient.setQueryData(["orgSettings"], updated);
     },
     onError: (e) => setSaveError(e instanceof Error ? e.message : t("Failed.")),
+  });
+
+  const emailTest = useMutation({
+    mutationFn: testOrgEmail,
+    onSuccess: (res) => setEmailResult({ ok: true, text: res.detail }),
+    onError: (e) => setEmailResult({ ok: false, text: apiErrorMessage(e) }),
   });
 
   const hrChoices = (choices?.results ?? []).filter((c) =>
@@ -58,7 +75,10 @@ export function OrgSettingsPage() {
 
   return (
     <div>
-      <h1 className="text-xl font-semibold">{t("Organization settings")}</h1>
+      <PageHeaderCard
+        eyebrow={t("HR / ORGANIZATION")}
+        title={t("Organization settings")}
+      />
       <AsyncState isLoading={isLoading} error={error}>
         {data && (
           <>
@@ -154,6 +174,183 @@ export function OrgSettingsPage() {
                   className="rounded-md bg-brand-600 px-4 py-2 text-sm text-white disabled:opacity-40"
                 >
                   {mutation.isPending ? t("Saving…") : t("Save settings")}
+                </button>
+              </div>
+            </form>
+
+            <form
+              className="workspace-panel mt-5 grid grid-cols-1 gap-4 p-5 sm:grid-cols-2"
+              onSubmit={(e) => {
+                e.preventDefault();
+                setEmailResult(null);
+                if (emailForm) mutation.mutate(emailForm);
+              }}
+            >
+              <h2 className="text-sm font-semibold sm:col-span-2">{t("Email delivery")}</h2>
+              <label className="text-sm sm:col-span-2">
+                {t("Sending method")}
+                <select
+                  className={input}
+                  value={emailForm?.email_mode ?? data.email_mode}
+                  onChange={(e) =>
+                    setEmailForm((f) => ({
+                      ...(f ?? {}),
+                      email_mode: e.target.value as "env" | "smtp",
+                    }))
+                  }
+                >
+                  <option value="env">{t("Environment default")}</option>
+                  <option value="smtp">{t("Custom SMTP server")}</option>
+                </select>
+              </label>
+              {(emailForm?.email_mode ?? data.email_mode) === "smtp" && (
+                <>
+                  <label className="text-sm">
+                    {t("Mail server host")}
+                    <input
+                      className={input}
+                      value={emailForm?.email_host ?? data.email_host}
+                      onChange={(e) =>
+                        setEmailForm((f) => ({ ...(f ?? {}), email_host: e.target.value }))
+                      }
+                    />
+                  </label>
+                  <label className="text-sm">
+                    {t("Port")}
+                    <input
+                      className={input}
+                      type="number"
+                      min={1}
+                      max={65535}
+                      value={emailForm?.email_port ?? data.email_port}
+                      onChange={(e) =>
+                        setEmailForm((f) => ({ ...(f ?? {}), email_port: Number(e.target.value) }))
+                      }
+                    />
+                  </label>
+                  <label className="text-sm">
+                    {t("Username")}
+                    <input
+                      className={input}
+                      autoComplete="off"
+                      value={emailForm?.email_host_user ?? data.email_host_user}
+                      onChange={(e) =>
+                        setEmailForm((f) => ({ ...(f ?? {}), email_host_user: e.target.value }))
+                      }
+                    />
+                  </label>
+                  <label className="text-sm">
+                    {t("Password")}
+                    <input
+                      className={input}
+                      type="password"
+                      autoComplete="new-password"
+                      placeholder={
+                        data.email_password_set
+                          ? t("Leave blank to keep the stored password")
+                          : ""
+                      }
+                      value={emailForm?.email_host_password ?? ""}
+                      onChange={(e) =>
+                        setEmailForm((f) => ({ ...(f ?? {}), email_host_password: e.target.value }))
+                      }
+                    />
+                  </label>
+                  <label className="text-sm">
+                    {t("From address")}
+                    <input
+                      className={input}
+                      placeholder={t("no-reply@yourdomain.tld")}
+                      value={emailForm?.email_from ?? data.email_from}
+                      onChange={(e) =>
+                        setEmailForm((f) => ({ ...(f ?? {}), email_from: e.target.value }))
+                      }
+                    />
+                  </label>
+                  <label className="text-sm">
+                    {t("Connection timeout (seconds)")}
+                    <input
+                      className={input}
+                      type="number"
+                      min={1}
+                      max={300}
+                      value={emailForm?.email_timeout ?? data.email_timeout}
+                      onChange={(e) =>
+                        setEmailForm((f) => ({ ...(f ?? {}), email_timeout: Number(e.target.value) }))
+                      }
+                    />
+                  </label>
+                  <div className="flex items-center gap-6 text-sm sm:col-span-2">
+                    <label className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        checked={emailForm?.email_use_tls ?? data.email_use_tls}
+                        onChange={(e) =>
+                          setEmailForm((f) => ({
+                            ...(f ?? {}),
+                            email_use_tls: e.target.checked,
+                            ...(e.target.checked ? { email_use_ssl: false } : {}),
+                          }))
+                        }
+                      />
+                      {t("Use TLS (STARTTLS, port 587)")}
+                    </label>
+                    <label className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        checked={emailForm?.email_use_ssl ?? data.email_use_ssl}
+                        onChange={(e) =>
+                          setEmailForm((f) => ({
+                            ...(f ?? {}),
+                            email_use_ssl: e.target.checked,
+                            ...(e.target.checked ? { email_use_tls: false } : {}),
+                          }))
+                        }
+                      />
+                      {t("Use SSL (implicit TLS, port 465)")}
+                    </label>
+                  </div>
+                  <div className="sm:col-span-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      disabled={emailTest.isPending}
+                      onClick={() => {
+                        setEmailResult(null);
+                        emailTest.mutate({
+                          email_host: emailForm?.email_host ?? data.email_host,
+                          email_port: emailForm?.email_port ?? data.email_port,
+                          email_host_user: emailForm?.email_host_user ?? data.email_host_user,
+                          email_host_password: emailForm?.email_host_password ?? "",
+                          email_use_tls: emailForm?.email_use_tls ?? data.email_use_tls,
+                          email_use_ssl: emailForm?.email_use_ssl ?? data.email_use_ssl,
+                          email_timeout: emailForm?.email_timeout ?? data.email_timeout,
+                          email_from: emailForm?.email_from ?? data.email_from,
+                        });
+                      }}
+                    >
+                      {emailTest.isPending ? t("Testing…") : t("Test connection")}
+                    </Button>
+                    <span className="ms-3 text-xs text-gray-500">
+                      {t("Sends a test email to your own address.")}
+                    </span>
+                  </div>
+                  {emailResult && (
+                    <div className="sm:col-span-2">
+                      <Alert kind={emailResult.ok ? "success" : "error"}>
+                        {emailResult.text}
+                      </Alert>
+                    </div>
+                  )}
+                </>
+              )}
+              <div className="sm:col-span-2">
+                <button
+                  type="submit"
+                  disabled={!emailForm || mutation.isPending}
+                  className="rounded-md bg-brand-600 px-4 py-2 text-sm text-white disabled:opacity-40"
+                >
+                  {mutation.isPending ? t("Saving…") : t("Save email settings")}
                 </button>
               </div>
             </form>

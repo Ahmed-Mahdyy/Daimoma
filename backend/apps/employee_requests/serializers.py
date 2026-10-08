@@ -346,3 +346,15 @@ class RequestReviewSerializer(serializers.Serializer):
 
     reason = serializers.CharField(max_length=2000, required=False, allow_blank=True, default="")
     version = serializers.IntegerField(min_value=1)
+
+
+class BulkDeleteSerializer(serializers.Serializer):
+    """Bulk draft deletion input — a bounded id list; the service filters to
+    the caller's own drafts, so out-of-scope ids are skipped, not rejected."""
+
+    ids = serializers.ListField(
+        child=serializers.UUIDField(),
+        min_length=1,
+        max_length=100,
+        allow_empty=False,
+    )

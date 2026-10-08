@@ -1,0 +1,16 @@
+import { chromium } from "playwright";
+const b = await chromium.launch();
+const p = await (await b.newContext({ viewport: { width: 1440, height: 900 } })).newPage();
+await p.goto("http://localhost:5173/login");
+await p.fill('input[type="email"]', "hr-e2e@acme.test");
+await p.fill('input[type="password"]', "E2ePassw0rd1");
+await p.click('button[type="submit"]');
+await p.waitForURL(/\/$/, { timeout: 15000 });
+await p.goto("http://localhost:5173/timesheets");
+await p.waitForTimeout(1500);
+await p.screenshot({ path: "/tmp/ts-header.png" });
+await p.goto("http://localhost:5173/requests");
+await p.waitForTimeout(1200);
+await p.screenshot({ path: "/tmp/req-header.png" });
+await b.close();
+console.log("done");

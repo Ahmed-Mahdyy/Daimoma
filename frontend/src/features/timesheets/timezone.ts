@@ -37,6 +37,32 @@ export function localDate(local: string): string {
   return local.slice(0, 10);
 }
 
+/** "YYYY-MM-DD" today in `tz` — day-level future checks belong to the
+ * sheet's timezone, not the browser's. */
+export function todayInZone(tz: string): string {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: tz,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date());
+}
+
+/** "YYYY-MM-DDTHH:mm" now in `tz` — max for datetime-local inputs. */
+export function nowInZone(tz: string): string {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: tz,
+    hourCycle: "h23",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).formatToParts(new Date());
+  const g = (type: string) => parts.find((p) => p.type === type)?.value ?? "";
+  return `${g("year")}-${g("month")}-${g("day")}T${g("hour")}:${g("minute")}`;
+}
+
 export function formatMinutes(minutes: number, lang: "en" | "ar" = "en"): string {
   const h = Math.floor(minutes / 60);
   const m = minutes % 60;

@@ -104,6 +104,10 @@ def provision_employee(
         raise ValidationError({field: ["Unsupported employee field."] for field in unknown})
     if User.objects.filter(email__iexact=email).exists():
         raise ValidationError({"email": ["An account with this email already exists."]})
+    if phone and EmployeeProfile.objects.filter(organization=org, phone=phone).exists():
+        raise ValidationError(
+            {"phone": ["An employee with this phone number already exists."]}
+        )
     dept = _resolve_org_department(org, department)
     mgr = _resolve_org_profile(org, manager, "manager")
     groups = _resolve_roles(roles)
@@ -154,6 +158,12 @@ def update_employee(actor, profile, attrs, *, expected_version=None):
     if "employee_code" in attrs:
         profile.employee_code = attrs["employee_code"]
         changes["employee_code"] = attrs["employee_code"]
+    if attrs.get("phone") and EmployeeProfile.objects.filter(
+        organization=org, phone=attrs["phone"]
+    ).exclude(pk=profile.pk).exists():
+        raise ValidationError(
+            {"phone": ["An employee with this phone number already exists."]}
+        )
     for field in ("display_name", "phone", "job_title", *EMPLOYEE_INFORMATION_FIELDS):
         if field in attrs:
             setattr(profile, field, attrs[field])
@@ -302,14 +312,24 @@ def update_department(actor, dept, *, name=None, is_active=None, manager=...):
     return dept
 
 
+EMAIL_FIELDS = (
+    "email_mode", "email_host", "email_port", "email_host_user",
+    "email_use_tls", "email_use_ssl", "email_timeout", "email_from",
+)
+
+
 @transaction.atomic
 def update_org_settings(actor, org, attrs):
     org = Organization.objects.select_for_update().get(pk=org.pk)
     changes = {}
-    for field in ("name", "timezone", "week_start", "working_weekdays"):
+    for field in ("name", "timezone", "week_start", "working_weekdays", *EMAIL_FIELDS):
         if field in attrs:
             setattr(org, field, attrs[field])
             changes[field] = attrs[field]
+    if "email_host_password" in attrs and attrs["email_host_password"]:
+        # Blank password means "keep the stored one"; it is never audited.
+        org.email_host_password = attrs["email_host_password"]
+        changes["email_host_password"] = "updated"  # noqa: S105 - marker, not a password
     if "fallback_reviewer" in attrs:
         reviewer = attrs["fallback_reviewer"]
         if reviewer:
@@ -341,6 +361,55 @@ def update_org_settings(actor, org, attrs):
     if changes:
         _audit(org, actor, "organization_settings_updated", org, changes)
     return org
+
+
+def test_email_connection(actor, org, overrides):
+    """Verify SMTP connectivity/auth and send a probe email to the caller.
+    Unsaved form values may be tested: blank password reuses the stored one.
+    Credentials never appear in responses or audit metadata."""
+    params = {
+        "host": overrides.get("email_host") or org.email_host,
+        "port": overrides.get("email_port") or org.email_port,
+        "username": overrides.get("email_host_user") or org.email_host_user,
+        "password": overrides.get("email_host_password") or org.email_host_password,
+        "use_tls": overrides.get("email_use_tls", org.email_use_tls),
+        "use_ssl": overrides.get("email_use_ssl", org.email_use_ssl),
+        "timeout": overrides.get("email_timeout") or org.email_timeout,
+    }
+    if params["use_tls"] and params["use_ssl"]:
+        raise ValidationError({"email_use_ssl": ["TLS and SSL are mutually exclusive."]})
+    if not params["host"].strip():
+        raise ValidationError({"email_host": ["Enter the mail server host first."]})
+
+    from django.core.mail import get_connection
+    from django.core.mail.message import EmailMessage
+
+    connection = get_connection(
+        backend="django.core.mail.backends.smtp.EmailBackend", **params
+    )
+    from_email = overrides.get("email_from") or org.email_from or None
+    try:
+        with connection:
+            EmailMessage(
+                subject="Daimoma email test",
+                body="This message confirms the configured SMTP connection works.",
+                from_email=from_email,
+                to=[actor.email],
+                connection=connection,
+            ).send()
+    except Exception as exc:
+        # Safe classification — never echo credentials or raw server banners.
+        from smtplib import SMTPAuthenticationError, SMTPConnectError, SMTPServerDisconnected
+
+        if isinstance(exc, SMTPAuthenticationError):
+            detail = "Authentication failed — check the username and password."
+        elif isinstance(exc, (SMTPConnectError, SMTPServerDisconnected, OSError)):
+            detail = "Could not reach the mail server — check host, port, and encryption."
+        else:
+            detail = "The mail server rejected the connection — check the settings."
+        _audit(org, actor, "email_connection_test_failed", org, {"error": type(exc).__name__})
+        raise ValidationError({"detail": [detail]}) from None
+    _audit(org, actor, "email_connection_tested", org)
 
 
 def eligible_managers(org):

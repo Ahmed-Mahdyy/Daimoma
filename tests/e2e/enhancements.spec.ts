@@ -96,11 +96,12 @@ test.describe.serial("enhancements", () => {
     await signOut(page);
   });
 
-  test("HR opens a department record with members and breadcrumbs", async ({ page }) => {
+  test("HR opens a department record with members and a back link", async ({ page }) => {
     const name = `E2E Dept ${Date.now()}`;
     await loginAs(page, "hr-e2e@acme.test");
     await page.getByRole("navigation", { name: "Main" }).getByRole("link", { name: "Departments", exact: true }).click();
-    await page.getByLabel("New department name").fill(name);
+    await page.getByRole("link", { name: /new department/i }).click();
+    await page.getByLabel("Name", { exact: true }).fill(name);
     await page.getByRole("button", { name: "Add department" }).click();
     await page.getByRole("link", { name }).click();
 
@@ -109,22 +110,22 @@ test.describe.serial("enhancements", () => {
     await expect(page.getByText(/current employees/i)).toBeVisible();
     // Empty state — nobody is assigned to a brand-new department.
     await expect(page.getByText(/no employees are assigned/i)).toBeVisible();
-    const breadcrumb = page.getByRole("navigation", { name: "Breadcrumb" });
-    await breadcrumb.getByRole("link", { name: "Departments" }).click();
+    await page.getByRole("link", { name: "← Departments" }).click();
     await expect(page.getByRole("heading", { name: "Departments", level: 1 })).toBeVisible();
     await signOut(page);
   });
 
   test("HR sees Request types + Allocations under Requests and Audit under Settings", async ({ page }) => {
     await loginAs(page, "hr-e2e@acme.test");
+    await page.getByRole("button", { name: "Expand Requests Menu" }).click();
+    await page.getByRole("button", { name: "Expand Settings Menu" }).click();
     const requests = page.getByRole("navigation", { name: "Requests Menu" });
     await expect(requests.getByRole("link", { name: "Request types" })).toBeVisible();
     await expect(requests.getByRole("link", { name: "Allocations" })).toBeVisible();
     await expect(page.getByRole("navigation", { name: "Settings Menu" }).getByRole("link", { name: "Audit" })).toBeVisible();
     await requests.getByRole("link", { name: "Request types" }).click();
     await expect(page.getByRole("heading", { name: /request types/i })).toBeVisible();
-    const breadcrumb = page.getByRole("navigation", { name: "Breadcrumb" });
-    await expect(breadcrumb.getByRole("link", { name: "Requests" })).toBeVisible();
+    await expect(page.getByRole("link", { name: /new request type/i })).toBeVisible();
     await signOut(page);
   });
 
@@ -149,6 +150,7 @@ test.describe.serial("enhancements", () => {
       .getByRole("navigation", { name: "Main" })
       .getByRole("link", { name: "Requests", exact: true })
       .click();
+    await page.getByRole("button", { name: /filters/i }).click();
     await expect(
       page.getByRole("combobox", { name: "Status", exact: true }).locator("option").first(),
     ).toHaveText("All");
@@ -203,6 +205,7 @@ test.describe.serial("enhancements", () => {
     const priorBody = prior.ok() ? await prior.body() : null;
     const priorType = prior.headers()["content-type"] ?? "image/png";
     try {
+      await page.getByRole("button", { name: "Expand Settings Menu" }).click();
       const submenu = page.getByRole("navigation", { name: "Settings" });
       await expect(
         submenu.getByRole("link", { name: "Profile" }),
@@ -256,6 +259,7 @@ test.describe.serial("enhancements", () => {
     page,
   }) => {
     await loginAs(page, "hr-e2e@acme.test");
+    await page.getByRole("button", { name: "Expand Requests Menu" }).click();
     await page
       .getByRole("navigation", { name: "Requests Menu" })
       .getByRole("link", { name: "Request types" })
@@ -374,6 +378,7 @@ test.describe.serial("enhancements", () => {
 
   test("employee detail page shows the scoped profile photo", async ({ page }) => {
     await loginAs(page, "employee-e2e@acme.test");
+    await page.getByRole("button", { name: "Expand Settings Menu" }).click();
     await page
       .getByRole("navigation", { name: "Settings" })
       .getByRole("link", { name: "Profile" })

@@ -103,25 +103,27 @@ export function ProvisionEmployeePage() {
     <div>
       <p className="mb-3 text-sm">
         <Link to="/employees" className="workspace-backlink">
-          ← {t("Back to employees")}
+          <span aria-hidden="true" className="inline-block rtl:-scale-x-100">←</span> {t("Back to employees")}
         </Link>
       </p>
-      <h1 className="text-xl font-semibold">{t("New employee")}</h1>
-      <p className="mt-1 text-sm text-gray-600">
-        {t("An invitation link is emailed to the new account; it is inactive until they set a password.")}
-      </p>
       {error && (
-        <div className="mt-3">
+        <div className="mb-3">
           <Alert kind="error">{error}</Alert>
         </div>
       )}
       <form
-        className="workspace-panel mt-4 p-6"
+        className="workspace-panel p-6"
         onSubmit={(e) => {
           e.preventDefault();
           mutation.mutate();
         }}
       >
+        <div className="mb-4">
+          <h1 className="text-2xl font-bold sm:text-3xl">{t("New employee")}</h1>
+          <p className="mt-1 text-sm text-gray-600">
+            {t("An invitation link is emailed to the new account; it is inactive until they set a password.")}
+          </p>
+        </div>
         <Tabs defaultValue="general">
           <TabsList aria-label={t("Employee information")}>
             <TabsTrigger value="general">{t("General information")}</TabsTrigger>

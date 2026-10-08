@@ -1,11 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
-import { arSA } from "date-fns/locale";
-import { useState } from "react";
 import { Link } from "react-router-dom";
 
-import { Button } from "@/components/ui/button";
-import { Calendar } from "@/components/ui/calendar";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 import {
   getDashboard,
@@ -39,9 +35,12 @@ function StatusChips({
   basePath: "/requests" | "/timesheets";
 }) {
   const { t } = useLanguage();
+  if (!Object.values(byStatus).some((count) => count > 0)) {
+    return <p className="mt-3 text-sm text-slate-600 dark:text-slate-400">{t("No activity yet.")}</p>;
+  }
   return (
     <ul className="mt-5 flex flex-wrap gap-2">
-      {Object.entries(byStatus).map(([status, count]) => (
+      {Object.entries(byStatus).filter(([, count]) => count > 0).map(([status, count]) => (
         <li key={status}>
           <Link
             to={`${basePath}?status=${status}`}
@@ -58,77 +57,75 @@ function StatusChips({
   );
 }
 
-/** Personal allocation breakdown (008): each card is a dated grant — an
- * empty list means no allocation assigned, not a zero balance; expired
- * grants are labeled history and cannot fund new requests. */
+/** Personal allocation balances (008): each card leads with the current
+ * remaining balance — 0 still renders. The whole section is hidden when HR
+ * assigned no allocations; expired grants are labeled history and cannot
+ * fund new requests. */
 function AllocationCards({ allocations }: { allocations: NonNullable<Dashboard["allocations"]> }) {
   const { t } = useLanguage();
+  if (allocations.length === 0) return null;
   return (
     <div className="mt-7">
-      <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200">{t("Allocations")}</h3>
-      {allocations.length === 0 ? (
-        <p className="mt-3 text-sm text-slate-600 dark:text-slate-400">
-          {t("No allocations assigned.")}
-        </p>
-      ) : (
-        <ul className="mt-3 grid gap-3 sm:grid-cols-2">
-          {allocations.map((a) => (
-            <li
-              key={a.id}
-              className="rounded-2xl border border-slate-200/80 bg-white p-4 dark:border-white/10 dark:bg-white/5"
-            >
-              <div className="flex items-start justify-between gap-2">
-                <div>
-                  <p className="font-semibold text-slate-800 dark:text-slate-100">{a.type_name}</p>
-                  <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
-                    {formatDate(a.start_date)} → {formatDate(a.end_date)} · {t(ALLOCATION_UNIT_LABELS[a.unit])}
-                  </p>
-                </div>
-                {a.expired && (
-                  <span className="shrink-0 rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-700 dark:bg-white/10 dark:text-slate-300">
-                    {t("Expired")}
-                  </span>
-                )}
-              </div>
-              <dl className="mt-3 grid grid-cols-4 gap-2 text-center">
-                {(
-                  [
-                    [t("Granted"), formatAllocationAmount(a.granted, a.unit)],
-                    [t("Reserved"), formatAllocationAmount(a.reserved, a.unit)],
-                    [t("Used"), formatAllocationAmount(a.used, a.unit)],
-                    [t("Remaining"), formatAllocationAmount(a.remaining, a.unit)],
-                  ] as const
-                ).map(([label, value]) => (
-                  <div key={label}>
-                    <dt className="text-xs text-slate-500 dark:text-slate-400">{label}</dt>
-                    <dd
-                      className={`mt-0.5 text-lg font-bold ${
-                        label === t("Remaining") && a.remaining <= 0
-                          ? "text-amber-700 dark:text-amber-300"
-                          : "text-slate-800 dark:text-slate-100"
-                      }`}
-                    >
-                      {value}
-                    </dd>
-                  </div>
-                ))}
-              </dl>
+      <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200">{t("Allocation balance")}</h3>
+      <ul className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        {allocations.map((a) => (
+          <li
+            key={a.id}
+            className="rounded-2xl border border-slate-200/80 bg-white p-4 dark:border-white/10 dark:bg-white/5"
+          >
+            <div className="flex items-start justify-between gap-2">
+              <p className="font-semibold text-slate-800 dark:text-slate-100">{a.type_name}</p>
               {a.expired && (
-                <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
-                  {a.reserved > 0
-                    ? t("Expired — pending requests keep their reservation; it cannot fund new requests.")
-                    : t("Expired — it cannot fund new requests.")}
-                </p>
+                <span className="shrink-0 rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-700 dark:bg-white/10 dark:text-slate-300">
+                  {t("Expired")}
+                </span>
               )}
-            </li>
-          ))}
-        </ul>
-      )}
+            </div>
+            <p
+              className={`mt-2 text-3xl font-bold tracking-tight ${
+                a.remaining <= 0
+                  ? "text-amber-700 dark:text-amber-300"
+                  : "text-slate-900 dark:text-slate-50"
+              }`}
+            >
+              {formatAllocationAmount(a.remaining, a.unit)}
+              <span className="ms-1.5 text-sm font-semibold text-slate-500 dark:text-slate-400">
+                {t(ALLOCATION_UNIT_LABELS[a.unit])}
+              </span>
+            </p>
+            <p className="text-xs text-slate-500 dark:text-slate-400">{t("Current balance")}</p>
+            <dl className="mt-3 flex flex-wrap gap-x-4 gap-y-1 border-t border-slate-100 pt-3 text-xs text-slate-500 dark:border-white/10 dark:text-slate-400">
+              <div className="flex gap-1">
+                <dt>{t("Granted")}</dt>
+                <dd className="font-semibold text-slate-700 dark:text-slate-200">{formatAllocationAmount(a.granted, a.unit)}</dd>
+              </div>
+              <div className="flex gap-1">
+                <dt>{t("Reserved")}</dt>
+                <dd className="font-semibold text-slate-700 dark:text-slate-200">{formatAllocationAmount(a.reserved, a.unit)}</dd>
+              </div>
+              <div className="flex gap-1">
+                <dt>{t("Used")}</dt>
+                <dd className="font-semibold text-slate-700 dark:text-slate-200">{formatAllocationAmount(a.used, a.unit)}</dd>
+              </div>
+            </dl>
+            <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
+              {formatDate(a.start_date)} → {formatDate(a.end_date)}
+            </p>
+            {a.expired && (
+              <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
+                {a.reserved > 0
+                  ? t("Expired — pending requests keep their reservation; it cannot fund new requests.")
+                  : t("Expired — it cannot fund new requests.")}
+              </p>
+            )}
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }
 
-function DashboardCard({ scope }: { scope: DashboardScope }) {
+function DashboardCard({ scope, canReview }: { scope: DashboardScope; canReview: boolean }) {
   const { t, lang } = useLanguage();
   const { data, isLoading, error, refetch } = useQuery<Dashboard>({
     queryKey: ["dashboard", scope],
@@ -148,32 +145,37 @@ function DashboardCard({ scope }: { scope: DashboardScope }) {
           <span className="text-xs font-bold uppercase tracking-[.14em] text-brand-700">{scope === "personal" ? t("YOUR WORK") : scope === "team" ? t("YOUR TEAM") : t("COMPANY VIEW")}</span>
           <h2 id={`dash-${scope}`} className="mt-1 text-xl font-bold text-slate-800 dark:text-slate-100">{title}</h2>
         </div>
-        {scope === "personal" && <Link to="/reports" className="text-sm font-semibold workspace-link-quiet">{t("Explore insights")} <span aria-hidden="true">↗</span></Link>}
+        {scope !== "personal" && <Link to="/reports" className="text-sm font-semibold workspace-link-quiet">{t("Explore insights")} <span aria-hidden="true">↗</span></Link>}
       </div>
-      <div className="p-5 sm:p-7">
+      <div className="space-y-6 p-5 sm:p-7">
         <AsyncState isLoading={isLoading} error={error} onRetry={() => void refetch()}>
           {data && (
             <>
-              <p className="text-xs font-medium text-slate-600">{t("Period {from} → {to} ({tz})", { from: data.period.from, to: data.period.to, tz: data.period.timezone })}</p>
-              <div className="mt-5 grid gap-3 sm:grid-cols-2">
-                <Link to="/timesheets?status=approved" className="group rounded-2xl border border-brand-100 bg-gradient-to-br from-brand-50 to-white p-5 transition hover:-translate-y-0.5 hover:shadow-md dark:border-[#8bd6c2]/20 dark:from-[#8bd6c2]/10 dark:to-transparent">
-                  <span className="text-xs font-bold uppercase tracking-wider text-brand-700">{t("Approved hours")}</span>
-                  <p className="mt-3 text-3xl font-bold tracking-tight text-brand-800">{formatMinutes(data.approved_minutes, lang)}</p>
-                  <span className="mt-2 block text-xs text-slate-600">{t("Time logged and approved this period")} <span className="font-semibold text-brand-700 opacity-0 transition group-hover:opacity-100">{t("View")} →</span></span>
-                </Link>
-                <Link to="/requests?status=pending_manager" className="group rounded-2xl border border-amber-100 bg-gradient-to-br from-amber-50 to-white p-5 transition hover:-translate-y-0.5 hover:shadow-md dark:border-amber-300/20 dark:from-amber-300/10 dark:to-transparent">
-                  <span className="text-xs font-bold uppercase tracking-wider text-amber-800 dark:text-amber-200">{t("Pending review items")}</span>
-                  <p className="mt-3 text-3xl font-bold tracking-tight text-amber-900 dark:text-amber-100">{data.pending_review}</p>
-                  <span className="mt-2 block text-xs text-slate-600">{t("Items waiting for a decision")} <span className="font-semibold text-amber-800 opacity-0 transition group-hover:opacity-100 dark:text-amber-200">{t("View")} →</span></span>
-                </Link>
+              {scope === "personal" && canReview && (
+                <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-amber-200 bg-amber-50 p-5 dark:border-amber-300/20 dark:bg-amber-300/10">
+                  <div>
+                    <h3 className="text-sm font-semibold text-amber-900 dark:text-amber-100">{t("Pending review items")}</h3>
+                    <p className="mt-1 text-2xl font-bold text-amber-950 dark:text-amber-50">{data.pending_review}</p>
+                    <p className="text-xs text-amber-900/80 dark:text-amber-100/80">{t("Items waiting for your decision")}</p>
+                  </div>
+                  <div className="flex flex-wrap gap-2 text-sm font-medium">
+                    <Link to="/requests" className="rounded-lg border border-amber-300 px-3 py-2 text-amber-950 hover:bg-amber-100 dark:border-amber-200/30 dark:text-amber-100 dark:hover:bg-white/10">{t("Review requests")}</Link>
+                    <Link to="/timesheets" className="rounded-lg border border-amber-300 px-3 py-2 text-amber-950 hover:bg-amber-100 dark:border-amber-200/30 dark:text-amber-100 dark:hover:bg-white/10">{t("Review timesheets")}</Link>
+                  </div>
+                </div>
+              )}
+              <div className="rounded-2xl border border-brand-100 bg-brand-50 p-5 dark:border-[#8bd6c2]/20 dark:bg-[#8bd6c2]/10">
+                <p className="text-xs font-bold uppercase tracking-wider text-brand-700 dark:text-[#8bd6c2]">{t("Approved hours")}</p>
+                <p className="mt-2 text-3xl font-bold tracking-tight text-brand-800 dark:text-slate-100">{formatMinutes(data.approved_minutes, lang)}</p>
+                <p className="mt-1 text-xs text-slate-600 dark:text-slate-300">{t("Period {from} → {to} ({tz})", { from: data.period.from, to: data.period.to, tz: data.period.timezone })}</p>
+              </div>
+              <div className="grid gap-6 lg:grid-cols-2">
+                <div><h3 className="text-sm font-bold text-slate-800 dark:text-slate-200">{t("Requests")}</h3><StatusChips byStatus={data.requests.by_status} basePath="/requests" /></div>
+                <div><h3 className="text-sm font-bold text-slate-800 dark:text-slate-200">{t("Timesheets")}</h3><StatusChips byStatus={data.timesheets.by_status} basePath="/timesheets" /></div>
               </div>
               {scope === "personal" && data.allocations && (
                 <AllocationCards allocations={data.allocations} />
               )}
-              <div className="mt-7 grid gap-6 lg:grid-cols-2">
-                <div><h3 className="text-sm font-bold text-slate-800 dark:text-slate-200">{t("Requests")}</h3><StatusChips byStatus={data.requests.by_status} basePath="/requests" /></div>
-                <div><h3 className="text-sm font-bold text-slate-800 dark:text-slate-200">{t("Timesheets")}</h3><StatusChips byStatus={data.timesheets.by_status} basePath="/timesheets" /></div>
-              </div>
             </>
           )}
         </AsyncState>
@@ -187,39 +189,34 @@ function DashboardCard({ scope }: { scope: DashboardScope }) {
  * only control which cards render. */
 export function DashboardPage() {
   const { user } = useAuth();
-  const { t, lang } = useLanguage();
+  const { t } = useLanguage();
   const roles = user?.roles ?? [];
   const isHr = roles.includes("HR");
-  const isManager = roles.includes("Manager");
-  const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
-  const date = selectedDate ? `${selectedDate.getFullYear()}-${String(selectedDate.getMonth() + 1).padStart(2, "0")}-${String(selectedDate.getDate()).padStart(2, "0")}` : "";
+  const canReview = isHr || roles.includes("Manager");
 
   return (
-    <div className="flex flex-col gap-7">
-      <div className="relative overflow-hidden rounded-3xl bg-[#103e3a] px-6 py-8 text-white shadow-xl shadow-brand-800/10 sm:px-10 sm:py-10">
-        <img src="/brand/logo-icon.png" alt="" aria-hidden="true" className="pointer-events-none absolute -right-12 -top-16 h-80 w-auto opacity-[.06]" />
-        <div className="pointer-events-none absolute -bottom-44 right-20 h-56 w-40 rounded-full bg-[#d8b770]/10 blur-3xl" aria-hidden="true" />
-        <div className="relative flex flex-wrap items-end justify-between gap-6">
-          <div><span className="text-xs font-bold uppercase tracking-[.2em] text-[#b7d9cd]">{t("WELCOME TO YOUR WORKSPACE")}</span><h1 className="mt-3 text-3xl font-bold tracking-tight text-white sm:text-4xl">{t("My dashboard")}</h1><p className="mt-3 max-w-lg text-sm leading-6 text-[#d2e6de]">{t("A clearer view of your requests, time and everything that needs your attention.")}</p></div>
-          <div className="flex flex-wrap gap-2"><Link to="/requests/new" className="inline-flex items-center rounded-xl bg-[#e6bf71] px-4 py-2.5 text-sm font-bold text-[#223b34] hover:bg-[#f0cd87]">{t("New request")} <span className="ms-2" aria-hidden="true">↗</span></Link><Link to="/timesheets" className="inline-flex items-center rounded-xl border border-white/30 px-4 py-2.5 text-sm font-semibold text-white hover:bg-white/10">{t("View timesheets")}</Link></div>
+    <div className="flex flex-col gap-6">
+      <div className="relative overflow-hidden rounded-2xl bg-[#103e3a] px-6 py-6 text-white sm:px-8">
+        <img src="/brand/logo-icon-dark.png" alt="" aria-hidden="true" className="pointer-events-none absolute -right-12 -top-16 h-64 w-auto opacity-[.08] rtl:-left-12 rtl:right-auto" />
+        <div className="relative flex flex-wrap items-center justify-between gap-5">
+          <div><span className="text-xs font-bold uppercase tracking-[.14em] text-[#b7d9cd]">{t("WELCOME TO YOUR WORKSPACE")}</span><h1 className="mt-2 text-2xl font-bold tracking-tight sm:text-3xl">{t("My dashboard")}</h1><p className="mt-2 max-w-lg text-sm text-[#d2e6de]">{t("A clearer view of your requests, time and everything that needs your attention.")}</p></div>
+          <div className="flex flex-wrap gap-2"><Link to="/requests/new" className="inline-flex items-center rounded-lg bg-[#e6bf71] px-4 py-2.5 text-sm font-bold text-[#223b34] hover:bg-[#f0cd87]">{t("New request")}</Link><Link to="/timesheets" className="inline-flex items-center rounded-lg border border-white/30 px-4 py-2.5 text-sm font-semibold text-white hover:bg-white/10">{t("View timesheets")}</Link></div>
         </div>
       </div>
-      <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_350px]">
-        <DashboardCard scope="personal" />
-        <Card className="overflow-hidden border-brand-100 shadow-sm">
-          <CardHeader><CardTitle>{t("Plan your day")}</CardTitle><CardDescription>{t("Choose a day, then start a request or open your timesheet.")}</CardDescription></CardHeader>
-          <CardContent className="flex flex-col items-center gap-3">
-            <Calendar mode="single" selected={selectedDate} onSelect={setSelectedDate} locale={lang === "ar" ? arSA : undefined} dir={lang === "ar" ? "rtl" : "ltr"} className="rounded-lg border" />
-            <div className="grid w-full grid-cols-2 gap-2">
-              <Button asChild disabled={!date}><Link to={`/requests/new?date=${date}`}>{t("New request")}</Link></Button>
-              <Button asChild variant="outline" disabled={!date}><Link to={`/timesheets?date=${date}`}>{t("Open timesheet")}</Link></Button>
-            </div>
-            <p className="w-full text-xs text-muted-foreground">{t("Selected:")} {date || t("Choose a date")}. {t("Requests stay drafts until you submit them.")}</p>
-          </CardContent>
-        </Card>
-      </div>
-      {(isManager || isHr) && <DashboardCard scope="team" />}
-      {isHr && <DashboardCard scope="organization" />}
+      {canReview ? (
+        <Tabs defaultValue="personal" className="min-w-0">
+          <TabsList aria-label={t("Dashboard views")}>
+            <TabsTrigger value="personal">{t("Personal overview")}</TabsTrigger>
+            <TabsTrigger value="team">{t("Team dashboard")}</TabsTrigger>
+            {isHr && <TabsTrigger value="organization">{t("Organization dashboard")}</TabsTrigger>}
+          </TabsList>
+          <TabsContent value="personal"><DashboardCard scope="personal" canReview /></TabsContent>
+          <TabsContent value="team"><DashboardCard scope="team" canReview /></TabsContent>
+          {isHr && <TabsContent value="organization"><DashboardCard scope="organization" canReview /></TabsContent>}
+        </Tabs>
+      ) : (
+        <DashboardCard scope="personal" canReview={false} />
+      )}
     </div>
   );
 }

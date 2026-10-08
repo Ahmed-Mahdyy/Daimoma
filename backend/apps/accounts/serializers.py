@@ -103,7 +103,14 @@ class MeSerializer(serializers.ModelSerializer):
         return f"/api/v1/me/photo/?v={int(profile.updated_at.timestamp())}"
 
     def validate_phone(self, value):
-        return normalize_egyptian_phone(value)
+        value = normalize_egyptian_phone(value)
+        if value and EmployeeProfile.objects.filter(
+            organization=self.instance.organization, phone=value
+        ).exclude(pk=self.instance.pk).exists():
+            raise serializers.ValidationError(
+                "An employee with this phone number already exists."
+            )
+        return value
 
     def to_internal_value(self, data):
         rejected = set(data) - self.WRITABLE

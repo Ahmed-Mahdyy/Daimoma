@@ -11,11 +11,30 @@ class Organization(models.Model):
     """Single-organization deployment (D-003); schema stays org-keyed so every
     business row carries its organization for scoping."""
 
+    class EmailMode(models.TextChoices):
+        ENV = "env", "Environment default"
+        SMTP = "smtp", "Custom SMTP"
+
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     name = models.CharField(max_length=160)
     timezone = models.CharField(max_length=64, default="UTC")
     week_start = models.PositiveSmallIntegerField(default=0)  # 0=Monday … 6=Sunday
     working_weekdays = models.JSONField(default=list, blank=True)
+    # HR-configured email delivery (Settings > Email). "env" uses the process
+    # environment backend (console locally); "smtp" uses the stored config.
+    # The password is write-only through the API and stored for delivery —
+    # protect the database accordingly.
+    email_mode = models.CharField(
+        max_length=10, choices=EmailMode.choices, default=EmailMode.ENV
+    )
+    email_host = models.CharField(max_length=255, blank=True)
+    email_port = models.PositiveIntegerField(default=587)
+    email_host_user = models.CharField(max_length=255, blank=True)
+    email_host_password = models.CharField(max_length=255, blank=True)
+    email_use_tls = models.BooleanField(default=False)
+    email_use_ssl = models.BooleanField(default=False)
+    email_timeout = models.PositiveIntegerField(default=30)
+    email_from = models.CharField(max_length=255, blank=True)
     fallback_reviewer = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         null=True,
@@ -51,6 +70,10 @@ class Organization(models.Model):
             or len(days) != len(set(days))
         ):
             raise ValidationError({"working_weekdays": "Select distinct weekdays from 0 to 6."})
+        if self.email_use_tls and self.email_use_ssl:
+            raise ValidationError({"email_use_ssl": "TLS and SSL are mutually exclusive."})
+        if self.email_mode == self.EmailMode.SMTP and not self.email_host.strip():
+            raise ValidationError({"email_host": "SMTP mode requires a mail server host."})
 
 
 class Department(models.Model):

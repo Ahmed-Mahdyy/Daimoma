@@ -7,6 +7,8 @@ import {
   type ColumnDef,
   type OnChangeFn,
   type PaginationState,
+  type Row,
+  type RowSelectionState,
   type SortingState,
 } from "@tanstack/react-table";
 import { ArrowDown, ArrowUp, ArrowUpDown } from "lucide-react";
@@ -37,6 +39,10 @@ export function DataTable<T>({
   clientPagination = false,
   pageSize = 10,
   defaultSorting,
+  rowSelection,
+  onRowSelectionChange,
+  enableRowSelection,
+  getRowId,
 }: {
   columns: ColumnDef<T, unknown>[];
   data: T[];
@@ -53,6 +59,13 @@ export function DataTable<T>({
   pageSize?: number;
   /** Initial client-side sort (ignored when `sorting` is controlled). */
   defaultSorting?: SortingState;
+  /** Controlled row selection — pair with a checkbox column. */
+  rowSelection?: RowSelectionState;
+  onRowSelectionChange?: OnChangeFn<RowSelectionState>;
+  /** Restrict which rows may be selected (e.g. only deletable drafts). */
+  enableRowSelection?: boolean | ((row: Row<T>) => boolean);
+  /** Stable row ids keep selection intact across server pagination. */
+  getRowId?: (row: T) => string;
 }) {
   const { t } = useLanguage();
   const [internalSorting, setInternalSorting] = useState<SortingState>(
@@ -67,9 +80,16 @@ export function DataTable<T>({
   const table = useReactTable({
     columns,
     data,
-    state: clientPagination ? { sorting, pagination } : { sorting },
+    state: {
+      sorting,
+      ...(clientPagination ? { pagination } : {}),
+      ...(rowSelection !== undefined ? { rowSelection } : {}),
+    },
     onSortingChange: onSortingChange ?? setInternalSorting,
     onPaginationChange: setPagination,
+    onRowSelectionChange,
+    enableRowSelection,
+    getRowId,
     getCoreRowModel: getCoreRowModel(),
     ...(manualSorting ? { manualSorting: true } : { getSortedRowModel: getSortedRowModel() }),
     ...(clientPagination ? { getPaginationRowModel: getPaginationRowModel() } : {}),
@@ -143,7 +163,13 @@ export function DataTable<T>({
             </tr>
           ) : (
             table.getRowModel().rows.map((row) => (
-              <tr key={row.id} className="border-t transition-colors hover:bg-accent/40">
+              <tr
+                key={row.id}
+                data-state={row.getIsSelected() ? "selected" : undefined}
+                className={`border-t transition-colors hover:bg-accent/40 ${
+                  row.getIsSelected() ? "bg-brand-50/70 dark:bg-white/10" : ""
+                }`}
+              >
                 {row.getVisibleCells().map((cell) => (
                   <td key={cell.id}>
                     {flexRender(cell.column.columnDef.cell, cell.getContext())}

@@ -1,3 +1,4 @@
+from django.db import models
 from django.http import Http404
 from drf_spectacular.utils import extend_schema, inline_serializer
 from rest_framework import serializers, status
@@ -30,6 +31,7 @@ from apps.employee_requests.serializers import (
     AllocationPreviewSerializer,
     AllocationVoidSerializer,
     ApprovalStepSerializer,
+    BulkDeleteSerializer,
     EmployeeRequestSerializer,
     RequestDraftSerializer,
     RequestEventSerializer,
@@ -38,7 +40,9 @@ from apps.employee_requests.serializers import (
     RequestTypeWriteSerializer,
 )
 from apps.employee_requests.services import (
+    bulk_delete_drafts,
     create_draft,
+    delete_draft,
     review_request,
     submit_request,
     update_draft,
@@ -114,6 +118,37 @@ class RequestDetailView(APIView):
         ser.is_valid(raise_exception=True)
         req = update_draft(req, request.user, ser.validated_data)
         return Response(EmployeeRequestSerializer(req).data)
+
+    @extend_schema(responses={204: None})
+    def delete(self, request, pk):
+        req = _visible_request(request.user, pk)
+        delete_draft(req, request.user)
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class RequestBulkDeleteView(APIView):
+    """Bulk-delete the caller's own drafts — out-of-scope ids are skipped."""
+
+    permission_classes = [IsActiveAuthenticated]
+
+    @extend_schema(
+        request=BulkDeleteSerializer,
+        responses={
+            200: inline_serializer(
+                name="BulkDeleteResult",
+                fields={
+                    "deleted": serializers.IntegerField(),
+                    "skipped": serializers.ListField(child=serializers.UUIDField()),
+                },
+            )
+        },
+    )
+    def post(self, request):
+        ser = BulkDeleteSerializer(data=request.data)
+        ser.is_valid(raise_exception=True)
+        return Response(
+            bulk_delete_drafts(request.user, ser.validated_data["ids"])
+        )
 
 
 class RequestSubmitView(APIView):
@@ -340,6 +375,13 @@ class AllocationListView(APIView):
             if grant_status not in EmployeeAllocationGrant.Status.values:
                 raise serializers.ValidationError({"status": ["Invalid allocation status."]})
             qs = qs.filter(status=grant_status)
+        if search := request.query_params.get("search", "").strip():
+            qs = qs.filter(
+                models.Q(employee__display_name__icontains=search)
+                | models.Q(employee__employee_code__icontains=search)
+                | models.Q(employee__user__email__icontains=search)
+                | models.Q(request_type__name__icontains=search)
+            )
         qs = qs.order_by("-created_at", "pk")
         paginator = DefaultPagination()
         page = paginator.paginate_queryset(qs, request)

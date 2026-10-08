@@ -186,6 +186,8 @@ def _overlaps(employee, start_at, end_at, exclude_id=None):
 def _day_of(sheet, profile, work_date: date_type, *, create=True) -> WorkDay:
     if not (sheet.period_start <= work_date <= sheet.period_end):
         raise ValidationError({"work_date": ["Date is outside this sheet's week."]})
+    if work_date > local_date(timezone.now(), ZoneInfo(sheet.timezone)):
+        raise ValidationError({"work_date": ["Cannot log work on a future day."]})
     day = WorkDay.objects.filter(timesheet=sheet, work_date=work_date).first()
     if day is None:
         if not create:

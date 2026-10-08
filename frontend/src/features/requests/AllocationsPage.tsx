@@ -5,6 +5,8 @@ import { Link } from "react-router-dom";
 
 import { Button } from "@/components/ui/button";
 import { DataTable } from "@/components/ui/data-table";
+import { FilterBar, FilterSelect, SearchField } from "@/components/ui/filter-bar";
+import { PageHeader } from "@/components/ui/page-header";
 import { ApiError, apiErrorMessage } from "../../api/client";
 import { listEmployees } from "../../api/employees";
 import {
@@ -38,17 +40,20 @@ export function AllocationsPage() {
   const [page, setPage] = useState(1);
   const [statusFilter, setStatusFilter] = useState<"" | AllocationGrant["status"]>("");
   const [employeeFilter, setEmployeeFilter] = useState("");
+  const [searchInput, setSearchInput] = useState("");
+  const [search, setSearch] = useState("");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [serverError, setServerError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
 
   const { data, isLoading, error } = useQuery({
-    queryKey: ["allocations", { page, status: statusFilter, employee: employeeFilter }],
+    queryKey: ["allocations", { page, status: statusFilter, employee: employeeFilter, search }],
     queryFn: () =>
       listAllocations({
         page,
         status: statusFilter || undefined,
         employee: employeeFilter || undefined,
+        search: search || undefined,
       }),
   });
   const { data: employees } = useQuery({
@@ -177,66 +182,74 @@ export function AllocationsPage() {
 
   return (
     <div>
-      <span className="text-xs font-bold uppercase tracking-widest text-brand-700">
-        {t("HR / WORKFLOWS")}
-      </span>
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h1 className="mt-1 text-3xl font-bold">{t("Employee allocations")}</h1>
-          <p className="mt-2 text-base font-medium leading-relaxed text-gray-600">
-            {t("Assign dated allowances for allocation-required types. Requests reserve capacity when submitted and release it when returned or rejected. Removed allocations keep their history.")}
-          </p>
-        </div>
-        <Button asChild>
-          <Link to="/settings/allocations/new">{t("Add allocation")}</Link>
-        </Button>
-      </div>
       {serverError && (
-        <div className="mt-3">
+        <div className="mb-3">
           <Alert kind="error">{serverError}</Alert>
         </div>
       )}
       {notice && (
-        <div className="mt-3">
+        <div className="mb-3">
           <Alert kind="success">{notice}</Alert>
         </div>
       )}
 
-      <div className="mt-4 flex flex-wrap items-end gap-3">
-        <label className="text-sm font-semibold">
-          {t("Employee")}
-          <select
-            className={input}
-            value={employeeFilter}
-            onChange={(e) => {
-              setEmployeeFilter(e.target.value);
+      <FilterBar
+        header={
+          <PageHeader
+            eyebrow={t("HR / WORKFLOWS")}
+            title={t("Employee allocations")}
+            description={t("Assign dated allowances for allocation-required types. Requests reserve capacity when submitted and release it when returned or rejected. Removed allocations keep their history.")}
+            actions={
+              <Button asChild>
+                <Link to="/settings/allocations/new">{t("Add allocation")}</Link>
+              </Button>
+            }
+          />
+        }
+        search={
+          <SearchField
+            ariaLabel={t("Search allocations")}
+            value={searchInput}
+            onChange={setSearchInput}
+            onSearch={(v) => {
+              setSearch(v);
               setPage(1);
             }}
-          >
-            <option value="">{t("All employees")}</option>
-            {(employees?.results ?? []).map((emp) => (
-              <option key={emp.id} value={emp.id}>
-                {emp.display_name || emp.employee_code}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="text-sm font-semibold">
-          {t("Status")}
-          <select
-            className={input}
-            value={statusFilter}
-            onChange={(e) => {
-              setStatusFilter(e.target.value as "" | AllocationGrant["status"]);
-              setPage(1);
-            }}
-          >
-            <option value="">{t("Any status")}</option>
-            <option value="active">{t("Active")}</option>
-            <option value="void">{t("Removed")}</option>
-          </select>
-        </label>
-      </div>
+            placeholder={t("Employee, code, email or type…")}
+          />
+        }
+        activeFilters={
+          (employeeFilter ? 1 : 0) + (statusFilter ? 1 : 0)
+        }
+      >
+        <FilterSelect
+          label={t("Employee")}
+          value={employeeFilter}
+          onChange={(v) => {
+            setEmployeeFilter(v);
+            setPage(1);
+          }}
+        >
+          <option value="">{t("All employees")}</option>
+          {(employees?.results ?? []).map((emp) => (
+            <option key={emp.id} value={emp.id}>
+              {emp.display_name || emp.employee_code}
+            </option>
+          ))}
+        </FilterSelect>
+        <FilterSelect
+          label={t("Status")}
+          value={statusFilter}
+          onChange={(v) => {
+            setStatusFilter(v as "" | AllocationGrant["status"]);
+            setPage(1);
+          }}
+        >
+          <option value="">{t("Any status")}</option>
+          <option value="active">{t("Active")}</option>
+          <option value="void">{t("Removed")}</option>
+        </FilterSelect>
+      </FilterBar>
 
       <AsyncState isLoading={isLoading} error={error}>
         <div className="mt-3">

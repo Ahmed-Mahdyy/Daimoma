@@ -17,6 +17,7 @@ from apps.organizations.serializers import (
     EmployeeProvisionSerializer,
     EmployeeSummarySerializer,
     EmployeeUpdateSerializer,
+    OrgEmailTestSerializer,
     OrgSettingsSerializer,
     ReasonSerializer,
 )
@@ -27,6 +28,7 @@ from apps.organizations.services import (
     provision_employee,
     reactivate_employee,
     resend_invitation,
+    test_email_connection,
     update_department,
     update_employee,
     update_org_settings,
@@ -295,3 +297,17 @@ class OrgSettingsView(APIView):
         serializer.is_valid(raise_exception=True)
         org = update_org_settings(request.user, _org(request), serializer.validated_data)
         return Response(OrgSettingsSerializer(org).data)
+
+
+class OrgEmailTestView(APIView):
+    """POST — HR verifies the SMTP connection; a probe email goes to the
+    caller. Optional body overrides test unsaved form values."""
+
+    permission_classes = [IsHR]
+
+    @extend_schema(request=OrgEmailTestSerializer, responses={200: DetailSerializer})
+    def post(self, request):
+        serializer = OrgEmailTestSerializer(data=request.data or {})
+        serializer.is_valid(raise_exception=True)
+        test_email_connection(request.user, _org(request), serializer.validated_data)
+        return Response({"detail": "Connection verified — test email sent to your address."})

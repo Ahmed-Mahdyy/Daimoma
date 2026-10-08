@@ -161,24 +161,25 @@ export function RequestEditPage() {
       <AsyncState isLoading={isLoading} error={error} emptyText="">
         {req && (
           <>
-            <h1 className="text-2xl font-semibold">
-              {req.status === "returned" ? t("Revise returned request") : t("Edit draft")}
-            </h1>
-            <p className="mt-1 text-sm text-gray-600">
-              {req.type_name}
-              {req.status === "returned" &&
-                ` — ${t("reviewer comments are on the request detail page.")}`}
-            </p>
-
             <form
               onSubmit={handleSubmit((v) => {
                 setServerError(null);
                 setFieldErrors({});
                 save.mutate(buildBody(v));
               })}
-              className="mt-6 flex flex-col gap-4"
+              className="workspace-panel flex flex-col gap-4 p-6"
               noValidate
             >
+              <div>
+                <h1 className="text-2xl font-bold sm:text-3xl">
+                  {req.status === "returned" ? t("Revise returned request") : t("Edit draft")}
+                </h1>
+                <p className="mt-1 text-sm text-gray-600">
+                  {req.type_name}
+                  {req.status === "returned" &&
+                    ` — ${t("reviewer comments are on the request detail page.")}`}
+                </p>
+              </div>
               <div>
                 <label htmlFor="title" className="block text-sm font-medium">
                   {t("Title")}

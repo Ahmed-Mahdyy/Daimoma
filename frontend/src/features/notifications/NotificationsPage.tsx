@@ -8,6 +8,7 @@ import {
   resolveNotificationTarget,
 } from "../../api/notifications";
 import { FilterBar, FilterSelect } from "@/components/ui/filter-bar";
+import { PageHeader } from "@/components/ui/page-header";
 
 import { ApiError } from "../../api/client";
 import { useLanguage } from "../../app/LanguageProvider";
@@ -91,9 +92,10 @@ export function NotificationsPage() {
 
   return (
     <div>
-      <h1 className="mb-4 text-xl font-semibold">{t("Notifications")}</h1>
-
-      <FilterBar>
+      <FilterBar
+        header={<PageHeader title={t("Notifications")} />}
+        activeFilters={[unread, kind].filter(Boolean).length}
+      >
         <FilterSelect
           label={t("Status")}
           value={unread}

@@ -108,17 +108,13 @@ export function RequestTypeEditPage() {
       <AsyncState isLoading={isLoading} error={error}>
         {type && (
           <>
-            <h1 className="text-2xl font-semibold">{t("Edit request type")}</h1>
-            <p className="mt-1 text-sm text-gray-600">
-              {t("Changes apply to new submissions — existing requests keep their original route.")}
-            </p>
             {serverError && (
-              <div className="mt-3">
+              <div className="mb-3">
                 <Alert kind="error">{serverError}</Alert>
               </div>
             )}
             <form
-              className="mt-6 flex flex-col gap-4"
+              className="workspace-panel flex flex-col gap-4 p-6"
               noValidate
               onSubmit={handleSubmit((v) => {
                 setServerError(null);
@@ -126,6 +122,12 @@ export function RequestTypeEditPage() {
                 save.mutate(v);
               })}
             >
+              <div>
+                <h1 className="text-2xl font-bold sm:text-3xl">{t("Edit request type")}</h1>
+                <p className="mt-1 text-sm text-gray-600">
+                  {t("Changes apply to new submissions — existing requests keep their original route.")}
+                </p>
+              </div>
               <div>
                 <label htmlFor="name" className="block text-sm font-medium">
                   {t("Name")}

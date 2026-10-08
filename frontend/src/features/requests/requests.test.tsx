@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -13,6 +13,8 @@ vi.mock("../../api/requests", async (importOriginal) => {
     listRequestTypes: vi.fn(),
     createRequest: vi.fn(),
     updateRequest: vi.fn(),
+    deleteRequest: vi.fn(),
+    bulkDeleteRequests: vi.fn(),
     submitRequest: vi.fn(),
     approveRequest: vi.fn(),
     rejectRequest: vi.fn(),
@@ -31,7 +33,9 @@ vi.mock("../auth/auth-context", () => ({
 
 import {
   approveRequest,
+  bulkDeleteRequests,
   createRequest,
+  deleteRequest,
   getRequest,
   getRequestHistory,
   listRequests,
@@ -147,6 +151,85 @@ describe("RequestsPage", () => {
     expect(screen.getByLabelText(/^status$/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/^type$/i)).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /new request/i })).toBeInTheDocument();
+  });
+
+  it("lets only draft rows be selected for bulk delete", async () => {
+    vi.mocked(listRequests).mockResolvedValue({
+      count: 2,
+      next: null,
+      previous: null,
+      results: [DRAFT, PENDING_REVIEW],
+    });
+    vi.mocked(listRequestTypes).mockResolvedValue({
+      count: 0, next: null, previous: null, results: [],
+    });
+    wrap(<RequestsPage />, "/requests", "/requests");
+    await screen.findAllByText("Summer leave");
+
+    const boxes = screen.getAllByRole("checkbox", { name: /select request/i });
+    expect(boxes).toHaveLength(2);
+    expect(boxes[0]).toBeEnabled(); // draft row
+    expect(boxes[1]).toBeDisabled(); // submitted row — not deletable
+
+    // The non-draft row exposes a per-row delete action only on drafts.
+    expect(screen.getAllByRole("button", { name: /delete draft/i })).toHaveLength(1);
+  });
+
+  it("bulk-deletes selected drafts after confirmation", async () => {
+    vi.mocked(listRequests).mockResolvedValue({
+      count: 2,
+      next: null,
+      previous: null,
+      results: [DRAFT, PENDING_REVIEW],
+    });
+    vi.mocked(listRequestTypes).mockResolvedValue({
+      count: 0, next: null, previous: null, results: [],
+    });
+    vi.mocked(bulkDeleteRequests).mockResolvedValue({ deleted: 1, skipped: [] });
+    wrap(<RequestsPage />, "/requests", "/requests");
+    await screen.findAllByText("Summer leave");
+
+    fireEvent.click(
+      screen.getAllByRole("checkbox", { name: /select request/i })[0],
+    );
+    expect(await screen.findByText("1 selected")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: /delete selected/i }));
+    const dialog = await screen.findByRole("dialog");
+    fireEvent.click(
+      within(dialog).getByRole("button", { name: /^delete$/i }),
+    );
+    await waitFor(() =>
+      expect(bulkDeleteRequests).toHaveBeenCalledWith(
+        ["r1"],
+        expect.anything(),
+      ),
+    );
+    expect(await screen.findByText("Deleted 1 drafts.")).toBeInTheDocument();
+  });
+
+  it("deletes a single draft from its row action", async () => {
+    vi.mocked(listRequests).mockResolvedValue({
+      count: 1,
+      next: null,
+      previous: null,
+      results: [DRAFT],
+    });
+    vi.mocked(listRequestTypes).mockResolvedValue({
+      count: 0, next: null, previous: null, results: [],
+    });
+    vi.mocked(deleteRequest).mockResolvedValue(undefined);
+    wrap(<RequestsPage />, "/requests", "/requests");
+    await screen.findByText("Summer leave");
+
+    fireEvent.click(screen.getByRole("button", { name: /delete draft/i }));
+    const dialog = await screen.findByRole("dialog");
+    fireEvent.click(
+      within(dialog).getByRole("button", { name: /^delete$/i }),
+    );
+    await waitFor(() =>
+      expect(deleteRequest).toHaveBeenCalledWith("r1", expect.anything()),
+    );
   });
 });
 
@@ -275,5 +358,26 @@ describe("RequestDetailPage", () => {
     await waitFor(() =>
       expect(approveRequest).toHaveBeenCalledWith("r2", 3),
     );
+  });
+
+  it("owner can delete a draft after confirmation", async () => {
+    vi.mocked(deleteRequest).mockResolvedValue(undefined);
+    renderDetail(DRAFT);
+    fireEvent.click(
+      await screen.findByRole("button", { name: /delete draft/i }),
+    );
+    const dialog = await screen.findByRole("dialog");
+    fireEvent.click(
+      within(dialog).getByRole("button", { name: /^delete$/i }),
+    );
+    await waitFor(() => expect(deleteRequest).toHaveBeenCalledWith("r1"));
+  });
+
+  it("hides the delete action on non-draft requests", async () => {
+    renderDetail(PENDING_REVIEW);
+    await screen.findByText(/awaits your decision/i);
+    expect(
+      screen.queryByRole("button", { name: /delete draft/i }),
+    ).not.toBeInTheDocument();
   });
 });

@@ -4,14 +4,11 @@ import { useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DataTable } from "@/components/ui/data-table";
 import { FilterBar, SearchField } from "@/components/ui/filter-bar";
-import { Input } from "@/components/ui/input";
-import { managerChoices } from "../../api/employees";
+import { PageHeader } from "@/components/ui/page-header";
 
 import {
-  createDepartment,
   listDepartments,
   updateDepartment,
   type Department,
@@ -29,8 +26,6 @@ export function DepartmentsPage() {
   const queryClient = useQueryClient();
   const [params, setParams] = useSearchParams();
   const [searchInput, setSearchInput] = useState(params.get("search") ?? "");
-  const [newName, setNewName] = useState("");
-  const [newManager, setNewManager] = useState("");
   const [deactivating, setDeactivating] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
@@ -41,11 +36,6 @@ export function DepartmentsPage() {
     queryKey: ["departments", { search }],
     queryFn: () => listDepartments({ search }),
   });
-  const { data: managers } = useQuery({
-    queryKey: ["managerChoices"],
-    queryFn: () => managerChoices(),
-  });
-
   const invalidate = () =>
     queryClient.invalidateQueries({ queryKey: ["departments"] });
 
@@ -55,17 +45,6 @@ export function DepartmentsPage() {
     else next.delete("search");
     setParams(next, { replace: true });
   };
-
-  const createMutation = useMutation({
-    mutationFn: () => createDepartment(newName.trim(), newManager || null),
-    onSuccess: () => {
-      setNewName("");
-      setNewManager("");
-      setNotice(t("Department created."));
-      void invalidate();
-    },
-    onError: (e) => setError(e instanceof Error ? e.message : t("Failed.")),
-  });
 
   const updateMutation = useMutation({
     mutationFn: (input: { id: string; name?: string; is_active?: boolean }) =>
@@ -164,55 +143,33 @@ export function DepartmentsPage() {
 
   return (
     <div>
-      <span className="text-xs font-bold uppercase tracking-widest text-brand-700">{t("HR / ORGANIZATION")}</span>
-      <h1 className="mt-1 text-3xl font-bold">{t("Departments")}</h1>
-      <p className="mt-1 text-sm text-gray-600">
-        {t("Deactivated departments keep their history; members become unassigned.")}
-      </p>
+      {error && <div className="mb-3"><Alert kind="error">{error}</Alert></div>}
+      {notice && <div className="mb-3"><Alert kind="success">{notice}</Alert></div>}
 
-      {error && <div className="mt-3"><Alert kind="error">{error}</Alert></div>}
-      {notice && <div className="mt-3"><Alert kind="success">{notice}</Alert></div>}
-
-      <Card className="mt-5"><CardHeader><CardTitle>{t("Add a department")}</CardTitle></CardHeader><CardContent><form
-        className="flex flex-wrap gap-2"
-        onSubmit={(e) => {
-          e.preventDefault();
-          setError(null);
-          setNotice(null);
-          if (newName.trim()) createMutation.mutate();
-        }}
-      >
-        <Input
-          aria-label={t("New department name")}
-          placeholder={t("New department name")}
-          className="min-w-44 flex-1"
-          value={newName}
-          onChange={(e) => setNewName(e.target.value)}
-        />
-        <label className="flex min-w-44 flex-1 items-center gap-2 text-sm">
-          {t("Manager")}
-          <select className="min-w-0 flex-1 rounded-md border px-2 py-2" value={newManager} onChange={(e) => setNewManager(e.target.value)}>
-            <option value="">{t("None")}</option>
-            {managers?.results.filter((m) => m.roles.includes("Manager")).map((m) => (
-              <option key={m.id} value={m.id}>{m.display_name || m.employee_code}</option>
-            ))}
-          </select>
-        </label>
-        <Button type="submit" disabled={createMutation.isPending || !newName.trim()}>
-          {t("Add department")}
-        </Button>
-      </form></CardContent></Card>
-
-      <FilterBar>
-        <SearchField
-          label={t("Search")}
-          ariaLabel={t("Search departments")}
-          value={searchInput}
-          onChange={setSearchInput}
-          onSearch={setSearchParam}
-          placeholder={t("Department or manager…")}
-        />
-      </FilterBar>
+      <FilterBar
+        header={
+          <PageHeader
+            eyebrow={t("HR / ORGANIZATION")}
+            title={t("Departments")}
+            description={t("Deactivated departments keep their history; members become unassigned.")}
+            actions={
+              <Button asChild>
+                <Link to="/departments/new">{t("New department")}</Link>
+              </Button>
+            }
+          />
+        }
+        search={
+          <SearchField
+            label={t("Search")}
+            ariaLabel={t("Search departments")}
+            value={searchInput}
+            onChange={setSearchInput}
+            onSearch={setSearchParam}
+            placeholder={t("Department or manager…")}
+          />
+        }
+      />
 
       <AsyncState isLoading={isLoading} error={loadError} isEmpty={data?.results.length === 0} emptyText={t("No departments yet.")}>
         <div className="mt-5">

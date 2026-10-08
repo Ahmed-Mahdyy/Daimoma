@@ -167,6 +167,22 @@ class TestPasswordReset:
 
         assert re.search(r"token=([A-Za-z0-9_\-]+)", mail.outbox[0].body)
 
+    def test_email_is_branded_multipart(self, api_client, employee):
+        api_client.post(RESET_URL, {"email": "employee@acme.test"})
+        msg = mail.outbox[0]
+        import re
+
+        # Plain-text part keeps the token link for non-HTML clients.
+        assert re.search(r"token=([A-Za-z0-9_\-]+)", msg.body)
+        (html, mimetype), *_ = msg.alternatives
+        assert mimetype == "text/html"
+        assert 'cid:daimoma-logo' in html
+        assert re.search(r"token=([A-Za-z0-9_\-]+)", html)
+        # Logo rides inside the message as an inline related part.
+        image = [a for a in msg.attachments if a.get_content_type() == "image/png"]
+        assert image and image[0]["Content-ID"] == "<daimoma-logo>"
+        assert image[0].get_content_disposition() == "inline"
+
     def test_unknown_account_no_email_same_response(self, api_client):
         response = api_client.post(RESET_URL, {"email": "ghost@acme.test"})
         assert response.status_code == 200

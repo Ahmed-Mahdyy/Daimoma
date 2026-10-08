@@ -10,6 +10,7 @@ from apps.organizations.views import (
     EmployeeReactivateView,
     EmployeeResendInvitationView,
     ManagerChoicesView,
+    OrgEmailTestView,
     OrgSettingsView,
 )
 
@@ -27,4 +28,5 @@ urlpatterns = [
     path("choices/managers/", ManagerChoicesView.as_view()),
     path("departments/<uuid:pk>/", DepartmentDetailView.as_view()),
     path("organization/settings/", OrgSettingsView.as_view()),
+    path("organization/settings/test-email/", OrgEmailTestView.as_view()),
 ]

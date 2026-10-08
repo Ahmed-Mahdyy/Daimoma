@@ -171,6 +171,23 @@ export function getRequestHistory(id: string): Promise<RequestHistory> {
   return apiFetch(`/api/v1/requests/${id}/history/`);
 }
 
+export function deleteRequest(id: string): Promise<void> {
+  return apiFetch(`/api/v1/requests/${id}/`, { method: "DELETE" });
+}
+
+export interface BulkDeleteResult {
+  deleted: number;
+  /** Ids the server skipped — not owned, not draft, or out of scope. */
+  skipped: string[];
+}
+
+export function bulkDeleteRequests(ids: string[]): Promise<BulkDeleteResult> {
+  return apiFetch("/api/v1/requests/bulk-delete/", {
+    method: "POST",
+    body: { ids },
+  });
+}
+
 export function listRequestTypes(): Promise<Paged<RequestType>> {
   // HR-managed lists are small; 100 keeps selects and the table complete.
   return apiFetch("/api/v1/request-types/?page_size=100");
@@ -262,6 +279,7 @@ export function listAllocations(filters: {
   page?: number;
   employee?: string;
   status?: AllocationGrant["status"];
+  search?: string;
 } = {}): Promise<Paged<AllocationGrant>> {
   return apiFetch(`/api/v1/allocations/${qs(filters)}`);
 }

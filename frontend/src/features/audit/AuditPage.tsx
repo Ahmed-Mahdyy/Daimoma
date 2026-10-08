@@ -10,6 +10,7 @@ import {
   sortingToOrdering,
 } from "@/lib/table-sorting";
 import { FilterBar, SearchField } from "@/components/ui/filter-bar";
+import { PageHeader } from "@/components/ui/page-header";
 
 import { listAuditEvents, type AuditEventRow } from "../../api/audit";
 import { useLanguage } from "../../app/LanguageProvider";
@@ -83,21 +84,23 @@ export function AuditPage() {
 
   return (
     <div>
-      <h1 className="mb-3 text-xl font-semibold">{t("Audit history")}</h1>
-      <FilterBar>
-        <SearchField
-          label={t("Action")}
-          ariaLabel={t("Filter by action")}
-          placeholder={t("e.g. employee_updated")}
-          value={actionInput}
-          onChange={setActionInput}
-          onSearch={(v) => {
-            const next = new URLSearchParams();
-            if (v) next.set("action", v);
-            setParams(next, { replace: true });
-          }}
-        />
-      </FilterBar>
+      <FilterBar
+        header={<PageHeader title={t("Audit history")} />}
+        search={
+          <SearchField
+            label={t("Action")}
+            ariaLabel={t("Filter by action")}
+            placeholder={t("e.g. employee_updated")}
+            value={actionInput}
+            onChange={setActionInput}
+            onSearch={(v) => {
+              const next = new URLSearchParams();
+              if (v) next.set("action", v);
+              setParams(next, { replace: true });
+            }}
+          />
+        }
+      />
       <AsyncState
         isLoading={isLoading}
         error={error}
