@@ -16,6 +16,7 @@ import {
 } from "../../api/requests";
 import { AsyncState } from "../../components/ui/AsyncState";
 import { ConfirmDialog } from "../../components/ui/ConfirmDialog";
+import { PageCrumbs } from "../../components/ui/page-header";
 import { useLanguage } from "../../app/LanguageProvider";
 import { useAuth } from "../auth/auth-context";
 import { StatusBadge } from "./StatusBadge";
@@ -204,20 +205,95 @@ export function RequestDetailPage() {
       <AsyncState isLoading={isLoading} error={error} emptyText="">
         {req && (
           <>
-            <p className="mb-2 text-sm">
-              <Link to="/requests" className="workspace-link-quiet workspace-link-muted">
-                <span aria-hidden="true" className="inline-block rtl:-scale-x-100">←</span> {t("Requests")}
-              </Link>
-            </p>
-            <div className="workspace-panel mb-4 flex flex-wrap items-start justify-between gap-3 p-4 sm:p-5">
-              <div className="min-w-0">
-                <h1 className="text-2xl font-semibold">{req.title}</h1>
-                <p className="mt-1 text-sm text-gray-600">
-                  {req.type_name} · {req.employee_name || req.employee_email}
-                  {req.cycle > 0 && ` · ${t("cycle {n}", { n: req.cycle })}`}
-                </p>
+            <PageCrumbs
+              className="mb-2"
+              crumbs={[
+                { label: t("nav.workspace"), to: "/" },
+                { label: t("nav.requests"), to: "/requests" },
+                { label: req.title },
+              ]}
+            />
+            <div className="workspace-panel mb-4 p-4 sm:p-5">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <h1 className="text-2xl font-semibold">{req.title}</h1>
+                  <p className="mt-1 text-sm text-gray-600">
+                    {req.type_name} · {req.employee_name || req.employee_email}
+                    {req.cycle > 0 && ` · ${t("cycle {n}", { n: req.cycle })}`}
+                  </p>
+                </div>
+                <StatusBadge status={req.status} />
               </div>
-              <StatusBadge status={req.status} />
+
+              {/* Owner actions */}
+              {isOwner && editable && (
+                <div className="mt-4 flex items-center gap-3 border-t border-slate-100 pt-4 dark:border-white/10">
+                  <Link
+                    to={`/requests/${req.id}/edit`}
+                    className="rounded-md border px-3 py-1.5 text-sm hover:bg-gray-50"
+                  >
+                    {t("Edit draft")}
+                  </Link>
+                  <button
+                    type="button"
+                    disabled={submit.isPending}
+                    onClick={() => {
+                      setServerError(null);
+                      submit.mutate(req);
+                    }}
+                    className="rounded-md bg-brand-700 px-4 py-1.5 text-sm font-medium text-white disabled:opacity-60"
+                  >
+                    {submit.isPending
+                      ? t("Submitting…")
+                      : req.cycle === 0
+                        ? t("Submit for review")
+                        : t("Resubmit")}
+                  </button>
+                  {req.status === "draft" && (
+                    <button
+                      type="button"
+                      disabled={del.isPending}
+                      onClick={() => setConfirmDelete(true)}
+                      className="ms-auto inline-flex items-center gap-1.5 rounded-md border border-[#f2c9c2] px-3 py-1.5 text-sm font-semibold text-[#b42318] transition-colors hover:bg-[#fdf2f0] disabled:opacity-60 dark:border-[#d5715b]/40 dark:text-[#f6b6bd] dark:hover:bg-[#b42318]/15"
+                    >
+                      <Trash2 className="size-4" aria-hidden="true" />
+                      {t("Delete draft")}
+                    </button>
+                  )}
+                </div>
+              )}
+
+              {/* Reviewer actions */}
+              {isReviewer && req.current_step && (
+                <div className="mt-4 flex items-center gap-3 rounded-md border border-amber-200 bg-amber-50 p-3 dark:border-amber-800/60 dark:bg-amber-950/50 dark:text-amber-200">
+                  <span className="text-sm font-medium text-amber-900 dark:text-amber-100">
+                    {t("This request awaits your decision.")}
+                  </span>
+                  <div className="ms-auto flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setConfirmApprove(true)}
+                      className="rounded-md bg-green-700 px-3 py-1.5 text-sm font-medium text-white"
+                    >
+                      {t("Approve")}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setReasonAction("return")}
+                      className="rounded-md bg-amber-600 px-3 py-1.5 text-sm font-medium text-white"
+                    >
+                      {t("Return")}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setReasonAction("reject")}
+                      className="rounded-md bg-red-700 px-3 py-1.5 text-sm font-medium text-white"
+                    >
+                      {t("Reject")}
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
 
             {serverError && (
@@ -271,8 +347,9 @@ export function RequestDetailPage() {
             </dl>
 
             {/* Steps */}
-            <h2 className="mt-6 text-lg font-semibold">{t("Review steps")}</h2>
-            <ul className="mt-2 space-y-2">
+            <section className="workspace-panel mt-4 p-4 sm:p-5">
+              <h2 className="text-lg font-semibold">{t("Review steps")}</h2>
+              <ul className="mt-2 space-y-2">
               {history?.steps.map((s) => (
                 <li
                   key={`${s.cycle}-${s.sequence}`}
@@ -294,11 +371,13 @@ export function RequestDetailPage() {
                   {t("No review steps yet — submit the request to route it.")}
                 </li>
               )}
-            </ul>
+              </ul>
+            </section>
 
             {/* Timeline */}
-            <h2 className="mt-6 text-lg font-semibold">{t("History")}</h2>
-            <ul className="mt-2 space-y-2">
+            <section className="workspace-panel mt-4 p-4 sm:p-5">
+              <h2 className="text-lg font-semibold">{t("History")}</h2>
+              <ul className="mt-2 space-y-2">
               {history?.events.map((e, i) => (
                 <li
                   key={i}
@@ -319,77 +398,13 @@ export function RequestDetailPage() {
                   </span>
                 </li>
               ))}
-            </ul>
-
-            {/* Owner actions */}
-            {isOwner && editable && (
-              <div className="mt-6 flex items-center gap-3">
-                <Link
-                  to={`/requests/${req.id}/edit`}
-                  className="rounded-md border px-3 py-1.5 text-sm hover:bg-gray-50"
-                >
-                  {t("Edit draft")}
-                </Link>
-                <button
-                  type="button"
-                  disabled={submit.isPending}
-                  onClick={() => {
-                    setServerError(null);
-                    submit.mutate(req);
-                  }}
-                  className="rounded-md bg-brand-700 px-4 py-1.5 text-sm font-medium text-white disabled:opacity-60"
-                >
-                  {submit.isPending
-                    ? t("Submitting…")
-                    : req.cycle === 0
-                      ? t("Submit for review")
-                      : t("Resubmit")}
-                </button>
-                {req.status === "draft" && (
-                  <button
-                    type="button"
-                    disabled={del.isPending}
-                    onClick={() => setConfirmDelete(true)}
-                    className="ms-auto inline-flex items-center gap-1.5 rounded-md border border-[#f2c9c2] px-3 py-1.5 text-sm font-semibold text-[#b42318] transition-colors hover:bg-[#fdf2f0] disabled:opacity-60 dark:border-[#d5715b]/30 dark:hover:bg-[#b42318]/15"
-                  >
-                    <Trash2 className="size-4" aria-hidden="true" />
-                    {t("Delete draft")}
-                  </button>
-                )}
-              </div>
-            )}
-
-            {/* Reviewer actions */}
-            {isReviewer && req.current_step && (
-              <div className="mt-6 flex items-center gap-3 rounded-md border border-amber-200 bg-amber-50 p-3 dark:border-amber-800/60 dark:bg-amber-950/50 dark:text-amber-200">
-                <span className="text-sm font-medium text-amber-900 dark:text-amber-100">
-                  {t("This request awaits your decision.")}
-                </span>
-                <div className="ms-auto flex gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setConfirmApprove(true)}
-                    className="rounded-md bg-green-700 px-3 py-1.5 text-sm font-medium text-white"
-                  >
-                    {t("Approve")}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setReasonAction("return")}
-                    className="rounded-md bg-amber-600 px-3 py-1.5 text-sm font-medium text-white"
-                  >
-                    {t("Return")}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setReasonAction("reject")}
-                    className="rounded-md bg-red-700 px-3 py-1.5 text-sm font-medium text-white"
-                  >
-                    {t("Reject")}
-                  </button>
-                </div>
-              </div>
-            )}
+              {(!history || history.events.length === 0) && (
+                <li className="text-sm text-gray-500">
+                  {t("No activity yet.")}
+                </li>
+              )}
+              </ul>
+            </section>
 
             {reasonAction && (
               <ReasonDialog

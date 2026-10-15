@@ -3,6 +3,8 @@ transitions, invariants, and event/notification writes live here so races and
 partial writes cannot occur. Lock order: employee profile -> request -> grant -> steps.
 """
 
+from decimal import Decimal
+
 from config.exceptions import ConflictError
 from django.contrib.auth.models import Group
 from django.db import transaction
@@ -11,7 +13,13 @@ from rest_framework.exceptions import PermissionDenied, ValidationError
 
 from apps.accounts.models import EmployeeProfile
 from apps.accounts.permissions import ROLE_HR
-from apps.employee_requests.allocations import reserve, settle
+from apps.employee_requests.allocations import (
+    assert_covered,
+    charged_minutes,
+    reserve,
+    settle,
+    working_days_in_range,
+)
 from apps.employee_requests.models import (
     EmployeeRequest,
     RequestApprovalStep,
@@ -38,13 +46,36 @@ def create_draft(user, data):
     allocation unit."""
     req_type = _type_for(user, data["type"])
     errors: dict = {}
-    validate_fields_for_type(req_type.unit, data, errors)
+    validate_fields_for_type(
+        req_type.unit,
+        data,
+        errors,
+        requires_item=req_type.requires_item,
+        requires_dates=req_type.requires_dates,
+    )
     if errors:
         raise ValidationError(errors)
+    if (
+        req_type.unit == "unit"
+        and not req_type.requires_item
+        and data.get("start_date")
+        and data.get("end_date")
+    ):
+        data["quantity"] = working_days_in_range(
+            user.organization, data["start_date"], data["end_date"]
+        )
+    if req_type.unit == "hour":
+        # Billed hours derive from the times — the client field is read-only
+        # and any submitted value is overwritten. The stored range is the
+        # single covered day.
+        minutes = charged_minutes(data.get("start_time"), data.get("end_time"))
+        data["hours"] = Decimal(minutes) / Decimal(60) if minutes else None
+        data["end_date"] = data.get("end_date") or data.get("start_date")
     try:
         profile = user.profile
     except Exception:
         raise ValidationError({"detail": ["Your account has no employee profile."]}) from None
+    assert_covered(user, req_type, data)
     return EmployeeRequest.objects.create(
         organization_id=user.organization_id,
         employee=profile,
@@ -89,9 +120,28 @@ def update_draft(request_obj, user, data):
         }
         # PATCH semantics: fields explicitly sent as null/empty stay cleared.
         errors: dict = {}
-        validate_fields_for_type(new_type.unit, merged, errors)
+        validate_fields_for_type(
+            new_type.unit,
+            merged,
+            errors,
+            requires_item=new_type.requires_item,
+            requires_dates=new_type.requires_dates,
+        )
         if errors:
             raise ValidationError(errors)
+        if (
+            new_type.unit == "unit"
+            and not new_type.requires_item
+            and merged["start_date"]
+            and merged["end_date"]
+        ):
+            merged["quantity"] = working_days_in_range(
+                req.organization, merged["start_date"], merged["end_date"]
+            )
+        if new_type.unit == "hour":
+            minutes = charged_minutes(merged["start_time"], merged["end_time"])
+            merged["hours"] = Decimal(minutes) / Decimal(60) if minutes else None
+            merged["end_date"] = merged["end_date"] or merged["start_date"]
         for f, v in merged.items():
             setattr(req, f, v)
         req.type = new_type

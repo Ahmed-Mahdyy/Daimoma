@@ -1,4 +1,4 @@
-from datetime import UTC, date, timedelta
+from datetime import UTC, date, time, timedelta
 from decimal import Decimal
 
 import pytest
@@ -57,6 +57,26 @@ def test_unit_request_charges_quantity():
         amount_for_request(req)
 
 
+def test_dated_unit_request_derives_working_day_quantity(org):
+    from apps.employee_requests.allocations import amount_for_request
+
+    req_type = RequestType(organization=org, code="L", name="Leave", unit="unit")
+    # Mon 2026-10-05 → Sun 2026-10-11 inclusive: 7 calendar days.
+    req = EmployeeRequest(
+        organization=org, type=req_type, quantity=99,
+        start_date=date(2026, 10, 5), end_date=date(2026, 10, 11),
+    )
+    # The submitted quantity is never authoritative for dated requests.
+    assert amount_for_request(req) == 7
+    org.working_weekdays = [0, 1, 2, 3, 4]  # Mon–Fri
+    assert amount_for_request(req) == 5
+    # Sat–Sun only → no configured working day in range.
+    req.start_date = date(2026, 10, 10)
+    req.end_date = date(2026, 10, 11)
+    with pytest.raises(ValidationError):
+        amount_for_request(req)
+
+
 def test_hour_request_charges_whole_minutes():
     from apps.employee_requests.allocations import amount_for_request
 
@@ -69,6 +89,22 @@ def test_hour_request_charges_whole_minutes():
     req.hours = None
     with pytest.raises(ValidationError):
         amount_for_request(req)
+
+
+def test_hour_request_charges_derived_times():
+    """The billed amount comes from the from/to times — stored hours are a
+    fallback for rows saved before derivation only."""
+    from apps.employee_requests.allocations import amount_for_request
+
+    req = EmployeeRequest(
+        type=RequestType(unit="hour"),
+        start_time=time(14, 0),
+        end_time=time(15, 30),
+        hours=Decimal("99.00"),
+    )
+    assert amount_for_request(req) == 90
+    req.end_time = time(14, 20)
+    assert amount_for_request(req) == 30
 
 
 def test_submission_reserves_and_final_approval_uses_grant(org, allocation_cast):
@@ -273,7 +309,7 @@ def test_preview_shows_billed_minutes_without_reserving(api_client, org, allocat
     assert login(api_client, employee).status_code == 200
     resp = api_client.get("/api/v1/requests/allocation-preview/", {
         "type": str(req_type.pk), "start_date": "2026-10-05",
-        "end_date": "2026-10-05", "hours": "0.75",
+        "end_date": "2026-10-05", "start_time": "14:00", "end_time": "14:45",
     })
     assert resp.status_code == 200, resp.content
     assert resp.json()["amount"] == 45
@@ -336,8 +372,10 @@ def test_return_releases_and_resubmit_reserves_new_cycle(org, allocation_cast):
     review_request(req, manager, "return", reason="Change dates")
     assert grant_totals(grant)["remaining"] == 3
     assert req.allocation_commitments.get(cycle=1).disposition == "released"
-    req.quantity = 1
-    req.save(update_fields=["quantity"])
+    # Dated unit requests derive the charge from the range — shortening the
+    # dates to a single day is how the employee "edits" the quantity.
+    req.end_date = req.start_date
+    req.save(update_fields=["end_date"])
     submit_request(req, employee)
     assert req.allocation_commitments.get(cycle=2).amount == 1
     assert grant_totals(grant)["remaining"] == 2

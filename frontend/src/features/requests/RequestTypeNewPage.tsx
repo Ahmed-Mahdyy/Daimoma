@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
-import { useForm } from "react-hook-form";
+import { useEffect, useState } from "react";
+import { useForm, useWatch } from "react-hook-form";
 import { Link, useNavigate } from "react-router-dom";
 
 import { Button } from "@/components/ui/button";
@@ -11,11 +11,15 @@ import {
 } from "../../api/requests";
 import { useLanguage } from "../../app/LanguageProvider";
 import { Alert } from "../../components/ui/Alert";
+import { PageCrumbs } from "../../components/ui/page-header";
 import { UNIT_OPTIONS } from "./requestTypeUnits";
 
 interface TypeForm {
   name: string;
   unit: RequestTypeWriteInput["unit"];
+  requires_item: boolean;
+  requires_dates: boolean;
+  requires_allocation: boolean;
   help_text: string;
   requires_manager: boolean;
   requires_hr: boolean;
@@ -31,10 +35,16 @@ export function RequestTypeNewPage() {
   const queryClient = useQueryClient();
   const [serverError, setServerError] = useState<string | null>(null);
 
-  const { register, handleSubmit, formState: { errors } } =
+  const { register, handleSubmit, setValue, control, formState: { errors } } =
     useForm<TypeForm>({
       defaultValues: { unit: "none", requires_manager: true },
     });
+  const unit = useWatch({ control, name: "unit" });
+  // Measured units default to drawing from allocations; HR can still opt out
+  // by unchecking after picking a unit.
+  useEffect(() => {
+    setValue("requires_allocation", unit !== "none", { shouldDirty: true });
+  }, [unit, setValue]);
 
   const create = useMutation({
     mutationFn: (input: RequestTypeWriteInput) => createRequestType(input),
@@ -46,7 +56,7 @@ export function RequestTypeNewPage() {
   });
 
   return (
-    <div className="mx-auto max-w-2xl">
+    <div className="mx-auto max-w-4xl">
       {serverError && (
         <div className="mb-3">
           <Alert kind="error">{serverError}</Alert>
@@ -54,14 +64,25 @@ export function RequestTypeNewPage() {
       )}
 
       <form
-        onSubmit={handleSubmit((v) => create.mutate({ ...v, is_active: true }))}
+        onSubmit={handleSubmit((v) =>
+          create.mutate({
+            ...v,
+            // "none" types can never draw from an allocation balance.
+            requires_allocation: v.unit === "none" ? false : v.requires_allocation,
+            is_active: true,
+          }),
+        )}
         className="workspace-panel grid grid-cols-1 gap-4 p-6 sm:grid-cols-2"
         noValidate
       >
         <div className="sm:col-span-2">
-          <span className="text-xs font-bold uppercase tracking-widest text-brand-700">
-            {t("HR / WORKFLOWS")}
-          </span>
+          <PageCrumbs
+            crumbs={[
+              { label: t("nav.requests"), to: "/requests" },
+              { label: t("nav.requestTypes"), to: "/requests/types" },
+              { label: t("New request type") },
+            ]}
+          />
           <h1 className="mt-1 text-2xl font-bold sm:text-3xl">{t("New request type")}</h1>
           <p className="mt-1 text-sm text-gray-600">
             {t("Each approval checkbox adds that stage to the review cycle — manager first, then HR. Changes apply to new submissions only — existing requests keep their original route.")}
@@ -100,6 +121,31 @@ export function RequestTypeNewPage() {
           <p className="mt-1 text-xs text-muted-foreground">
             {t("Units and hours draw from employee allocations; the employee enters the amount on the request. Not measurable types collect no amount.")}
           </p>
+          <label className="mt-3 flex items-center gap-2 text-sm">
+            <input type="checkbox" {...register("requires_item")} />
+            {t("Ask for an item name (e.g. equipment or assets)")}
+          </label>
+          <label className="mt-2 flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              disabled={unit === "hour"}
+              {...register("requires_dates")}
+            />
+            {t("Ask for a date range (e.g. leave, work from home)")}
+          </label>
+          <label className="mt-2 flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              disabled={unit === "none"}
+              {...register("requires_allocation")}
+            />
+            {t("Draws from an allocation balance")}
+          </label>
+          {unit === "none" && (
+            <p className="mt-1 text-xs text-muted-foreground">
+              {t("Allocations need a measured unit (units or hours).")}
+            </p>
+          )}
         </div>
         <div>
           <label htmlFor="t-help" className="block text-sm font-medium">

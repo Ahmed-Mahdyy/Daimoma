@@ -195,6 +195,31 @@ class TestTypeAdmin:
         assert resp.status_code == 400
         assert "unit" in resp.json()["field_errors"]
 
+    def test_allocation_flag_requires_measured_unit(self, api_client, hr_user):
+        client = authed(api_client, hr_user)
+        resp = client.post(
+            TYPES, {"name": "X", "unit": "none", "requires_allocation": True}
+        )
+        assert resp.status_code == 400
+        assert "requires_allocation" in resp.json()["field_errors"]
+
+    def test_allocation_can_be_disabled_on_measured_type(self, api_client, hr_user):
+        client = authed(api_client, hr_user)
+        resp = client.post(
+            TYPES,
+            {"name": "Counted, no balance", "unit": "unit", "requires_allocation": False},
+        )
+        assert resp.status_code == 201, resp.json()
+        assert resp.json()["requires_allocation"] is False
+
+    def test_requires_dates_rejected_on_hour_type(self, api_client, hr_user):
+        client = authed(api_client, hr_user)
+        resp = client.post(
+            TYPES, {"name": "X", "unit": "hour", "requires_dates": True}
+        )
+        assert resp.status_code == 400
+        assert "requires_dates" in resp.json()["field_errors"]
+
 
 @pytest.mark.django_db
 class TestQueryBudget:

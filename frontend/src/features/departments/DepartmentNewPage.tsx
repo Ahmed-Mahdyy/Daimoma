@@ -10,6 +10,7 @@ import { managerChoices } from "../../api/employees";
 import { useLanguage } from "../../app/LanguageProvider";
 import { Alert } from "../../components/ui/Alert";
 import { AsyncState } from "../../components/ui/AsyncState";
+import { PageCrumbs } from "../../components/ui/page-header";
 
 const input = "mt-1 w-full rounded-md border border-gray-300 px-2 py-1.5 text-sm";
 
@@ -44,7 +45,7 @@ export function DepartmentNewPage() {
   };
 
   return (
-    <div className="mx-auto max-w-2xl">
+    <div className="mx-auto max-w-4xl">
       {serverError && (
         <div className="mb-3">
           <Alert kind="error">{serverError}</Alert>
@@ -54,9 +55,13 @@ export function DepartmentNewPage() {
       <AsyncState isLoading={isLoading} error={error}>
         <form className="workspace-panel grid grid-cols-1 gap-4 p-6" noValidate onSubmit={submit}>
           <div>
-            <span className="text-xs font-bold uppercase tracking-widest text-brand-700">
-              {t("HR / ORGANIZATION")}
-            </span>
+            <PageCrumbs
+              crumbs={[
+                { label: t("nav.workspace"), to: "/" },
+                { label: t("nav.departments"), to: "/departments" },
+                { label: t("New department") },
+              ]}
+            />
             <h1 className="mt-1 text-2xl font-bold sm:text-3xl">{t("New department")}</h1>
             <p className="mt-1 text-sm text-gray-600">
               {t("Departments group employees for reporting lines and statistics. Deactivated departments keep their history; members become unassigned.")}

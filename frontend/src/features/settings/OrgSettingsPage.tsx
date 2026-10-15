@@ -76,7 +76,10 @@ export function OrgSettingsPage() {
   return (
     <div>
       <PageHeaderCard
-        eyebrow={t("HR / ORGANIZATION")}
+        crumbs={[
+          { label: t("nav.settings"), to: "/settings" },
+          { label: t("nav.organization") },
+        ]}
         title={t("Organization settings")}
       />
       <AsyncState isLoading={isLoading} error={error}>

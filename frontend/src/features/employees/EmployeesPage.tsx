@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { type ColumnDef } from "@tanstack/react-table";
 import { useState } from "react";
-import { Link, useSearchParams } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 
 import { Button } from "@/components/ui/button";
 import { DataTable } from "@/components/ui/data-table";
@@ -71,6 +71,7 @@ const columns = (t: (key: string) => string): ColumnDef<EmployeeSummary, unknown
 export function EmployeesPage() {
   const { user } = useAuth();
   const { t } = useLanguage();
+  const navigate = useNavigate();
   const isHr = user?.roles.includes("HR") ?? false;
   const [params, setParams] = useSearchParams();
   const [searchInput, setSearchInput] = useState(params.get("search") ?? "");
@@ -112,7 +113,10 @@ export function EmployeesPage() {
       <FilterBar
         header={
           <PageHeader
-            eyebrow={t("PEOPLE / DIRECTORY")}
+            crumbs={[
+              { label: t("nav.workspace"), to: "/" },
+              { label: t("nav.employees") },
+            ]}
             title={t("Employees")}
             description={t("Find teammates and manage your organization.")}
             actions={
@@ -184,6 +188,7 @@ export function EmployeesPage() {
         <DataTable<EmployeeSummary>
           columns={columns(t)}
           data={data?.results ?? []}
+          onRowClick={(e) => navigate(`/employees/${e.id}`)}
           manualSorting
           sorting={sorting}
           onSortingChange={(u) =>

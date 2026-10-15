@@ -93,7 +93,15 @@ export function NotificationsPage() {
   return (
     <div>
       <FilterBar
-        header={<PageHeader title={t("Notifications")} />}
+        header={
+          <PageHeader
+            crumbs={[
+              { label: t("nav.workspace"), to: "/" },
+              { label: t("Notifications") },
+            ]}
+            title={t("Notifications")}
+          />
+        }
         activeFilters={[unread, kind].filter(Boolean).length}
       >
         <FilterSelect

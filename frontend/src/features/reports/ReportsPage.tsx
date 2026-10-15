@@ -10,7 +10,8 @@ import {
   orderingToSorting,
   sortingToOrdering,
 } from "@/lib/table-sorting";
-import { FilterInput, FilterSelect, FiltersToggle } from "@/components/ui/filter-bar";
+import { FilterSelect, FiltersToggle } from "@/components/ui/filter-bar";
+import { RangeInput } from "@/components/ui/range-input";
 import { listEmployees } from "../../api/employees";
 import { listRequestTypes } from "../../api/requests";
 import {
@@ -23,6 +24,7 @@ import {
   type RequestsReportParams,
 } from "../../api/reporting";
 import { AsyncState } from "../../components/ui/AsyncState";
+import { PageCrumbs } from "../../components/ui/page-header";
 import { PaginationControls } from "../../components/ui/PaginationControls";
 import { formatDate } from "../../lib/dates";
 import { formatMinutes } from "../timesheets/timezone";
@@ -345,7 +347,7 @@ export function ReportsPage() {
   return (
     <div className="workspace-panel p-5 sm:p-7">
       <div className="flex flex-wrap items-center justify-between gap-4">
-        <div><span className="text-xs font-bold uppercase tracking-widest text-brand-700">{t("INSIGHTS / REPORTING")}</span><h1 className="mt-1 text-3xl font-bold">{t("Reports")}</h1><p className="mt-1 text-sm text-slate-600">{t("Understand activity across your scope.")}</p></div>
+        <div><PageCrumbs crumbs={[{ label: t("nav.workspace"), to: "/" }, { label: t("nav.reports") }]} /><h1 className="mt-1 text-3xl font-bold">{t("Reports")}</h1><p className="mt-1 text-sm text-slate-600">{t("Understand activity across your scope.")}</p></div>
         <div role="tablist" aria-label={t("Report type")} className="flex gap-1">
           {(
             [
@@ -387,18 +389,24 @@ export function ReportsPage() {
             filtersOpen ? "flex" : "hidden"
           } w-full flex-wrap items-end gap-x-4 gap-y-3 max-md:[&>*]:w-full`}
         >
-        <FilterInput
-          label={t("From")}
-          type="date"
-          value={filters.from}
-          onChange={(e) => setFilter("from", e.target.value)}
-        />
-        <FilterInput
-          label={t("To")}
-          type="date"
-          value={filters.to}
-          onChange={(e) => setFilter("to", e.target.value)}
-        />
+        <div>
+          <span className="mb-1.5 block text-[0.68rem] font-bold uppercase tracking-[0.12em] text-muted-foreground">
+            {t("From – To")}
+          </span>
+          <RangeInput
+            variant="filter"
+            fromLabel={t("From")}
+            toLabel={t("To")}
+            from={{
+              value: filters.from,
+              onChange: (e) => setFilter("from", e.target.value),
+            }}
+            to={{
+              value: filters.to,
+              onChange: (e) => setFilter("to", e.target.value),
+            }}
+          />
+        </div>
         {tab === "requests" ? (
           <FilterSelect
             label={t("Status")}

@@ -28,8 +28,44 @@ async function signOut(page: Page) {
   await expect(page).toHaveURL(/\/login/);
 }
 
+async function openFilters(page: Page) {
+  const toggle = page.getByRole("button", { name: /^filters/i });
+  if ((await toggle.getAttribute("aria-expanded")) === "false") {
+    await toggle.click();
+  }
+}
+
 test.describe.serial("enhancements", () => {
   test.setTimeout(60_000);
+
+  test("HR assigns an early-leave grant covering the request window", async ({ page }) => {
+    // Draft creation is allocation-gated: Early leave needs a grant covering
+    // the request date. Idempotent — a covering grant (ending 2027-12-31) is
+    // reused; the added window is adjacent to any shorter existing grant.
+    await loginAs(page, "hr-e2e@acme.test");
+    await page.goto("/settings/allocations");
+    await openFilters(page);
+    await page.getByRole("combobox", { name: "Employee" }).first().selectOption({ label: "Edu Employee" });
+    await expect(
+      page.getByRole("table").getByRole("row").nth(1).or(page.getByText("No allocations yet.")),
+    ).toBeVisible();
+    const covering = page
+      .getByRole("row", { name: /Early leave/ })
+      .filter({ hasText: "2027-12-31" });
+    if ((await covering.count()) === 0) {
+      await page.getByRole("link", { name: /add allocation/i }).click();
+      await expect(page.getByRole("heading", { name: "Add allocation" })).toBeVisible();
+      await page.getByRole("combobox", { name: "Employee" }).selectOption({ label: "Edu Employee" });
+      await page.getByRole("combobox", { name: "Request type" }).selectOption({ label: "Early leave" });
+      // Hour-unit grants are measured in minutes — 480 = 8 hours.
+      await page.getByRole("spinbutton", { name: /amount/i }).fill("480");
+      await page.getByRole("textbox", { name: "Start date" }).fill("2026-11-01");
+      await page.getByRole("textbox", { name: "End date" }).fill("2027-12-31");
+      await page.getByRole("button", { name: /add allocation/i }).click();
+      await expect(page.getByRole("heading", { name: "Employee allocations" })).toBeVisible();
+    }
+    await signOut(page);
+  });
 
   test("early-leave request collects Date + From/To hours", async ({ page }) => {
     await loginAs(page, "employee-e2e@acme.test");
@@ -46,9 +82,11 @@ test.describe.serial("enhancements", () => {
 
     await page.getByLabel(/^title$/i).fill(EARLY_TITLE);
     await page.getByLabel(/^date$/i).fill("2027-06-01");
-    await page.getByLabel(/^hours$/i).fill("2");
+    // Hours are billed from the from/to times — read-only display.
+    await expect(page.getByLabel(/^hours$/i)).toHaveAttribute("readonly", "");
     await page.getByLabel(/^from$/i).fill("15:00");
     await page.getByLabel(/^to$/i).fill("17:00");
+    await expect(page.getByLabel(/^hours$/i)).toHaveValue("2");
     await page.getByRole("button", { name: /save draft/i }).click();
 
     await expect(page.getByRole("heading", { name: EARLY_TITLE })).toBeVisible();

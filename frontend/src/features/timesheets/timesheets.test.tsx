@@ -181,7 +181,7 @@ describe("TimesheetDetailPage", () => {
     renderDetail();
     await waitFor(() =>
       expect(
-        screen.getByText("Week 2026-09-14 – 2026-09-20"),
+        screen.getByRole("heading", { name: "Week 2026-09-14 – 2026-09-20" }),
       ).toBeInTheDocument(),
     );
     expect(screen.getByText("07:00–15:00")).toBeInTheDocument();

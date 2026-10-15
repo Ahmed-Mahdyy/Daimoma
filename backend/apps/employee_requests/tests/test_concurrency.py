@@ -172,7 +172,7 @@ class TestConcurrentAllocations:
         employee, _, hr, _ = cast
         request_type = RequestType.objects.create(
             organization=org, code="allocated-equipment", name="Equipment",
-            unit="unit",
+            unit="unit", requires_item=True,
         )
         today = date.today()
         grant = create_grant(

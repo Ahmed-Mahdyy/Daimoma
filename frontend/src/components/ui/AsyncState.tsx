@@ -1,5 +1,6 @@
 import { ApiError, apiErrorMessage } from "../../api/client";
 import { useLanguage } from "../../app/LanguageProvider";
+import { LoadingBlock } from "./loading";
 
 interface AsyncStateProps {
   isLoading: boolean;
@@ -23,11 +24,7 @@ export function AsyncState({
 }: AsyncStateProps) {
   const { t } = useLanguage();
   if (isLoading) {
-    return (
-      <p role="status" className="p-4 text-sm text-gray-600">
-        {t("Loading…")}
-      </p>
-    );
+    return <LoadingBlock />;
   }
   if (error) {
     const message =

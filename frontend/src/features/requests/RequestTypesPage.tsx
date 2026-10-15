@@ -17,13 +17,14 @@ import { formatDate } from "../../lib/dates";
 import { Alert } from "../../components/ui/Alert";
 import { AsyncState } from "../../components/ui/AsyncState";
 import { UNIT_LABELS } from "./requestTypeUnits";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
 /** HR request-type administration (FR-009): create typed categories and set
  * routing (requires_hr) + availability. Changes affect future submissions
  * only — historical route snapshots stay immutable. */
 export function RequestTypesPage() {
   const { t } = useLanguage();
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [serverError, setServerError] = useState<string | null>(null);
 
@@ -171,7 +172,10 @@ export function RequestTypesPage() {
   return (
     <div>
       <PageHeaderCard
-        eyebrow={t("HR / WORKFLOWS")}
+        crumbs={[
+          { label: t("nav.requests"), to: "/requests" },
+          { label: t("nav.requestTypes") },
+        ]}
         title={t("Request types")}
         description={t("Each approval checkbox adds that stage to the review cycle — manager first, then HR. Unchecking both stages is not allowed; every request must have a reviewer. Changes apply to new submissions only — existing requests keep their original route.")}
         actions={
@@ -194,6 +198,7 @@ export function RequestTypesPage() {
             emptyText={t("No request types yet.")}
             clientPagination
             defaultSorting={[{ id: "created_at", desc: true }]}
+            onRowClick={(rt) => navigate(`/requests/types/${rt.id}/edit`)}
           />
         </div>
       </AsyncState>

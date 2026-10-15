@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { Link, useNavigate, useParams } from "react-router-dom";
 
 import { ApiError } from "../../api/client";
@@ -12,7 +12,11 @@ import {
   type RequestDraftInput,
 } from "../../api/requests";
 import { AsyncState } from "../../components/ui/AsyncState";
+import { RangeInput, TimeRangeInput } from "../../components/ui/range-input";
 import { useLanguage } from "../../app/LanguageProvider";
+import { chargedHours, countWorkingDays } from "../../lib/dates";
+import { useAuth } from "../auth/auth-context";
+import { AllocationBalance } from "./AllocationBalance";
 
 interface FormValues {
   title: string;
@@ -46,10 +50,13 @@ export function RequestEditPage() {
     queryFn: listRequestTypes,
   });
 
+  const { user } = useAuth();
   const {
     register,
     handleSubmit,
     reset,
+    control,
+    setValue,
     formState: { errors },
   } = useForm<FormValues>();
 
@@ -71,6 +78,30 @@ export function RequestEditPage() {
 
   const type = types?.results.find((t) => t.id === req?.type);
   const unit = req?.type_unit ?? type?.unit;
+  const startDate = useWatch({ control, name: "start_date" });
+  const endDate = useWatch({ control, name: "end_date" });
+  // Dated "unit" requests derive quantity from the range's working-day count;
+  // the server recomputes it on save — this mirrors the value for display.
+  const derivedQuantity =
+    unit === "unit" && !type?.requires_item && startDate && endDate
+      ? countWorkingDays(startDate, endDate, user?.org_working_weekdays ?? [])
+      : null;
+  useEffect(() => {
+    if (derivedQuantity !== null) setValue("quantity", String(derivedQuantity));
+  }, [derivedQuantity, setValue]);
+
+  // Hour types: billed hours derive from the from/to times (15-minute
+  // blocks, 30-minute minimum); the field is read-only display and the
+  // server recomputes on save.
+  const startTime = useWatch({ control, name: "start_time" });
+  const endTime = useWatch({ control, name: "end_time" });
+  const derivedHours =
+    unit === "hour" && startTime && endTime
+      ? chargedHours(startTime, endTime)
+      : null;
+  useEffect(() => {
+    setValue("hours", derivedHours === null ? "" : String(derivedHours));
+  }, [derivedHours, setValue]);
 
   const refresh = () => {
     queryClient.invalidateQueries({ queryKey: ["request", id] });
@@ -134,7 +165,8 @@ export function RequestEditPage() {
     body.end_time = values.end_time || null;
     body.equipment_item = values.equipment_item;
     body.quantity = values.quantity ? Number(values.quantity) : null;
-    body.hours = values.hours ? Number(values.hours) : null;
+    // Hour types: the server derives billed hours from the times — the
+    // read-only field is display only.
     return body;
   };
 
@@ -157,7 +189,7 @@ export function RequestEditPage() {
   const busy = save.isPending || saveAndSubmit.isPending;
 
   return (
-    <div className="mx-auto max-w-2xl">
+    <div className="mx-auto max-w-4xl">
       <AsyncState isLoading={isLoading} error={error} emptyText="">
         {req && (
           <>
@@ -179,6 +211,10 @@ export function RequestEditPage() {
                   {req.status === "returned" &&
                     ` — ${t("reviewer comments are on the request detail page.")}`}
                 </p>
+                <AllocationBalance
+                  typeId={req.type}
+                  requiresAllocation={unit === "unit" || unit === "hour"}
+                />
               </div>
               <div>
                 <label htmlFor="title" className="block text-sm font-medium">
@@ -207,26 +243,81 @@ export function RequestEditPage() {
                 {err("description")}
               </div>
 
-              {unit === "unit" && (
+              {type?.requires_item && (
+                <div>
+                  <label
+                    htmlFor="equipment_item"
+                    className="block text-sm font-medium"
+                  >
+                    {t("Item")}
+                  </label>
+                  <input
+                    id="equipment_item"
+                    className={input}
+                    aria-invalid={
+                      !!errors.equipment_item || !!fieldErrors.equipment_item
+                    }
+                    {...register("equipment_item")}
+                  />
+                  {err("equipment_item")}
+                </div>
+              )}
+
+              {(unit === "unit" || type?.requires_dates) && (
                 <>
+                  <div className="sm:max-w-md">
+                    <span className="block text-sm font-medium">
+                      {t("Start – End date")}
+                    </span>
+                    <RangeInput
+                      fromLabel={t("Start date")}
+                      toLabel={t("End date")}
+                      invalid={
+                        !!(
+                          errors.start_date ||
+                          errors.end_date ||
+                          fieldErrors.start_date ||
+                          fieldErrors.end_date
+                        )
+                      }
+                      from={{
+                        id: "start_date",
+                        ...register("start_date", {
+                          required:
+                            type?.requires_dates ||
+                            (unit === "unit" && !type?.requires_item)
+                              ? unit === "unit"
+                                ? t("Required to count the quantity.")
+                                : t("Dates are required for this type.")
+                              : false,
+                        }),
+                      }}
+                      to={{
+                        id: "end_date",
+                        ...register("end_date", {
+                          required:
+                            type?.requires_dates ||
+                            (unit === "unit" && !type?.requires_item)
+                              ? unit === "unit"
+                                ? t("Required to count the quantity.")
+                                : t("Dates are required for this type.")
+                              : false,
+                          validate: (v, values) =>
+                            !v ||
+                            !values.start_date ||
+                            v >= values.start_date ||
+                            t("End date must not be before the start date."),
+                        }),
+                      }}
+                    />
+                    {err("start_date")}
+                    {err("end_date")}
+                  </div>
+                </>
+              )}
+
+              {unit === "unit" && (
                   <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label
-                        htmlFor="equipment_item"
-                        className="block text-sm font-medium"
-                      >
-                        {t("Item")}
-                      </label>
-                      <input
-                        id="equipment_item"
-                        className={input}
-                        aria-invalid={
-                          !!errors.equipment_item || !!fieldErrors.equipment_item
-                        }
-                        {...register("equipment_item")}
-                      />
-                      {err("equipment_item")}
-                    </div>
                     <div>
                       <label htmlFor="quantity" className="block text-sm font-medium">
                         {t("Quantity")}
@@ -235,51 +326,37 @@ export function RequestEditPage() {
                         id="quantity"
                         type="number"
                         min={1}
-                        className={input}
+                        className={`${input} ${!type?.requires_item ? "bg-slate-50 text-slate-500 dark:bg-white/5" : ""}`}
+                        readOnly={!type?.requires_item}
                         aria-invalid={!!errors.quantity || !!fieldErrors.quantity}
                         {...register("quantity", {
-                          required: t("Quantity is required for this type."),
+                          required: type?.requires_item
+                            ? t("Quantity is required for this type.")
+                            : false,
                           min: { value: 1, message: t("Quantity must be at least 1.") },
                         })}
                       />
-                      {err("quantity")}
+                      {type?.requires_item ? (
+                        err("quantity")
+                      ) : derivedQuantity !== null ? (
+                        <p
+                          className={`mt-1 text-xs ${
+                            derivedQuantity === 0
+                              ? "text-amber-600 dark:text-amber-400"
+                              : "text-slate-500 dark:text-slate-400"
+                          }`}
+                        >
+                          {derivedQuantity === 0
+                            ? t("The selected dates contain no working days.")
+                            : t("Counted automatically from the selected dates.")}
+                        </p>
+                      ) : (
+                        <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                          {t("Choose the dates above to count the quantity.")}
+                        </p>
+                      )}
                     </div>
                   </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label htmlFor="start_date" className="block text-sm font-medium">
-                        {t("Start date")}
-                      </label>
-                      <input
-                        id="start_date"
-                        type="date"
-                        className={input}
-                        aria-invalid={!!errors.start_date || !!fieldErrors.start_date}
-                        {...register("start_date")}
-                      />
-                      {err("start_date")}
-                    </div>
-                    <div>
-                      <label htmlFor="end_date" className="block text-sm font-medium">
-                        {t("End date")}
-                      </label>
-                      <input
-                        id="end_date"
-                        type="date"
-                        className={input}
-                        aria-invalid={!!errors.end_date || !!fieldErrors.end_date}
-                        {...register("end_date", {
-                          validate: (v, values) =>
-                            !v ||
-                            !values.start_date ||
-                            v >= values.start_date ||
-                            t("End date must not be before the start date."),
-                        })}
-                      />
-                      {err("end_date")}
-                    </div>
-                  </div>
-                </>
               )}
 
               {unit === "hour" && (
@@ -294,62 +371,71 @@ export function RequestEditPage() {
                         type="date"
                         className={input}
                         aria-invalid={!!errors.start_date || !!fieldErrors.start_date}
-                        {...register("start_date")}
+                        {...register("start_date", {
+                          required: t("Dates are required for this type."),
+                        })}
                       />
                       {err("start_date")}
                     </div>
                     <div>
-                      <label htmlFor="hours" className="block text-sm font-medium">
-                        {t("Hours")}
-                      </label>
-                      <input
-                        id="hours"
-                        type="number"
-                        min={0.25}
-                        step={0.25}
-                        className={input}
-                        aria-invalid={!!errors.hours || !!fieldErrors.hours}
-                        {...register("hours", {
-                          required: t("Hours are required for this type."),
-                          min: { value: 0.25, message: t("Use quarter-hour steps (0.25, 0.5, ...).") },
-                        })}
-                      />
-                      {err("hours")}
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label htmlFor="start_time" className="block text-sm font-medium">
-                        {t("From")}
-                      </label>
-                      <input
-                        id="start_time"
-                        type="time"
-                        className={input}
-                        aria-invalid={!!errors.start_time || !!fieldErrors.start_time}
-                        {...register("start_time")}
+                      <span className="block text-sm font-medium">
+                        {t("From – To")}
+                      </span>
+                      <TimeRangeInput
+                        fromLabel={t("From")}
+                        toLabel={t("To")}
+                        invalid={
+                          !!(
+                            errors.start_time ||
+                            errors.end_time ||
+                            fieldErrors.start_time ||
+                            fieldErrors.end_time
+                          )
+                        }
+                        from={{
+                          id: "start_time",
+                          ...register("start_time", {
+                            required: t("Times are required for this type."),
+                          }),
+                        }}
+                        to={{
+                          id: "end_time",
+                          ...register("end_time", {
+                            required: t("Times are required for this type."),
+                            validate: (v, values) =>
+                              !v ||
+                              !values.start_time ||
+                              v > values.start_time ||
+                              t("End time must be after the start time."),
+                          }),
+                        }}
                       />
                       {err("start_time")}
-                    </div>
-                    <div>
-                      <label htmlFor="end_time" className="block text-sm font-medium">
-                        {t("To")}
-                      </label>
-                      <input
-                        id="end_time"
-                        type="time"
-                        className={input}
-                        aria-invalid={!!errors.end_time || !!fieldErrors.end_time}
-                        {...register("end_time", {
-                          validate: (v, values) =>
-                            !v ||
-                            !values.start_time ||
-                            v > values.start_time ||
-                            t("End time must be after the start time."),
-                        })}
-                      />
                       {err("end_time")}
                     </div>
+                  </div>
+                  <div>
+                    <label htmlFor="hours" className="block text-sm font-medium">
+                      {t("Hours")}
+                    </label>
+                    <input
+                      id="hours"
+                      type="number"
+                      readOnly
+                      className={input}
+                      aria-invalid={!!errors.hours || !!fieldErrors.hours}
+                      {...register("hours")}
+                    />
+                    {derivedHours === null ? (
+                      <p className="mt-1 text-xs text-gray-500">
+                        {t("Choose the times above to count the hours.")}
+                      </p>
+                    ) : (
+                      <p className="mt-1 text-xs text-gray-500">
+                        {t("Billed in 15-minute blocks (30 minutes minimum).")}
+                      </p>
+                    )}
+                    {err("hours")}
                   </div>
                 </>
               )}

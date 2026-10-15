@@ -6,7 +6,7 @@ import {
 } from "@tanstack/react-table";
 import { Trash2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import { Link, useSearchParams } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 
 import { DataTable } from "@/components/ui/data-table";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
@@ -156,6 +156,7 @@ const columns = (
 export function RequestsPage() {
   const [params, setParams] = useSearchParams();
   const { t } = useLanguage();
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [searchInput, setSearchInput] = useState(params.get("search") ?? "");
   const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
@@ -233,7 +234,10 @@ export function RequestsPage() {
       <FilterBar
         header={
           <PageHeader
-            eyebrow={t("WORKSPACE / REQUESTS")}
+            crumbs={[
+              { label: t("nav.workspace"), to: "/" },
+              { label: t("nav.requests") },
+            ]}
             title={t("Requests")}
             description={t("Track submissions and keep every decision in view.")}
             actions={
@@ -328,6 +332,7 @@ export function RequestsPage() {
           onRowSelectionChange={setRowSelection}
           enableRowSelection={(row) => row.original.status === "draft"}
           getRowId={(r) => r.id}
+          onRowClick={(r) => navigate(`/requests/${r.id}`)}
           emptyText={t("No requests match your filters.")}
           footer={
             data && (

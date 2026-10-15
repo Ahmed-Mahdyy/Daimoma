@@ -256,6 +256,10 @@ html[dir="rtl"] .workspace-backlink:hover { transform: translateX(2px); }
 .dark .workspace-content input, .dark .workspace-content select, .dark .workspace-content textarea { background-color: #294649; color: #f1faf6; border-color: #587679; }
 .dark .workspace-content th { background: #304f53; color: #d6e9df; }
 .dark .workspace-content .text-muted-foreground { color: #cce7de; }
+.dark .workspace-content [data-slot="breadcrumb-link"] { color: #8bd6c2; }
+.dark .workspace-content [data-slot="breadcrumb-link"]:hover { color: #bfe9dc; }
+.dark .workspace-content [data-slot="breadcrumb-page"] { color: #a9c4bd; }
+.dark .workspace-content [data-slot="breadcrumb-separator"] { color: #6e8f8a; }
 .dark .workspace-content tbody tr:hover { background: #2c5154; }
 .dark .workspace-content .text-slate-800, .dark .workspace-content .text-slate-900, .dark .workspace-content .text-gray-900, .dark .workspace-content .text-gray-800, .dark .workspace-content h1, .dark .workspace-content h2 { color: #f1faf6; }
 .dark .workspace-content .text-gray-500, .dark .workspace-content .text-gray-600, .dark .workspace-content .text-gray-700, .dark .workspace-content .text-slate-700, .dark .workspace-content .text-slate-600, .dark .workspace-content .text-slate-500 { color: #c9dfda; }
@@ -278,6 +282,10 @@ html[dir="rtl"] .workspace-backlink:hover { transform: translateX(2px); }
 .dark .workspace-content .border-slate-200 { border-color: #587679; }
 .dark .workspace-content .text-white { color: white; }
 .dark .workspace-topbar .text-slate-800 { color: #e4f3ec; }
+.dark .workspace-topbar [data-slot="breadcrumb-link"] { color: #8bd6c2; }
+.dark .workspace-topbar [data-slot="breadcrumb-link"]:hover { color: #bfe9dc; }
+.dark .workspace-topbar [data-slot="breadcrumb-page"] { color: #a9c4bd; }
+.dark .workspace-topbar [data-slot="breadcrumb-separator"] { color: #6e8f8a; }
 .dark .workspace-link, .dark .workspace-link-quiet { color: #8bd6c2; }
 .dark .workspace-link:hover { background: #2c5154; color: #a9e8d6; }
 .dark .workspace-link-muted { color: #aec9c3; } .dark .workspace-link-muted:hover { background: #2c5154; color: #cfe5de; }
@@ -285,6 +293,20 @@ html[dir="rtl"] .workspace-backlink:hover { transform: translateX(2px); }
 .dark .workspace-list th .text-muted-foreground:hover { color: #e4f3ec; }
 .dark .workspace-link-danger { color: #f6b6bd; } .dark .workspace-link-danger:hover { background: #472730; color: #ffc9cf; }
 .dark .workspace-link-success { color: #a7e8bf; } .dark .workspace-link-success:hover { background: #143d2b; }
+/* Dark-mode primary actions: the light-theme teal sits too close to the
+   card color, so primary buttons flip to the theme's mint token. Scoped to
+   interactive elements — non-button uses of bg-brand-700 (badges) keep it. */
+.dark .workspace-primary { background: var(--primary); color: var(--primary-foreground); box-shadow: 0 7px 16px #8bd6c229; }
+.dark .workspace-primary:hover { background: #a9e8d6; }
+.dark .workspace-content button.bg-brand-700,
+.dark .workspace-content a.bg-brand-700,
+.dark .workspace-content button.bg-brand-600,
+.dark .login-card button.bg-brand-700 { background-color: #8bd6c2; color: #102b2b; }
+.dark .workspace-content button.bg-brand-700.text-white,
+.dark .workspace-content button.bg-brand-600.text-white { color: #102b2b; }
+.dark .workspace-content button.bg-brand-700:not(:disabled):hover,
+.dark .workspace-content a.bg-brand-700:hover,
+.dark .workspace-content button.bg-brand-600:not(:disabled):hover { background-color: #a9e8d6; }
 .dark .workspace-backlink { background: #26414a; border-color: #426066; color: #8bd6c2; }
 .dark .workspace-backlink:hover { background: #2c5154; border-color: #5a7a78; }
 .dark .login-screen { background: #1b2d33; }

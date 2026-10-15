@@ -15,6 +15,7 @@ export interface Me {
   job_title: string;
   department: string | null;
   manager: string | null;
+  org_working_weekdays: number[];
   version: number;
 }
 

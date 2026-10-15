@@ -1,11 +1,12 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 
 import { listDepartments } from "../../api/departments";
 import { managerChoices, provisionEmployee } from "../../api/employees";
 import { useLanguage } from "../../app/LanguageProvider";
 import { Alert } from "../../components/ui/Alert";
+import { PageCrumbs } from "../../components/ui/page-header";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   EDUCATION_FIELDS,
@@ -101,11 +102,14 @@ export function ProvisionEmployeePage() {
 
   return (
     <div>
-      <p className="mb-3 text-sm">
-        <Link to="/employees" className="workspace-backlink">
-          <span aria-hidden="true" className="inline-block rtl:-scale-x-100">←</span> {t("Back to employees")}
-        </Link>
-      </p>
+      <PageCrumbs
+        className="mb-3"
+        crumbs={[
+          { label: t("nav.workspace"), to: "/" },
+          { label: t("nav.employees"), to: "/employees" },
+          { label: t("New employee") },
+        ]}
+      />
       {error && (
         <div className="mb-3">
           <Alert kind="error">{error}</Alert>

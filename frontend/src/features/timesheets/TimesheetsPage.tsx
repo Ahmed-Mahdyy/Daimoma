@@ -146,7 +146,10 @@ export function TimesheetsPage() {
       <FilterBar
         header={
           <PageHeader
-            eyebrow={t("WORKSPACE / TIME")}
+            crumbs={[
+              { label: t("nav.workspace"), to: "/" },
+              { label: t("nav.timesheets") },
+            ]}
             title={t("Timesheets")}
             description={t("Record time and follow each week's progress.")}
             actions={
@@ -202,6 +205,7 @@ export function TimesheetsPage() {
           <DataTable<Timesheet>
             columns={columns(t, lang)}
             data={data?.results ?? []}
+            onRowClick={(ts) => navigate(`/timesheets/${ts.id}`)}
             manualSorting
             sorting={sorting}
             onSortingChange={(u) =>

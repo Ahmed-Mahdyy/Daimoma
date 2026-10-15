@@ -108,9 +108,12 @@ test.describe.serial("request allocations", () => {
     await page.goto("/requests/new");
     await page.getByLabel(/request type/i).selectOption({ label: TYPE_NAME });
     await page.getByLabel(/^title$/i).fill(REQUEST_TITLE);
-    await page.getByLabel(/quantity/i).fill("2");
     await page.getByLabel(/start date/i).fill("2027-06-01");
     await page.getByLabel(/end date/i).fill("2027-06-02");
+    // Quantity is derived from the two working days in the range — read-only.
+    const quantity = page.getByLabel(/quantity/i);
+    await expect(quantity).toHaveValue("2");
+    await expect(quantity).toHaveAttribute("readonly", "");
     await expect(page.getByText(/estimated charge: 2 units/i)).toBeVisible();
 
     await page.getByRole("button", { name: /save draft/i }).click();
@@ -138,7 +141,7 @@ test.describe.serial("request allocations", () => {
     await page.getByRole("combobox", { name: "Employee" }).first().selectOption({ label: EMPLOYEE_NAME });
     const row = page.getByRole("row", { name: new RegExp(TYPE_NAME) });
     await expect(row).toBeVisible();
-    await row.getByRole("button", { name: /manage/i }).click();
+    await row.click();
     await expect(
       page.getByRole("heading", { name: new RegExp(`Manage allocation — ${EMPLOYEE_NAME}`) }),
     ).toBeVisible();

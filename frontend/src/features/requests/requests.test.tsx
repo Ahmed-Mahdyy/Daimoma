@@ -11,6 +11,7 @@ vi.mock("../../api/requests", async (importOriginal) => {
     getRequest: vi.fn(),
     getRequestHistory: vi.fn(),
     listRequestTypes: vi.fn(),
+    listMyAllocations: vi.fn(),
     createRequest: vi.fn(),
     updateRequest: vi.fn(),
     deleteRequest: vi.fn(),
@@ -25,7 +26,12 @@ vi.mock("../../api/requests", async (importOriginal) => {
 });
 vi.mock("../auth/auth-context", () => ({
   useAuth: () => ({
-    user: { email: "emp@acme.test", roles: [], display_name: "Emmie" },
+    user: {
+      email: "emp@acme.test",
+      roles: [],
+      display_name: "Emmie",
+      org_working_weekdays: [0, 1, 2, 3, 4],
+    },
     isLoading: false,
     isAuthenticated: true,
   }),
@@ -38,6 +44,7 @@ import {
   deleteRequest,
   getRequest,
   getRequestHistory,
+  listMyAllocations,
   listRequests,
   listRequestTypes,
   submitRequest,
@@ -278,9 +285,7 @@ describe("RequestFormPage", () => {
     fireEvent.change(screen.getByLabelText(/end date/i), {
       target: { value: "2026-07-14" },
     });
-    fireEvent.change(screen.getByLabelText(/quantity/i), {
-      target: { value: "10" },
-    });
+    // Jul 1–14 2026 spans 10 Mon–Fri working days — quantity is derived, not typed.
     fireEvent.click(screen.getByRole("button", { name: /save draft/i }));
     await waitFor(() =>
       expect(createRequest).toHaveBeenCalledWith(
@@ -293,6 +298,198 @@ describe("RequestFormPage", () => {
         }),
       ),
     );
+  });
+
+  it("derives a read-only quantity from the leave date range", async () => {
+    vi.mocked(listRequestTypes).mockResolvedValue({
+      count: 1,
+      next: null,
+      previous: null,
+      results: [LEAVE_TYPE],
+    });
+    wrap(<RequestFormPage />, "/requests/new", "/requests/new");
+    fireEvent.change(await screen.findByLabelText(/request type/i), {
+      target: { value: "t1" },
+    });
+    const quantity = await screen.findByLabelText(/quantity/i);
+    // Non-item unit types are read-only even before dates are picked.
+    expect(quantity).toHaveAttribute("readonly");
+    expect(quantity).toHaveValue(null);
+    fireEvent.change(screen.getByLabelText(/start date/i), {
+      target: { value: "2026-07-01" },
+    });
+    fireEvent.change(screen.getByLabelText(/end date/i), {
+      target: { value: "2026-07-14" },
+    });
+    await waitFor(() => expect(quantity).toHaveValue(10));
+    expect(quantity).toHaveAttribute("readonly");
+    fireEvent.change(screen.getByLabelText(/end date/i), {
+      target: { value: "2026-07-03" },
+    });
+    await waitFor(() => expect(quantity).toHaveValue(3));
+  });
+
+  it("shows the available balance for allocation-required types", async () => {
+    const allocatedLeave = { ...LEAVE_TYPE, id: "t3", requires_allocation: true };
+    vi.mocked(listRequestTypes).mockResolvedValue({
+      count: 2,
+      next: null,
+      previous: null,
+      results: [LEAVE_TYPE, allocatedLeave],
+    });
+    vi.mocked(listMyAllocations).mockResolvedValue({
+      count: 1,
+      next: null,
+      previous: null,
+      results: [
+        {
+          id: "g1",
+          employee: "p1",
+          request_type: "t3",
+          type_name: "Annual leave",
+          unit: "unit",
+          start_date: "2026-01-01",
+          end_date: "2026-12-31",
+          initial_amount: 10,
+          status: "active",
+          version: 1,
+          granted: 10,
+          reserved: 0,
+          used: 2,
+          remaining: 8,
+          created_at: "2026-01-01T00:00:00Z",
+          voided_at: null,
+        },
+      ],
+    });
+    wrap(<RequestFormPage />, "/requests/new", "/requests/new");
+    const typeSelect = await screen.findByLabelText(/request type/i);
+    expect(screen.queryByText(/available balance/i)).not.toBeInTheDocument();
+    fireEvent.change(typeSelect, { target: { value: "t3" } });
+    expect(
+      await screen.findByText(/available balance: 8 units/i),
+    ).toBeInTheDocument();
+    // Switching to a non-allocation type hides the balance again.
+    fireEvent.change(typeSelect, { target: { value: "t1" } });
+    await waitFor(() =>
+      expect(screen.queryByText(/available balance/i)).not.toBeInTheDocument(),
+    );
+  });
+
+  it("keeps the quantity editable for item (equipment) types", async () => {
+    const countedItem = { ...LEAVE_TYPE, id: "t4", requires_item: true };
+    vi.mocked(listRequestTypes).mockResolvedValue({
+      count: 1,
+      next: null,
+      previous: null,
+      results: [countedItem],
+    });
+    wrap(<RequestFormPage />, "/requests/new", "/requests/new");
+    fireEvent.change(await screen.findByLabelText(/request type/i), {
+      target: { value: "t4" },
+    });
+    const quantity = await screen.findByLabelText(/quantity/i);
+    expect(quantity).not.toHaveAttribute("readonly");
+    expect(
+      screen.queryByText(/counted automatically/i),
+    ).not.toBeInTheDocument();
+  });
+
+  it("shows required date fields for requires_dates types", async () => {
+    const wfh = {
+      ...LEAVE_TYPE,
+      id: "t5",
+      unit: "none" as const,
+      requires_dates: true,
+    };
+    vi.mocked(listRequestTypes).mockResolvedValue({
+      count: 1,
+      next: null,
+      previous: null,
+      results: [wfh],
+    });
+    wrap(<RequestFormPage />, "/requests/new", "/requests/new");
+    fireEvent.change(await screen.findByLabelText(/request type/i), {
+      target: { value: "t5" },
+    });
+    // RHF validates `required` on submit, not via the native attribute.
+    const start = await screen.findByLabelText(/start date/i);
+    const end = screen.getByLabelText(/end date/i);
+    expect(screen.queryByLabelText(/quantity/i)).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: /save draft/i }));
+    expect(
+      await screen.findAllByText(/dates are required for this type/i),
+    ).not.toHaveLength(0);
+    expect(createRequest).not.toHaveBeenCalled();
+    // Filling the dates clears the gate and lets the draft save.
+    fireEvent.change(start, { target: { value: "2026-10-05" } });
+    fireEvent.change(end, { target: { value: "2026-10-09" } });
+    fireEvent.change(screen.getByLabelText(/^title$/i), {
+      target: { value: "Remote week" },
+    });
+    fireEvent.change(screen.getByLabelText(/details/i), {
+      target: { value: "Working from home" },
+    });
+    vi.mocked(createRequest).mockResolvedValue({ id: "r2" } as never);
+    fireEvent.click(screen.getByRole("button", { name: /save draft/i }));
+    await waitFor(() =>
+      expect(createRequest).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: "t5",
+          start_date: "2026-10-05",
+          end_date: "2026-10-09",
+        }),
+      ),
+    );
+  });
+
+  it("derives read-only hours from the from/to times on hour types", async () => {
+    vi.mocked(listRequestTypes).mockResolvedValue({
+      count: 1,
+      next: null,
+      previous: null,
+      results: [HOUR_TYPE],
+    });
+    vi.mocked(createRequest).mockResolvedValue({ id: "r9" } as never);
+    wrap(<RequestFormPage />, "/requests/new", "/requests/new");
+    fireEvent.change(await screen.findByLabelText(/request type/i), {
+      target: { value: "t2" },
+    });
+    const hours = await screen.findByLabelText(/^hours$/i);
+    expect(hours).toHaveAttribute("readonly");
+    // 15:00 → 17:00 bills exactly 2 hours; the field is never typed by hand.
+    fireEvent.change(screen.getByLabelText(/^from$/i), {
+      target: { value: "15:00" },
+    });
+    fireEvent.change(screen.getByLabelText(/^to$/i), {
+      target: { value: "17:00" },
+    });
+    await waitFor(() => expect(hours).toHaveValue(2));
+    // A 20-minute gap bills the 30-minute minimum.
+    fireEvent.change(screen.getByLabelText(/^to$/i), {
+      target: { value: "15:20" },
+    });
+    await waitFor(() => expect(hours).toHaveValue(0.5));
+    // The submitted body carries the times, not the typed hours.
+    fireEvent.change(screen.getByLabelText(/^date$/i), {
+      target: { value: "2026-10-05" },
+    });
+    fireEvent.change(screen.getByLabelText(/^title$/i), {
+      target: { value: "Doctor visit" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: /save draft/i }));
+    await waitFor(() =>
+      expect(createRequest).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: "t2",
+          start_time: "15:00",
+          end_time: "15:20",
+        }),
+      ),
+    );
+    expect(
+      vi.mocked(createRequest).mock.calls[0][0],
+    ).not.toHaveProperty("hours");
   });
 });
 

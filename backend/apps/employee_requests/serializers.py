@@ -19,6 +19,8 @@ class RequestTypeSerializer(serializers.ModelSerializer):
             "code",
             "name",
             "unit",
+            "requires_item",
+            "requires_dates",
             "help_text",
             "requires_manager",
             "requires_hr",
@@ -35,6 +37,12 @@ class RequestTypeWriteSerializer(serializers.Serializer):
 
     name = serializers.CharField(max_length=120)
     unit = serializers.ChoiceField(choices=RequestType.Unit.choices, default="none")
+    requires_item = serializers.BooleanField(default=False)
+    requires_dates = serializers.BooleanField(default=False)
+    # Null/unset follows the unit; an explicit False opts a measured type out.
+    requires_allocation = serializers.BooleanField(
+        required=False, allow_null=True, default=None
+    )
     help_text = serializers.CharField(required=False, allow_blank=True, default="")
     requires_manager = serializers.BooleanField(default=True)
     requires_hr = serializers.BooleanField(default=False)
@@ -60,6 +68,21 @@ class RequestTypeWriteSerializer(serializers.Serializer):
         ):
             raise serializers.ValidationError(
                 {"unit": "Unit cannot change after allocation use."}
+            )
+        requires_allocation = attrs.get(
+            "requires_allocation",
+            getattr(self.instance, "requires_allocation", None),
+        )
+        if unit == "none" and requires_allocation:
+            raise serializers.ValidationError(
+                {"requires_allocation": "Allocations need a measured unit (units or hours)."}
+            )
+        requires_dates = attrs.get(
+            "requires_dates", getattr(self.instance, "requires_dates", False)
+        )
+        if unit == "hour" and requires_dates:
+            raise serializers.ValidationError(
+                {"requires_dates": "Hour types collect a single date already."}
             )
         return attrs
 
@@ -306,32 +329,70 @@ class RequestDraftSerializer(serializers.Serializer):
         return super().to_internal_value(data)
 
 
-def validate_fields_for_type(unit: str, data: dict, errors: dict):
-    """Unit-typed field contract (2026-10-05): a measurable unit requires its
-    amount — whole quantity for "unit", quarter-hour hours for "hour";
-    "none" rejects amount fields. Dates/times stay optional for every type
-    but must be coherent when provided (paired and ordered)."""
+def validate_fields_for_type(
+    unit: str,
+    data: dict,
+    errors: dict,
+    *,
+    requires_item: bool = False,
+    requires_dates: bool = False,
+):
+    """Unit-typed field contract: a measurable unit has a charged amount —
+    whole quantity for "unit", billed minutes for "hour"; "none" rejects
+    amount fields. For "unit" types the quantity is manual only on item
+    types (equipment); otherwise it derives from the date range. For "hour"
+    types the billed amount derives from the from/to times on a single day
+    (15-minute blocks, 30-minute minimum); a submitted hours value is never
+    authoritative. A date range is mandatory for `requires_dates` types and
+    for derived-quantity unit types. Times must be paired and ordered."""
     start, end = data.get("start_date"), data.get("end_date")
-    if bool(start) != bool(end):
-        errors.setdefault("end_date", []).append("Provide both start and end dates.")
-    if start and end and end < start:
-        errors.setdefault("end_date", []).append("Cannot be before start date.")
+    dates_required = requires_dates or (unit == "unit" and not requires_item)
+    if unit == "hour":
+        # Time-based requests cover a single day — the date is required and
+        # an end date, if sent, must match it.
+        if not start:
+            errors.setdefault("start_date", []).append(
+                "Required — choose the day this request covers."
+            )
+        elif end and end != start:
+            errors.setdefault("end_date", []).append(
+                "Time-based requests cover a single day."
+            )
+    else:
+        if bool(start) != bool(end):
+            errors.setdefault("end_date", []).append("Provide both start and end dates.")
+        elif dates_required and not start:
+            errors.setdefault("end_date", []).append(
+                "Required to count the quantity."
+                if unit == "unit"
+                else "Required — choose the day(s) this request covers."
+            )
+        if start and end and end < start:
+            errors.setdefault("end_date", []).append("Cannot be before start date.")
     start_t, end_t = data.get("start_time"), data.get("end_time")
     if bool(start_t) != bool(end_t):
         errors.setdefault("end_time", []).append("Provide both start and end times.")
     if start_t and end_t and end_t <= start_t:
         errors.setdefault("end_time", []).append("Must be after the start time.")
     if unit == "unit":
-        if data.get("quantity") is None:
+        # Item types (equipment) keep a manually entered count; other unit
+        # types derive the quantity from the date range enforced above.
+        if requires_item and data.get("quantity") is None:
             errors.setdefault("quantity", []).append("Required for this type.")
         if data.get("hours") is not None:
             errors.setdefault("hours", []).append("Not used by this type.")
     elif unit == "hour":
-        hours = data.get("hours")
-        if hours is None:
-            errors.setdefault("hours", []).append("Required for this type.")
-        elif hours <= 0 or (hours * 4) != int(hours * 4):
-            errors.setdefault("hours", []).append("Use quarter-hour steps (0.25, 0.5, ...).")
+        # Billed hours derive from the from/to times (15-minute blocks,
+        # 30-minute minimum) — a submitted `hours` value is never
+        # authoritative.
+        if not start_t or not end_t:
+            errors.setdefault("end_time", []).append(
+                "Required to count the hours."
+            )
+        elif start_t.second or end_t.second:
+            errors.setdefault("end_time", []).append(
+                "Seconds are not supported — use HH:MM."
+            )
         if data.get("quantity") is not None:
             errors.setdefault("quantity", []).append("Not used by this type.")
     else:

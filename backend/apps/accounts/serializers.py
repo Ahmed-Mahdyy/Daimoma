@@ -65,6 +65,7 @@ class MeSerializer(serializers.ModelSerializer):
     photo_url = serializers.SerializerMethodField()
     department = serializers.UUIDField(read_only=True)
     manager = serializers.UUIDField(read_only=True)
+    org_working_weekdays = serializers.SerializerMethodField()
     version = serializers.IntegerField(min_value=1, required=False)
 
     class Meta:
@@ -80,6 +81,7 @@ class MeSerializer(serializers.ModelSerializer):
             "job_title",
             "department",
             "manager",
+            "org_working_weekdays",
             "version",
         ]
         read_only_fields = [
@@ -91,7 +93,11 @@ class MeSerializer(serializers.ModelSerializer):
             "job_title",
             "department",
             "manager",
+            "org_working_weekdays",
         ]
+
+    def get_org_working_weekdays(self, profile) -> list[int]:
+        return profile.organization.working_weekdays or []
 
     def get_roles(self, profile) -> list[str]:
         return sorted(profile.user.groups.values_list("name", flat=True))

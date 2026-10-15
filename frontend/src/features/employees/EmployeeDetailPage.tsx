@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import { Link, useBlocker, useParams } from "react-router-dom";
+import { useBlocker, useParams } from "react-router-dom";
 
 import { listDepartments } from "../../api/departments";
 import {
@@ -15,6 +15,7 @@ import {
 import { ApiError } from "../../api/client";
 import { Alert } from "../../components/ui/Alert";
 import { AsyncState } from "../../components/ui/AsyncState";
+import { PageCrumbs } from "../../components/ui/page-header";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ConfirmDialog } from "../../components/ui/ConfirmDialog";
 import { useLanguage } from "../../app/LanguageProvider";
@@ -167,11 +168,14 @@ export function EmployeeDetailPage() {
 
   return (
     <div>
-      <p className="mb-2 text-sm">
-        <Link to="/employees" className="workspace-backlink">
-          <span aria-hidden="true" className="inline-block rtl:-scale-x-100">←</span> {t("Back to employees")}
-        </Link>
-      </p>
+      <PageCrumbs
+        className="mb-2"
+        crumbs={[
+          { label: t("nav.workspace"), to: "/" },
+          { label: t("nav.employees"), to: "/employees" },
+          { label: employee?.display_name || employee?.email || "…" },
+        ]}
+      />
       <div className="workspace-panel flex items-center gap-4 p-5">
         <Avatar className="size-14 ring-2 ring-brand-700/20">
           {employee.photo_url && (

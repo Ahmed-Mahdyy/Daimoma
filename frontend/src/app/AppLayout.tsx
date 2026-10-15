@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { Component, useState, type ReactNode } from "react";
 import { Link, NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { ChevronRight, Languages, Menu, Moon, Sun, X } from "lucide-react";
 
@@ -7,12 +7,15 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { PageBreadcrumbs, PageCrumbsProvider } from "@/components/ui/page-header";
+import { useRegisteredPageCrumbs } from "@/components/ui/page-crumbs";
 import { useAuth } from "../features/auth/auth-context";
 import { NotificationBell } from "../features/notifications/NotificationBell";
 import { PunchWidget } from "../features/timesheets/PunchWidget";
 import { getOrCreateTimesheet, listTimesheets, type Timesheet } from "../api/timesheets";
 import { localToday } from "../lib/dates";
 import { useLanguage } from "./LanguageProvider";
+import { RouteErrorInline } from "./RouteErrorPage";
 import { useTheme } from "./ThemeProvider";
 import type { I18nKey } from "../lib/i18n";
 
@@ -34,6 +37,18 @@ const HR_SETTINGS_CHILDREN: { to: string; key: I18nKey }[] = [
   { to: "/settings/organization", key: "nav.organization" },
   { to: "/audit", key: "nav.audit" },
 ];
+
+/** Breadcrumb trail registered by the current page — fills the otherwise
+ * empty left half of the topbar on md+ screens. */
+function TopbarCrumbs() {
+  const crumbs = useRegisteredPageCrumbs();
+  if (crumbs.length === 0) return null;
+  return (
+    <div className="hidden min-w-0 flex-1 items-center md:flex">
+      <PageBreadcrumbs crumbs={crumbs} />
+    </div>
+  );
+}
 
 /** Authenticated shell: brand, role-aware nav, notification bell, sign out. */
 export function AppLayout() {
@@ -185,16 +200,43 @@ export function AppLayout() {
         />
       )}
       <div className="workspace-stage min-w-0 flex-1">
+        <PageCrumbsProvider>
         <header className="workspace-topbar">
           <div className="flex min-w-0 items-center gap-3">
             <Button type="button" variant="outline" size="icon" aria-label={menuOpen ? t("nav.closeMenu") : t("nav.openMenu")} aria-expanded={menuOpen} aria-controls="workspace-navigation" onClick={() => setMenuOpen((value) => !value)} className="lg:hidden">{menuOpen ? <X /> : <Menu />}</Button>
             <span className="workspace-mobile-brand hidden min-[430px]:inline lg:hidden">{t("brand.name")}</span>
-
+            <TopbarCrumbs />
           </div>
           <div className="flex shrink-0 items-center gap-1 sm:gap-2"><PunchWidget /><Button type="button" variant="ghost" size="icon" aria-label={lang === "en" ? t("shell.languageToArabic") : t("shell.languageToEnglish")} title={lang === "en" ? t("shell.languageToArabic") : t("shell.languageToEnglish")} onClick={() => setLang(lang === "en" ? "ar" : "en")}><Languages className="size-4" /><span className="sr-only">{t("shell.language")}</span></Button><Button type="button" variant="ghost" size="icon" aria-label={mode === "dark" ? t("shell.themeToLight") : t("shell.themeToDark")} onClick={toggle}>{mode === "dark" ? <Sun /> : <Moon />}</Button><NotificationBell /><DropdownMenu><DropdownMenuTrigger asChild><Button type="button" variant="ghost" size="icon" aria-label={t("shell.accountMenu")} className="cursor-pointer rounded-full ring-[#c9a227]/50 transition hover:ring-4 data-[state=open]:ring-4"><Avatar className="size-8">{user?.photo_url && <AvatarImage src={user.photo_url} alt="" />}<AvatarFallback>{name.slice(0, 1).toUpperCase()}</AvatarFallback></Avatar></Button></DropdownMenuTrigger><DropdownMenuContent align="end" className="w-64"><DropdownMenuLabel><strong className="block truncate">{name}</strong><span className="block truncate text-xs font-normal text-muted-foreground">{user?.email}</span><Badge className="mt-2" variant="secondary">{isHr ? "HR" : canSeeAudit ? "Manager" : "Employee"}</Badge><span className="ms-2 text-xs font-normal text-muted-foreground">{user?.employee_code}</span></DropdownMenuLabel><DropdownMenuSeparator /><DropdownMenuItem asChild><Link to="/profile">{t("shell.myProfile")}</Link></DropdownMenuItem>{isHr && <DropdownMenuItem asChild><Link to="/settings">{t("nav.settings")}</Link></DropdownMenuItem>}<DropdownMenuItem onSelect={() => void signOut()}>{t("shell.signOut")}</DropdownMenuItem></DropdownMenuContent></DropdownMenu></div>
         </header>
-        <main id="main-content" className="workspace-content mx-auto w-full max-w-7xl px-4 py-7 sm:px-8 sm:py-10"><Outlet /></main>
+        <main id="main-content" className="workspace-content mx-auto w-full max-w-7xl px-4 py-7 sm:px-8 sm:py-10"><OutletErrorBoundary key={pathname}><Outlet /></OutletErrorBoundary></main>
+        </PageCrumbsProvider>
       </div>
     </div>
   );
+}
+
+/** Keeps the shell (sidebar/topbar) alive when a page throws — the error
+ * renders in the content area. Keyed on pathname, so navigating away resets. */
+class OutletErrorBoundary extends Component<
+  { children: ReactNode },
+  { error: unknown }
+> {
+  state = { error: null as unknown };
+
+  static getDerivedStateFromError(error: unknown) {
+    return { error };
+  }
+
+  componentDidCatch(error: unknown, info: { componentStack?: string }) {
+    console.error("Page render error:", error, info.componentStack);
+  }
+
+  render() {
+    return this.state.error ? (
+      <RouteErrorInline error={this.state.error} />
+    ) : (
+      this.props.children
+    );
+  }
 }

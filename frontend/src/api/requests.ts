@@ -17,6 +17,8 @@ export interface RequestType {
   code: string;
   name: string;
   unit: AllocationUnit;
+  requires_item?: boolean;
+  requires_dates?: boolean;
   help_text?: string;
   requires_manager?: boolean;
   requires_hr?: boolean;
@@ -109,6 +111,9 @@ export interface RequestHistory {
 export interface RequestTypeWriteInput {
   name: string;
   unit: AllocationUnit;
+  requires_item?: boolean;
+  requires_dates?: boolean;
+  requires_allocation?: boolean;
   help_text?: string;
   requires_manager?: boolean;
   requires_hr?: boolean;
@@ -286,6 +291,10 @@ export function listAllocations(filters: {
 
 export function listMyAllocations(): Promise<Paged<AllocationGrant>> {
   return apiFetch("/api/v1/allocations/mine/");
+}
+
+export function getAllocation(id: string): Promise<AllocationGrant> {
+  return apiFetch(`/api/v1/allocations/${id}/`);
 }
 
 export function getAllocationPreview(input: Partial<RequestDraftInput>): Promise<AllocationPreview> {

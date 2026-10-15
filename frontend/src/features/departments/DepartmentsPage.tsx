@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { type ColumnDef } from "@tanstack/react-table";
 import { useMemo, useState } from "react";
-import { Link, useSearchParams } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 
 import { Button } from "@/components/ui/button";
 import { DataTable } from "@/components/ui/data-table";
@@ -23,6 +23,7 @@ import { ConfirmDialog } from "../../components/ui/ConfirmDialog";
  * member history stays intact. */
 export function DepartmentsPage() {
   const { t } = useLanguage();
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [params, setParams] = useSearchParams();
   const [searchInput, setSearchInput] = useState(params.get("search") ?? "");
@@ -149,7 +150,10 @@ export function DepartmentsPage() {
       <FilterBar
         header={
           <PageHeader
-            eyebrow={t("HR / ORGANIZATION")}
+            crumbs={[
+              { label: t("nav.workspace"), to: "/" },
+              { label: t("nav.departments") },
+            ]}
             title={t("Departments")}
             description={t("Deactivated departments keep their history; members become unassigned.")}
             actions={
@@ -179,6 +183,7 @@ export function DepartmentsPage() {
             emptyText={t("No departments yet.")}
             clientPagination
             defaultSorting={[{ id: "created_at", desc: true }]}
+            onRowClick={(d) => navigate(`/departments/${d.id}`)}
           />
         </div>
       </AsyncState>

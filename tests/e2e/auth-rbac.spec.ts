@@ -24,6 +24,15 @@ test("unauthenticated visitors are redirected to login for protected routes", as
   await expect(page).toHaveURL(/\/login/);
 });
 
+test("a signed-in user is redirected away from the login page", async ({
+  page,
+}) => {
+  await loginAs(page, "employee-e2e@acme.test");
+  await page.goto("/login");
+  await expect(page).toHaveURL(/\/$/);
+  await expect(page.getByText(/my dashboard/i)).toBeVisible();
+});
+
 test("bad credentials show a generic error, never account existence", async ({
   page,
 }) => {

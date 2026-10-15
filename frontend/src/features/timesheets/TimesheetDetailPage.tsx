@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { useParams } from "react-router-dom";
 
 import { ApiError } from "../../api/client";
 import {
@@ -22,6 +22,8 @@ import {
 import { Alert } from "../../components/ui/Alert";
 import { AsyncState } from "../../components/ui/AsyncState";
 import { ConfirmDialog } from "../../components/ui/ConfirmDialog";
+import { PageCrumbs } from "../../components/ui/page-header";
+import { RangeInput } from "../../components/ui/range-input";
 import { useLanguage } from "../../app/LanguageProvider";
 import { formatDateTime } from "../../lib/dates";
 import { useAuth } from "../../features/auth/auth-context";
@@ -182,28 +184,27 @@ function EntryDialog({
           </div>
         )}
         <div className="mt-3 grid grid-cols-2 gap-3">
-          <label className="block text-sm font-medium">
-            {t("Start")}
-            <input
+          <div className="col-span-2 text-sm font-medium">
+            {t("Start – End")}
+            <RangeInput
               type="datetime-local"
-              value={start}
-              max={nowInZone(sheet.timezone)}
-              onChange={(e) => setStart(e.target.value)}
-              className={input}
+              fromLabel={t("Start")}
+              toLabel={t("End")}
+              invalid={!!(fieldErrors["start_at"] || fieldErrors["end_at"])}
+              from={{
+                value: start,
+                max: nowInZone(sheet.timezone),
+                onChange: (e) => setStart(e.target.value),
+              }}
+              to={{
+                value: end,
+                max: nowInZone(sheet.timezone),
+                onChange: (e) => setEnd(e.target.value),
+              }}
             />
             {err("start_at")}
-          </label>
-          <label className="block text-sm font-medium">
-            {t("End")}
-            <input
-              type="datetime-local"
-              value={end}
-              max={nowInZone(sheet.timezone)}
-              onChange={(e) => setEnd(e.target.value)}
-              className={input}
-            />
             {err("end_at")}
-          </label>
+          </div>
           <label className="block text-sm font-medium">
             {t("Break (minutes)")}
             <input
@@ -460,11 +461,19 @@ export function TimesheetDetailPage() {
 
   return (
     <div>
-      <p className="mb-2 text-sm">
-        <Link to="/timesheets" className="workspace-link-quiet">
-          <span aria-hidden="true" className="inline-block rtl:-scale-x-100">←</span> {t("Timesheets")}
-        </Link>
-      </p>
+      <PageCrumbs
+        className="mb-2"
+        crumbs={[
+          { label: t("nav.workspace"), to: "/" },
+          { label: t("nav.timesheets"), to: "/timesheets" },
+          {
+            label: t("Week {from} – {to}", {
+              from: sheet.period_start,
+              to: sheet.period_end,
+            }),
+          },
+        ]}
+      />
       <div className="workspace-panel flex flex-wrap items-start justify-between gap-3 p-4 sm:p-5">
         <div>
           <h1 className="text-2xl font-semibold">

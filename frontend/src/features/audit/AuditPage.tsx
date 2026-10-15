@@ -85,7 +85,15 @@ export function AuditPage() {
   return (
     <div>
       <FilterBar
-        header={<PageHeader title={t("Audit history")} />}
+        header={
+          <PageHeader
+            crumbs={[
+              { label: t("nav.workspace"), to: "/" },
+              { label: t("nav.audit") },
+            ]}
+            title={t("Audit history")}
+          />
+        }
         search={
           <SearchField
             label={t("Action")}

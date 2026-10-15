@@ -1,3 +1,4 @@
+from datetime import timedelta
 from zoneinfo import ZoneInfo
 
 from config.exceptions import ConflictError
@@ -18,15 +19,68 @@ from apps.employee_requests.models import (
 )
 
 
+def working_days_in_range(org, start, end):
+    """Working days in the inclusive [start, end] range, counted against the
+    org's configured weekdays (0=Mon … 6=Sun). Every calendar day counts when
+    the org has no weekday configuration. Returns None without a full range."""
+    if not start or not end or end < start:
+        return None
+    span = (end - start).days + 1
+    weekdays = set(org.working_weekdays or [])
+    if not weekdays:
+        return span
+    return sum(
+        1
+        for i in range(span)
+        if (start + timedelta(days=i)).weekday() in weekdays
+    )
+
+
+def charged_minutes(start_time, end_time):
+    """Billable minutes between two same-day HH:MM times — rounds up to the
+    next 15-minute block with a 30-minute minimum (D-011 billing rule).
+    Returns None when the pair is missing, unordered, or carries seconds."""
+    if (
+        not start_time
+        or not end_time
+        or end_time <= start_time
+        or start_time.second
+        or end_time.second
+    ):
+        return None
+    minutes = (end_time.hour * 60 + end_time.minute) - (
+        start_time.hour * 60 + start_time.minute
+    )
+    return max(30, -(-minutes // 15) * 15)
+
+
 def amount_for_request(req):
-    """Charged amount in the type's unit: whole units, or whole minutes for
-    hour-unit types (an hour-unit request stores the entered hours)."""
+    """Charged amount in the type's unit: for dated "unit" requests the
+    working-day count is derived from the date range server-side (the
+    submitted quantity is never authoritative); undated unit requests charge
+    the entered quantity; hour-unit types charge the billed minutes derived
+    from the from/to times (the submitted hours are never authoritative —
+    stored `hours` is only a fallback for rows saved before derivation)."""
     unit = req.type.unit
     if unit == "unit":
+        derived = (
+            working_days_in_range(req.organization, req.start_date, req.end_date)
+            if req.organization_id and not req.type.requires_item
+            else None
+        )
+        if derived is not None:
+            if derived < 1:
+                raise ValidationError(
+                    {"end_date": ["The selected dates contain no working days."]}
+                )
+            return derived
         if not req.quantity or req.quantity < 1:
             raise ValidationError({"quantity": ["A quantity of at least 1 is required."]})
         return req.quantity
     if unit == "hour":
+        minutes = charged_minutes(req.start_time, req.end_time)
+        if minutes is not None:
+            return minutes
         if req.hours is None or req.hours <= 0:
             raise ValidationError({"hours": ["A positive number of hours is required."]})
         return int(req.hours * 60)
@@ -70,7 +124,13 @@ def preview(user, request_type, data):
     from apps.employee_requests.serializers import validate_fields_for_type
 
     errors = {}
-    validate_fields_for_type(request_type.unit, data, errors)
+    validate_fields_for_type(
+        request_type.unit,
+        data,
+        errors,
+        requires_item=request_type.requires_item,
+        requires_dates=request_type.requires_dates,
+    )
     if errors:
         raise ValidationError(errors)
     req = EmployeeRequest(
@@ -103,6 +163,39 @@ def preview(user, request_type, data):
         "status": "available" if remaining >= amount else "insufficient",
         "remaining": remaining, "grant": str(grant.pk),
     }
+
+
+def assert_covered(user, request_type, data):
+    """Draft-time gate (2026-10-11): an allocation-required request cannot be
+    created while no active grant covers its period or the remaining balance
+    is too small. reserve() re-checks under row locks at submission — this
+    gate only stops drafts that could never be submitted."""
+    if not request_type.requires_allocation:
+        return
+    result = preview(user, request_type, data)
+    if result["status"] == "no_grant":
+        raise ValidationError(
+            {
+                "non_field_errors": [
+                    "No allocation covers this request — ask HR to assign one first."
+                ]
+            }
+        )
+    if result["status"] == "insufficient":
+        unit = result["unit"]
+        if unit == "hour":
+            need = f"{result['amount'] / 60:g} hours"
+            left = f"{result['remaining'] / 60:g} hours"
+        else:
+            need = f"{result['amount']} units"
+            left = f"{result['remaining']} units"
+        raise ValidationError(
+            {
+                "non_field_errors": [
+                    f"This request needs {need} but only {left} remain in your allocation."
+                ]
+            }
+        )
 
 
 def reserve(req, submitted_at):

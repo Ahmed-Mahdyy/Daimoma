@@ -1,12 +1,13 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { type ColumnDef } from "@tanstack/react-table";
 import { useState } from "react";
-import { Link, useParams, useSearchParams } from "react-router-dom";
+import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DataTable } from "@/components/ui/data-table";
+import { Spinner } from "@/components/ui/loading";
 import {
   applySortingUpdater,
   orderingToSorting,
@@ -18,6 +19,7 @@ import { listEmployees, managerChoices, type EmployeeSummary } from "../../api/e
 import { useLanguage } from "../../app/LanguageProvider";
 import { AsyncState } from "../../components/ui/AsyncState";
 import { Alert } from "../../components/ui/Alert";
+import { PageCrumbs } from "../../components/ui/page-header";
 
 const PAGE_SIZE = 10;
 
@@ -76,6 +78,7 @@ const columns = (t: (key: string) => string): ColumnDef<EmployeeSummary, unknown
 export function DepartmentDetailPage() {
   const { id } = useParams<{ id: string }>();
   const { t } = useLanguage();
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [searchParams, setSearchParams] = useSearchParams();
   const [edit, setEdit] = useState<{ name: string; manager: string } | null>(null);
@@ -126,13 +129,14 @@ export function DepartmentDetailPage() {
 
   return (
     <div>
-      <p className="mb-2 text-sm">
-        <Link to="/departments" className="workspace-backlink">
-          <span aria-hidden="true" className="inline-block rtl:-scale-x-100">←</span> {t("Departments")}
-        </Link>
-      </p>
       <div className="workspace-panel p-4 sm:p-5">
-        <span className="text-xs font-bold uppercase tracking-widest text-brand-700">{t("HR / ORGANIZATION")}</span>
+        <PageCrumbs
+          crumbs={[
+            { label: t("nav.workspace"), to: "/" },
+            { label: t("nav.departments"), to: "/departments" },
+            { label: dept.name },
+          ]}
+        />
         <div className="mt-1 flex flex-wrap items-center gap-3">
           <h1 className="text-2xl font-bold sm:text-3xl">{dept.name}</h1>
           <Badge variant={dept.is_active ? "default" : "secondary"}>
@@ -150,7 +154,7 @@ export function DepartmentDetailPage() {
         <Card><CardHeader><CardTitle>{t("Manager")}</CardTitle></CardHeader><CardContent>{dept.manager ? (
           <Link className="workspace-link-quiet" to={`/employees/${dept.manager}`}>{dept.manager_name || t("Manager")}</Link>
         ) : t("None")}</CardContent></Card>
-        <Card><CardHeader><CardTitle>{t("Employees count")}</CardTitle></CardHeader><CardContent>{members.isLoading ? t("Loading…") : members.error ? t("Failed.") : total}</CardContent></Card>
+        <Card><CardHeader><CardTitle>{t("Employees count")}</CardTitle></CardHeader><CardContent>{members.isLoading ? <Spinner className="h-4 w-4" /> : members.error ? t("Failed.") : total}</CardContent></Card>
       </div>
       {!editing ? (
         <Button type="button" className="mt-5" variant="outline" onClick={() => setEdit({ name: dept.name, manager: dept.manager ?? "" })}>{t("Edit")}</Button>
@@ -199,6 +203,7 @@ export function DepartmentDetailPage() {
                 setPage(1);
               }}
               emptyText={t("No employees are assigned to this department.")}
+              onRowClick={(e) => navigate(`/employees/${e.id}`)}
             />
             {pages > 1 && (
               <nav aria-label={t("Members pages")} className="mt-4 flex items-center gap-2">

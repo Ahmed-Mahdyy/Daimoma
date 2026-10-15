@@ -26,10 +26,22 @@ class RequestType(models.Model):
     code = models.CharField(max_length=40)
     name = models.CharField(max_length=120)
     unit = models.CharField(max_length=20, choices=Unit.choices, default=Unit.NONE)
+    requires_item = models.BooleanField(
+        default=False,
+        help_text="Ask the employee for an item/asset name on this type (e.g. equipment).",
+    )
+    requires_dates = models.BooleanField(
+        default=False,
+        help_text="Ask the employee for a start/end date range on this type "
+        "(e.g. leave, work from home).",
+    )
     help_text = models.TextField(blank=True)
     requires_manager = models.BooleanField(default=True)
     requires_hr = models.BooleanField(default=False)
-    requires_allocation = models.BooleanField(default=False)
+    # Tri-state: None (default) follows the unit — measured types draw from
+    # allocations, plain ones don't. HR may explicitly opt a measured type out
+    # (False); "none" types can never draw.
+    requires_allocation = models.BooleanField(default=None, null=True)
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -46,9 +58,12 @@ class RequestType(models.Model):
         return f"{self.name} ({self.code})"
 
     def save(self, *args, **kwargs):
-        # The unit IS the allocation switch — keep the flag derived so every
-        # existing requires_allocation check stays consistent.
-        self.requires_allocation = self.unit != self.Unit.NONE
+        # "none" types can never draw from an allocation; a measured type with
+        # no explicit choice defaults to drawing (opt-out by setting False).
+        if self.unit == self.Unit.NONE:
+            self.requires_allocation = False
+        elif self.requires_allocation is None:
+            self.requires_allocation = True
         super().save(*args, **kwargs)
 
     def clean(self):

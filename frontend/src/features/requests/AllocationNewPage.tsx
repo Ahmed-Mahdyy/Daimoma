@@ -14,6 +14,8 @@ import {
 import { useLanguage } from "../../app/LanguageProvider";
 import { Alert } from "../../components/ui/Alert";
 import { AsyncState } from "../../components/ui/AsyncState";
+import { RangeInput } from "../../components/ui/range-input";
+import { PageCrumbs } from "../../components/ui/page-header";
 
 const input = "mt-1 w-full rounded-md border border-gray-300 px-2 py-1.5 text-sm";
 
@@ -108,7 +110,7 @@ export function AllocationNewPage() {
   };
 
   return (
-    <div className="mx-auto max-w-2xl">
+    <div className="mx-auto max-w-4xl">
       {serverError && (
         <div className="mb-3">
           <Alert kind="error">{serverError}</Alert>
@@ -118,9 +120,13 @@ export function AllocationNewPage() {
       <AsyncState isLoading={loadingEmployees || loadingTypes} error={employeesError ?? typesError}>
         <form className="workspace-panel grid grid-cols-1 gap-4 p-6 sm:grid-cols-2" noValidate onSubmit={submit}>
           <div className="sm:col-span-2">
-            <span className="text-xs font-bold uppercase tracking-widest text-brand-700">
-              {t("HR / WORKFLOWS")}
-            </span>
+            <PageCrumbs
+              crumbs={[
+                { label: t("nav.requests"), to: "/requests" },
+                { label: t("nav.allocations"), to: "/settings/allocations" },
+                { label: t("Add allocation") },
+              ]}
+            />
             <h1 className="mt-1 text-2xl font-bold sm:text-3xl">{t("Add allocation")}</h1>
             <p className="mt-1 text-sm text-gray-600">
               {t("Award a dated allowance in the request type's unit. Requests draw from it while they fit inside the period; overlapping allocations for the same employee and type are not allowed.")}
@@ -200,35 +206,30 @@ export function AllocationNewPage() {
             )}
           </label>
 
-          <label className="block text-sm font-medium">
-            {t("Start date")}
-            <input
-              required
-              type="date"
-              className={input}
-              value={form.start_date}
-              onChange={set("start_date")}
-              aria-invalid={!!fieldErrors.start_date}
+          <div className="text-sm font-medium">
+            {t("Start – End date")}
+            <RangeInput
+              fromLabel={t("Start date")}
+              toLabel={t("End date")}
+              invalid={!!(fieldErrors.start_date || fieldErrors.end_date)}
+              from={{
+                required: true,
+                value: form.start_date,
+                onChange: set("start_date"),
+              }}
+              to={{
+                required: true,
+                value: form.end_date,
+                onChange: set("end_date"),
+              }}
             />
             {fieldErrors.start_date && (
               <p role="alert" className="mt-1 text-sm text-red-700">{fieldErrors.start_date}</p>
             )}
-          </label>
-
-          <label className="block text-sm font-medium">
-            {t("End date")}
-            <input
-              required
-              type="date"
-              className={input}
-              value={form.end_date}
-              onChange={set("end_date")}
-              aria-invalid={!!fieldErrors.end_date}
-            />
             {fieldErrors.end_date && (
               <p role="alert" className="mt-1 text-sm text-red-700">{fieldErrors.end_date}</p>
             )}
-          </label>
+          </div>
 
           {formError && (
             <p role="alert" className="sm:col-span-2 text-sm text-red-700">

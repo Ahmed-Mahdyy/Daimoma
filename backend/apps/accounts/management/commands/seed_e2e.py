@@ -111,27 +111,31 @@ class Command(BaseCommand):
 
         from apps.employee_requests.models import RequestType
 
-        RequestType.objects.get_or_create(
-            organization=org,
-            code="annual_leave",
-            defaults={
-                "name": "Annual leave",
-                "unit": "none",
-                "requires_hr": False,
-                "is_active": True,
-            },
-        )
-        for code, unit, name in (
-            ("early_leave", "hour", "Early leave"),
-            ("equipment", "none", "Equipment"),
-            ("hr_service", "none", "HR service"),
-            ("work_from_home", "none", "Work from home"),
-            ("general", "none", "General request"),
+        for code, name, defaults in (
+            # Measured leave draws from an allocation; quantity is derived
+            # from the picked date range (working weekdays).
+            ("annual_leave", "Annual leave", {"unit": "unit"}),
+            ("early_leave", "Early leave", {"unit": "hour"}),
+            ("equipment", "Equipment", {"unit": "none", "requires_item": True}),
+            ("hr_service", "HR service", {"unit": "none"}),
+            # Dates render via the "unit" measure; allocation opted out so no
+            # grant is needed for home-office days.
+            (
+                "work_from_home",
+                "Work from home",
+                {"unit": "unit", "requires_allocation": False},
+            ),
+            ("general", "General request", {"unit": "none"}),
         ):
             RequestType.objects.get_or_create(
                 organization=org,
                 code=code,
-                defaults={"name": name, "unit": unit, "is_active": True},
+                defaults={
+                    "name": name,
+                    "requires_hr": False,
+                    "is_active": True,
+                    **defaults,
+                },
             )
 
         for user in (employee, manager, hr):

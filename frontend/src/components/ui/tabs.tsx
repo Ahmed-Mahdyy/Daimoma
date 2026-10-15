@@ -3,6 +3,7 @@ import { cn } from "cn"
 import { Tabs as TabsPrimitive } from "radix-ui"
 
 import { useLanguage } from "../../app/LanguageProvider"
+import { useIsMobile } from "../../lib/use-mobile"
 
 function Tabs({
   className,
@@ -17,7 +18,7 @@ function Tabs({
     <TabsPrimitive.Root
       data-slot="tabs"
       dir={dir ?? langDir}
-      className={cn("flex flex-col gap-4", className)}
+      className={cn("flex flex-col gap-4 max-md:gap-8", className)}
       {...props}
     />
   )
@@ -27,6 +28,9 @@ function TabsList({
   className,
   ...props
 }: React.ComponentProps<typeof TabsPrimitive.List>) {
+  // Below md the tab bar disappears — every TabsContent renders stacked.
+  const mobile = useIsMobile();
+  if (mobile) return null;
   return (
     <TabsPrimitive.List
       data-slot="tabs-list"
@@ -60,14 +64,23 @@ function TabsTrigger({
 
 function TabsContent({
   className,
+  children,
   ...props
 }: React.ComponentProps<typeof TabsPrimitive.Content>) {
+  // On small screens every section renders — one continuous page instead
+  // of hidden tab panels. Keeps the caller's layout classes intact.
+  const mobile = useIsMobile();
+  if (mobile) {
+    return <div className={className}>{children}</div>;
+  }
   return (
     <TabsPrimitive.Content
       data-slot="tabs-content"
       className={cn("flex-1 outline-none", className)}
       {...props}
-    />
+    >
+      {children}
+    </TabsPrimitive.Content>
   )
 }
 

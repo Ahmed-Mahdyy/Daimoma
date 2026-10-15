@@ -43,6 +43,7 @@ export function DataTable<T>({
   onRowSelectionChange,
   enableRowSelection,
   getRowId,
+  onRowClick,
 }: {
   columns: ColumnDef<T, unknown>[];
   data: T[];
@@ -66,6 +67,9 @@ export function DataTable<T>({
   enableRowSelection?: boolean | ((row: Row<T>) => boolean);
   /** Stable row ids keep selection intact across server pagination. */
   getRowId?: (row: T) => string;
+  /** Whole-row click/Enter/Space action (e.g. navigate to the record).
+   * Clicks that land on links/buttons/inputs inside the row are ignored. */
+  onRowClick?: (row: T) => void;
 }) {
   const { t } = useLanguage();
   const [internalSorting, setInternalSorting] = useState<SortingState>(
@@ -166,9 +170,34 @@ export function DataTable<T>({
               <tr
                 key={row.id}
                 data-state={row.getIsSelected() ? "selected" : undefined}
+                tabIndex={onRowClick ? 0 : undefined}
+                onClick={
+                  onRowClick
+                    ? (e) => {
+                        if (
+                          (e.target as HTMLElement).closest(
+                            "a,button,input,select,textarea,label,[data-no-row-click]",
+                          )
+                        )
+                          return;
+                        onRowClick(row.original);
+                      }
+                    : undefined
+                }
+                onKeyDown={
+                  onRowClick
+                    ? (e) => {
+                        if (e.target !== e.currentTarget) return;
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault();
+                          onRowClick(row.original);
+                        }
+                      }
+                    : undefined
+                }
                 className={`border-t transition-colors hover:bg-accent/40 ${
                   row.getIsSelected() ? "bg-brand-50/70 dark:bg-white/10" : ""
-                }`}
+                } ${onRowClick ? "cursor-pointer" : ""}`}
               >
                 {row.getVisibleCells().map((cell) => (
                   <td key={cell.id}>
