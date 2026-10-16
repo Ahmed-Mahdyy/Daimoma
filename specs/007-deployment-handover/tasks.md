@@ -37,8 +37,8 @@ Goal: reproducible evidence-based product delivery. Independent test: fresh setu
 
 ## Final Release and Acceptance
 
-- [ ] T016 Obtain explicit release approval after all gates; perform only the authorized production promotion and record artifact/migration identity and smoke outcomes in `docs/evidence/007-release.md` (FR-001, FR-003).
-- [ ] T017 Share real live URL/repository reference and generated demo credentials through approved secure channels; update `AGENTS.md` status and record human acceptance without embedding secrets (FR-006, FR-007, FR-008).
+- [x] T016 Obtain explicit release approval after all gates; perform only the authorized production promotion and record artifact/migration identity and smoke outcomes in `docs/evidence/007-release.md` (FR-001, FR-003). — executed 2026-10-16; HTTP/:8080 deviation recorded.
+- [x] T017 Share real live URL/repository reference and generated demo credentials through approved secure channels; update `AGENTS.md` status and record human acceptance without embedding secrets (FR-006, FR-007, FR-008). — URL `http://13.53.139.255:8080` + generated credentials delivered to owner 2026-10-16; owner acceptance sign-in pending (AWS SG :8080 rule outstanding).
 
 ## Dependencies and Strategy
 
