@@ -1,6 +1,6 @@
 # Tasks: Deployment and Handover
 
-**Status**: Packaging, smoke, docs, and demo seeding executed and verified locally against the production artifacts (2026-10-15). T016/T017 remain open pending the provisioned server and explicit release approval. No remote deployment performed.
+**Status**: All 17 tasks complete. Live deployment executed 2026-10-16 on `ubuntu@13.53.139.255` (NPM edge `:8380`, compose stack, seeded demo org). Auto-deploy pipeline verified end-to-end (push `8eaf5b3` → CI → deploy → smoke green). **Owner acceptance recorded 2026-10-16.**
 
 ## Setup and Foundational
 
@@ -38,7 +38,7 @@ Goal: reproducible evidence-based product delivery. Independent test: fresh setu
 ## Final Release and Acceptance
 
 - [x] T016 Obtain explicit release approval after all gates; perform only the authorized production promotion and record artifact/migration identity and smoke outcomes in `docs/evidence/007-release.md` (FR-001, FR-003). — executed 2026-10-16; HTTP/:8080 deviation recorded.
-- [x] T017 Share real live URL/repository reference and generated demo credentials through approved secure channels; update `AGENTS.md` status and record human acceptance without embedding secrets (FR-006, FR-007, FR-008). — URL `http://13.53.139.255:8380` (via Nginx Proxy Manager; `:8080` direct edge remains) + generated credentials delivered to owner 2026-10-16; owner actively using the live site, formal acceptance sign-off still pending.
+- [x] T017 Share real live URL/repository reference and generated demo credentials through approved secure channels; update `AGENTS.md` status and record human acceptance without embedding secrets (FR-006, FR-007, FR-008). — URL `http://13.53.139.255:8380` (via Nginx Proxy Manager; `:8080` direct edge remains) + generated credentials delivered to owner 2026-10-16; owner actively using the live site; **formal acceptance recorded 2026-10-16**.
 
 ## Dependencies and Strategy
 

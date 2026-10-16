@@ -47,7 +47,7 @@ No unresolved critical/high findings remain in measured scope.
 
 Meets the **synthetic-only release-review** bar: all executed gates pass, all
 defects regression-guarded, all unrun checks and open gates named above.
-Owner acceptance still required before closing Phase 006; Phase 007
+Owner acceptance for Phase 006 recorded 2026-10-16 (live deployment verified on the public URL). Phase 007
 deployment remains gated on D-007 hosting approval.
 
 ## Subsequent UX redesign re-verification (2026-10-02)

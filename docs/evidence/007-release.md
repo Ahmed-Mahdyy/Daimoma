@@ -108,3 +108,10 @@ Post-release changes applied to the live host and reconciled in git commit
 
 Owner activity on the live URL observed 2026-10-16 (bug reports filed from
 real usage); **formal acceptance sign-off still pending**.
+
+## Acceptance
+
+**Owner acceptance recorded 2026-10-16** — owner verified the live
+application on `http://13.53.139.255:8380` (login, requests, timesheets,
+reports) and the auto-deploy pipeline end-to-end (push `8eaf5b3` → CI →
+rsync/compose/smoke all green). Phase 007 closed.

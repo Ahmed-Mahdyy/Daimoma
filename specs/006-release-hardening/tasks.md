@@ -1,6 +1,6 @@
 # Tasks: Release Hardening
 
-**Status**: All tasks executed 2026-10-02 with evidence; owner acceptance pending. Tests/evidence mandatory; IDs local to 006.
+**Status**: All tasks executed 2026-10-02 with evidence; **owner acceptance recorded 2026-10-16** (owner verified the live deployment and post-006 enhancement batch on the public URL). Tests/evidence mandatory; IDs local to 006.
 
 ## Setup and Foundational
 
