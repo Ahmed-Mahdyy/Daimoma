@@ -49,8 +49,8 @@ describe("LoginPage", () => {
   it("signs in directly with the seed password for a chosen demo role", async () => {
     renderLogin();
     await userEvent.click(screen.getByRole("button", { name: "Use Manager demo account" }));
-    expect(login).toHaveBeenCalledWith("manager-e2e@acme.test", "E2ePassw0rd1");
-    expect(screen.getByRole("textbox", { name: "Email" })).toHaveValue("manager-e2e@acme.test");
+    expect(login).toHaveBeenCalledWith("dina.mansour@acme.test", "Daimoma2026Demo");
+    expect(screen.getByRole("textbox", { name: "Email" })).toHaveValue("dina.mansour@acme.test");
   });
 
   it("shows validation errors on empty submit", async () => {

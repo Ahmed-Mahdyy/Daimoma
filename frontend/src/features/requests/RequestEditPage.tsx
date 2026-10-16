@@ -160,7 +160,10 @@ export function RequestEditPage() {
       version: req?.version,
     };
     body.start_date = values.start_date || null;
-    body.end_date = values.end_date || (values.start_date || null);
+    // "hour" types cover a single day — pin end_date to the chosen date so a
+    // stale stored/hidden value can't violate the server's end == start rule.
+    body.end_date =
+      unit === "hour" ? values.start_date || null : values.end_date || (values.start_date || null);
     body.start_time = values.start_time || null;
     body.end_time = values.end_time || null;
     body.equipment_item = values.equipment_item;

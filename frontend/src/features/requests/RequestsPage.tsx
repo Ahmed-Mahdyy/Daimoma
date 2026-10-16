@@ -4,7 +4,7 @@ import {
   type RowSelectionState,
   type Table,
 } from "@tanstack/react-table";
-import { Trash2 } from "lucide-react";
+import { Trash2, UserCheck } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 
@@ -26,6 +26,8 @@ import {
   type EmployeeRequest,
 } from "../../api/requests";
 import { useLanguage } from "../../app/LanguageProvider";
+import { useOptionalAuth } from "../auth/auth-context";
+import { YouBadge } from "../../components/ui/YouBadge";
 import { formatDate } from "../../lib/dates";
 import { AsyncState } from "../../components/ui/AsyncState";
 import { PaginationControls } from "../../components/ui/PaginationControls";
@@ -71,6 +73,7 @@ function SelectAllRows({ table }: { table: Table<EmployeeRequest> }) {
 const columns = (
   t: (key: string, params?: Record<string, string | number>) => string,
   onDelete: (req: EmployeeRequest) => void,
+  ownProfileId: string | null,
 ): ColumnDef<EmployeeRequest, unknown>[] => [
   {
     id: "select",
@@ -113,6 +116,7 @@ const columns = (
     cell: ({ row }) => (
       <span className="text-gray-700">
         {row.original.employee_name || row.original.employee_email}
+        {row.original.employee === ownProfileId && <YouBadge />}
       </span>
     ),
   },
@@ -164,6 +168,13 @@ export function RequestsPage() {
   const [deleteTarget, setDeleteTarget] = useState<EmployeeRequest | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
 
+  // Managers/HR see scoped team/org rows — flag rows that are their own.
+  const me = useOptionalAuth();
+  const ownProfileId =
+    me && (me.roles.includes("Manager") || me.roles.includes("HR"))
+      ? me.id
+      : null;
+
   const selectedIds = Object.keys(rowSelection);
 
   const invalidate = () =>
@@ -199,10 +210,12 @@ export function RequestsPage() {
       setNotice(e instanceof ApiError ? e.message : t("Delete failed — try again.")),
   });
 
+  const mine = params.get("mine") === "1";
   const filters = {
     search: params.get("search") ?? "",
     status: params.get("status") ?? "",
     type: params.get("type") ?? "",
+    employee: mine && ownProfileId ? ownProfileId : undefined,
     ordering: params.get("ordering") ?? "-created_at",
     page: Number(params.get("page") ?? 1),
     page_size: 25,
@@ -247,16 +260,35 @@ export function RequestsPage() {
             }
           />
         }
-        activeFilters={[filters.status, filters.type].filter(Boolean).length}
+        activeFilters={
+          [filters.status, filters.type].filter(Boolean).length + (mine ? 1 : 0)
+        }
         search={
-          <SearchField
-            label={t("Search")}
-            ariaLabel={t("Search requests")}
-            value={searchInput}
-            onChange={setSearchInput}
-            onSearch={(v) => setParam("search", v)}
-            placeholder={t("Title or description…")}
-          />
+          <>
+            <SearchField
+              label={t("Search")}
+              ariaLabel={t("Search requests")}
+              value={searchInput}
+              onChange={setSearchInput}
+              onSearch={(v) => setParam("search", v)}
+              placeholder={t("Title or description…")}
+            />
+            {ownProfileId && (
+              <button
+                type="button"
+                aria-pressed={mine}
+                onClick={() => setParam("mine", mine ? "" : "1")}
+                className={`inline-flex h-10 items-center gap-2 self-end rounded-xl border px-3.5 text-sm font-semibold shadow-sm transition-colors ${
+                  mine
+                    ? "border-brand-700 bg-brand-700 text-white"
+                    : "bg-background/60 hover:border-brand-700/40"
+                }`}
+              >
+                <UserCheck className="size-4" aria-hidden="true" />
+                {t("Only mine")}
+              </button>
+            )}
+          </>
         }
       >
         <FilterSelect
@@ -321,7 +353,10 @@ export function RequestsPage() {
         emptyText={t("No requests match your filters.")}
       >
         <DataTable<EmployeeRequest>
-          columns={columns(t, setDeleteTarget)}
+          columns={columns(t, setDeleteTarget, ownProfileId)}
+          rowClassName={(r) =>
+            r.employee === ownProfileId ? "bg-brand-50/60 dark:bg-white/5" : ""
+          }
           data={data?.results ?? []}
           manualSorting
           sorting={sorting}

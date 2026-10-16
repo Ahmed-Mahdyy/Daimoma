@@ -83,6 +83,7 @@ export interface EmployeeRequest {
 export interface RequestFilters {
   status?: string;
   type?: string;
+  employee?: string;
   search?: string;
   ordering?: string;
   page?: number;

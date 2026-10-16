@@ -64,6 +64,12 @@ export function RequestFormPage() {
   const selectedType = types?.results.find((t) => t.id === typeId);
   const unit = selectedType?.unit;
 
+  // "hour" types cover a single day — drop the hidden end_date a previously
+  // selected date-range type may have left in the form state.
+  useEffect(() => {
+    if (unit === "hour") setValue("end_date", "");
+  }, [unit, setValue]);
+
   // For dated "unit" types (e.g. leave) the quantity is the working-day count
   // of the selected range — derived, never typed by hand. The server
   // recomputes it on save; this only mirrors the value for display.
@@ -106,7 +112,9 @@ export function RequestFormPage() {
       end_time?: string;
     } = { type: typeId };
     if (values.start_date) base.start_date = values.start_date;
-    if (values.end_date) base.end_date = values.end_date;
+    // "hour" types cover a single day — a stale end_date (kept in form
+    // state from a previously selected date-range type) must never be sent.
+    if (values.end_date && unit !== "hour") base.end_date = values.end_date;
     if (unit === "unit") {
       const quantity = Number(values.quantity);
       if (!Number.isInteger(quantity) || quantity < 1) return null;
@@ -163,7 +171,12 @@ export function RequestFormPage() {
       description: values.description,
     };
     if (values.start_date) input.start_date = values.start_date;
-    if (values.end_date || values.start_date) input.end_date = values.end_date || values.start_date;
+    // "hour" types cover a single day — omit end_date entirely so a stale
+    // value can't trip the server's end_date == start_date check (the
+    // server derives it from start_date when absent).
+    if (unit !== "hour" && (values.end_date || values.start_date)) {
+      input.end_date = values.end_date || values.start_date;
+    }
     if (values.start_time) input.start_time = values.start_time;
     if (values.end_time) input.end_time = values.end_time;
     if (selectedType?.requires_item) {

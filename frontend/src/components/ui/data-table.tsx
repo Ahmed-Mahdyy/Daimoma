@@ -44,6 +44,7 @@ export function DataTable<T>({
   enableRowSelection,
   getRowId,
   onRowClick,
+  rowClassName,
 }: {
   columns: ColumnDef<T, unknown>[];
   data: T[];
@@ -70,6 +71,8 @@ export function DataTable<T>({
   /** Whole-row click/Enter/Space action (e.g. navigate to the record).
    * Clicks that land on links/buttons/inputs inside the row are ignored. */
   onRowClick?: (row: T) => void;
+  /** Extra classes per body row (e.g. highlight the viewer's own rows). */
+  rowClassName?: (row: T) => string;
 }) {
   const { t } = useLanguage();
   const [internalSorting, setInternalSorting] = useState<SortingState>(
@@ -197,7 +200,9 @@ export function DataTable<T>({
                 }
                 className={`border-t transition-colors hover:bg-accent/40 ${
                   row.getIsSelected() ? "bg-brand-50/70 dark:bg-white/10" : ""
-                } ${onRowClick ? "cursor-pointer" : ""}`}
+                } ${onRowClick ? "cursor-pointer" : ""} ${
+                  rowClassName ? rowClassName(row.original) : ""
+                }`}
               >
                 {row.getVisibleCells().map((cell) => (
                   <td key={cell.id}>

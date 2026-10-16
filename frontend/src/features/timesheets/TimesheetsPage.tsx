@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { type ColumnDef } from "@tanstack/react-table";
+import { UserCheck } from "lucide-react";
 import { useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 
@@ -21,6 +22,8 @@ import {
 import { apiErrorMessage } from "../../api/client";
 import { localToday } from "../../lib/dates";
 import { useLanguage } from "../../app/LanguageProvider";
+import { useOptionalAuth } from "../auth/auth-context";
+import { YouBadge } from "../../components/ui/YouBadge";
 import { AsyncState } from "../../components/ui/AsyncState";
 import { PaginationControls } from "../../components/ui/PaginationControls";
 import { formatMinutes } from "./timezone";
@@ -39,6 +42,7 @@ const STATUS_OPTIONS = [
 const columns = (
   t: (key: string, params?: Record<string, string | number>) => string,
   lang: "en" | "ar",
+  ownProfileId: string | null,
 ): ColumnDef<Timesheet, unknown>[] => [
   {
     accessorKey: "period_start",
@@ -55,8 +59,12 @@ const columns = (
   {
     id: "employee",
     header: t("Employee"),
-    cell: ({ row }) =>
-      row.original.employee_name || row.original.employee_email,
+    cell: ({ row }) => (
+      <span>
+        {row.original.employee_name || row.original.employee_email}
+        {row.original.employee === ownProfileId && <YouBadge />}
+      </span>
+    ),
   },
   {
     accessorKey: "status",
@@ -96,9 +104,18 @@ export function TimesheetsPage() {
   const { t, lang } = useLanguage();
   const [searchInput, setSearchInput] = useState(params.get("search") ?? "");
 
+  // Managers/HR see scoped team/org rows — flag rows that are their own.
+  const me = useOptionalAuth();
+  const ownProfileId =
+    me && (me.roles.includes("Manager") || me.roles.includes("HR"))
+      ? me.id
+      : null;
+
+  const mine = params.get("mine") === "1";
   const filters = {
     search: params.get("search") ?? "",
     status: params.get("status") ?? "",
+    employee: mine && ownProfileId ? ownProfileId : undefined,
     ordering: params.get("ordering") ?? "-period_start",
     page: Number(params.get("page") ?? 1),
     page_size: 25,
@@ -171,16 +188,33 @@ export function TimesheetsPage() {
             }
           />
         }
-        activeFilters={[filters.status].filter(Boolean).length}
+        activeFilters={[filters.status].filter(Boolean).length + (mine ? 1 : 0)}
         search={
-          <SearchField
-            label={t("Search")}
-            ariaLabel={t("Search timesheets")}
-            value={searchInput}
-            onChange={setSearchInput}
-            onSearch={(v) => setParam("search", v)}
-            placeholder={t("Employee name, code or email…")}
-          />
+          <>
+            <SearchField
+              label={t("Search")}
+              ariaLabel={t("Search timesheets")}
+              value={searchInput}
+              onChange={setSearchInput}
+              onSearch={(v) => setParam("search", v)}
+              placeholder={t("Employee name, code or email…")}
+            />
+            {ownProfileId && (
+              <button
+                type="button"
+                aria-pressed={mine}
+                onClick={() => setParam("mine", mine ? "" : "1")}
+                className={`inline-flex h-10 items-center gap-2 self-end rounded-xl border px-3.5 text-sm font-semibold shadow-sm transition-colors ${
+                  mine
+                    ? "border-brand-700 bg-brand-700 text-white"
+                    : "bg-background/60 hover:border-brand-700/40"
+                }`}
+              >
+                <UserCheck className="size-4" aria-hidden="true" />
+                {t("Only mine")}
+              </button>
+            )}
+          </>
         }
       >
         <FilterSelect
@@ -203,7 +237,10 @@ export function TimesheetsPage() {
           </p>
         ) : (
           <DataTable<Timesheet>
-            columns={columns(t, lang)}
+            columns={columns(t, lang, ownProfileId)}
+            rowClassName={(ts) =>
+              ts.employee === ownProfileId ? "bg-brand-50/60 dark:bg-white/5" : ""
+            }
             data={data?.results ?? []}
             onRowClick={(ts) => navigate(`/timesheets/${ts.id}`)}
             manualSorting

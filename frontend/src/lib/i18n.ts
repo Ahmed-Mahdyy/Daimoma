@@ -175,6 +175,8 @@ const dict = {
     "Action": "الإجراء",
     "Action failed.": "فشل الإجراء.",
     "Actions": "الإجراءات",
+    "Day": "اليوم",
+    "Entries": "القيود",
     "Active": "نشط",
     "Active for {name}": "نشط لـ {name}",
     "Add": "إضافة",
@@ -612,6 +614,9 @@ const dict = {
     // Login demo strip + misc stragglers.
     "Local demo accounts": "حسابات تجريبية محلية",
     "Pick a role to sign in instantly with the local seed password.": "اختر دورًا لتسجيل الدخول فورًا بكلمة مرور البيانات التجريبية المحلية.",
+    "Shared demo password:": "كلمة مرور العرض التجريبي المشتركة:",
+    "You": "أنت",
+    "Only mine": "عناصري فقط",
     "Use {role} demo account": "استخدام حساب {role} التجريبي",
     "Secure access for your team": "وصول آمن لفريقك",
     "More": "المزيد",

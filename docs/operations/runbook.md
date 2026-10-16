@@ -19,11 +19,14 @@ Release order: `migrate` (one-shot `manage.py migrate`) must exit 0 before `back
 ## First-run demo data (synthetic only)
 
 ```bash
-ALLOW_DEMO_SEED=1 docker compose -f deployment/compose.prod.yml --env-file deployment/.env.prod \
+ALLOW_DEMO_SEED=1 DEMO_SEED_PASSWORD=<shared-demo-password> docker compose \
+  -f deployment/compose.prod.yml --env-file deployment/.env.prod \
   exec backend python manage.py seed_demo
 ```
 
-Creates the demo org (2 departments, 2 managers, 4 employees, 2 HR), request types, allocations, and draft→rejected requests/timesheets via real services. Prints generated passwords **once**; re-runs skip existing accounts without resetting anything.
+Creates the demo org (5 departments, 4 managers, 10 employees, 2 HR), request types, allocation grants, requests in every state, and ~5 weeks of timesheets per person via real services. Without `DEMO_SEED_PASSWORD`, per-account passwords are generated and printed **once**; with it, all new accounts share that password (needed for the login-page quick-login panel). Re-runs skip existing accounts without resetting anything.
+
+The login quick-login panel ships only when the frontend is built with `VITE_DEMO_LOGIN=1` (compose build arg, set in `.env.prod`) — it always renders in dev builds.
 
 ## Health, logs, correlation
 

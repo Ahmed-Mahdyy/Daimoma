@@ -75,6 +75,8 @@ services:
       context: ..
       dockerfile: deployment/Dockerfile
       target: web
+      args:
+        VITE_DEMO_LOGIN: ${VITE_DEMO_LOGIN:-0}
     restart: unless-stopped
     ports:
       # Bound to loopback only; the Ubuntu host Nginx proxies public HTTPS traffic here.

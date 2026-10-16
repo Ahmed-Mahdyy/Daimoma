@@ -502,133 +502,151 @@ export function TimesheetDetailPage() {
         </div>
       )}
 
-      <div className="mt-4 space-y-3">
-        {weekDates.map((d) => {
-          const day = daysByDate.get(d);
-          const isFutureDay = d > todayInZone(sheet.timezone);
-          const dayEditable =
-            sheetEditable &&
-            !isFutureDay &&
-            (!day || EDITABLE_DAYS.has(day.status));
-          const activeEntries =
-            day?.entries.filter((e) => !e.voided_at) ?? [];
-          const canSubmitDay =
-            sheetEditable &&
-            !isFutureDay &&
-            day &&
-            EDITABLE_DAYS.has(day.status) &&
-            activeEntries.length > 0;
-          return (
-            <section
-              key={d}
-              className={`rounded-md border bg-white p-4${isFutureDay ? " opacity-60" : ""}`}
-              aria-label={`Day ${d}`}
-            >
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <div className="flex items-center gap-2">
-                  <h2 className="font-medium">
-                    {lang === "ar"
-                      ? new Date(`${d}T00:00:00`).toLocaleDateString("ar", {
-                          weekday: "long",
-                          day: "numeric",
-                          month: "long",
-                          year: "numeric",
-                        })
-                      : d}
-                  </h2>
-                  {day && <DayStatusBadge status={day.status} />}
-                  {isFutureDay && (
-                    <span className="rounded bg-gray-100 px-1.5 py-0.5 text-xs text-gray-500">
-                      {t("Upcoming")}
-                    </span>
-                  )}
-                  <span className="text-sm text-gray-500">
-                    {formatMinutes(day?.total_minutes ?? 0, lang)}
-                  </span>
-                </div>
-                <div className="flex items-center gap-2">
-                  {dayEditable && (
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setEntryDialog({ entry: null, date: d })
-                      }
-                      className="rounded-md border px-2 py-1 text-sm hover:bg-gray-50"
-                    >
-                      {t("Add entry")}
-                    </button>
-                  )}
-                  {canSubmitDay && (
-                    <button
-                      type="button"
-                      onClick={() =>
-                        act.mutate({ kind: "submit-day", date: d })
-                      }
-                      disabled={act.isPending}
-                      className="rounded-md bg-brand-700 px-2 py-1 text-sm font-medium text-white disabled:opacity-60"
-                    >
-                      {t("Submit day")}
-                    </button>
-                  )}
-                </div>
-              </div>
-              {activeEntries.length > 0 && (
-                <ul className="mt-2 divide-y divide-gray-100">
-                  {day!.entries.map((e) => (
-                    <li
-                      key={e.id}
-                      className={`flex flex-wrap items-center gap-3 py-2 text-sm ${
-                        e.voided_at ? "text-gray-400 line-through" : ""
-                      }`}
-                    >
-                      <span className="font-mono">
-                        {formatTimeInZone(e.start_at, sheet.timezone)}–
-                        {formatTimeInZone(e.end_at, sheet.timezone)}
+      <div className="workspace-panel workspace-list mt-4 overflow-x-auto">
+        <table className="w-full min-w-[760px] text-sm">
+          <thead>
+            <tr className="border-b text-start text-[0.68rem] font-bold uppercase tracking-[0.12em] text-muted-foreground">
+              <th className="px-4 py-3 text-start">{t("Day")}</th>
+              <th className="text-start">{t("Status")}</th>
+              <th className="text-start">{t("Entries")}</th>
+              <th className="pe-4 text-end">{t("Total")}</th>
+              <th className="pe-4 text-end">{t("Actions")}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {weekDates.map((d) => {
+              const day = daysByDate.get(d);
+              const isFutureDay = d > todayInZone(sheet.timezone);
+              const dayEditable =
+                sheetEditable &&
+                !isFutureDay &&
+                (!day || EDITABLE_DAYS.has(day.status));
+              const activeEntries =
+                day?.entries.filter((e) => !e.voided_at) ?? [];
+              const canSubmitDay =
+                sheetEditable &&
+                !isFutureDay &&
+                day &&
+                EDITABLE_DAYS.has(day.status) &&
+                activeEntries.length > 0;
+              const isToday = d === todayInZone(sheet.timezone);
+              return (
+                <tr
+                  key={d}
+                  className={`border-t align-top transition-colors ${
+                    isFutureDay ? "opacity-50" : ""
+                  } ${isToday ? "bg-brand-50/50 dark:bg-white/5" : ""}`}
+                >
+                  <td className="whitespace-nowrap px-4 py-3">
+                    <div className="font-medium">
+                      {new Date(`${d}T00:00:00`).toLocaleDateString(
+                        lang === "ar" ? "ar" : "en-GB",
+                        { weekday: "short", day: "numeric", month: "short" },
+                      )}
+                    </div>
+                    <div className="text-xs text-gray-500">{d}</div>
+                  </td>
+                  <td className="whitespace-nowrap py-3 pe-3">
+                    {day && <DayStatusBadge status={day.status} />}
+                    {isFutureDay && (
+                      <span className="rounded bg-gray-100 px-1.5 py-0.5 text-xs text-gray-500">
+                        {t("Upcoming")}
                       </span>
-                      <span>{formatMinutes(e.duration_minutes, lang)}</span>
-                      {e.break_minutes > 0 && (
-                        <span className="text-gray-500">
-                          {t("break {n}m", { n: e.break_minutes })}
-                        </span>
-                      )}
-                      {e.window_flag && (
-                        <span
-                          className="rounded bg-amber-100 px-1.5 py-0.5 text-xs text-amber-800"
-                          title={e.window_reason}
+                    )}
+                  </td>
+                  <td className="min-w-64 py-3 pe-3">
+                    {(day?.entries ?? []).length === 0 ? (
+                      <span className="text-gray-400">—</span>
+                    ) : (
+                      <ul className="space-y-1">
+                        {(day?.entries ?? []).map((e) => (
+                          <li
+                            key={e.id}
+                            className={`flex flex-wrap items-center gap-x-2 text-sm ${
+                              e.voided_at ? "text-gray-400 line-through" : ""
+                            }`}
+                          >
+                            <span className="font-mono whitespace-nowrap">
+                              {formatTimeInZone(e.start_at, sheet.timezone)}–
+                              {formatTimeInZone(e.end_at, sheet.timezone)}
+                            </span>
+                            <span>{formatMinutes(e.duration_minutes, lang)}</span>
+                            {e.break_minutes > 0 && (
+                              <span className="text-gray-500">
+                                {t("break {n}m", { n: e.break_minutes })}
+                              </span>
+                            )}
+                            {e.window_flag && (
+                              <span
+                                className="rounded bg-amber-100 px-1.5 py-0.5 text-xs text-amber-800"
+                                title={e.window_reason}
+                              >
+                                {t("outside window")}
+                              </span>
+                            )}
+                            {e.description && (
+                              <span className="text-gray-600">{e.description}</span>
+                            )}
+                            {dayEditable && !e.voided_at && (
+                              <span className="flex gap-1.5">
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    setEntryDialog({ entry: e, date: d })
+                                  }
+                                  className="rounded-md border border-border px-2 py-0.5 text-xs font-medium transition-colors hover:bg-accent"
+                                >
+                                  {t("Edit")}
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => setVoidTarget(e)}
+                                  className="rounded-md border border-red-300 px-2 py-0.5 text-xs font-medium text-red-700 transition-colors hover:bg-red-50 dark:border-red-800/60 dark:text-red-300 dark:hover:bg-red-950/40"
+                                >
+                                  {t("Void")}
+                                </button>
+                              </span>
+                            )}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </td>
+                  <td className="whitespace-nowrap py-3 pe-4 text-end font-medium">
+                    {formatMinutes(day?.total_minutes ?? 0, lang)}
+                  </td>
+                  <td className="whitespace-nowrap py-3 pe-4 text-end">
+                    <div className="flex items-center justify-end gap-2">
+                      {dayEditable && (
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setEntryDialog({ entry: null, date: d })
+                          }
+                          className="rounded-md border px-2 py-1 text-xs hover:bg-gray-50"
                         >
-                          {t("outside window")}
-                        </span>
+                          {t("Add entry")}
+                        </button>
                       )}
-                      {e.description && (
-                        <span className="text-gray-600">{e.description}</span>
+                      {canSubmitDay && (
+                        <button
+                          type="button"
+                          onClick={() =>
+                            act.mutate({ kind: "submit-day", date: d })
+                          }
+                          disabled={act.isPending}
+                          className="rounded-md bg-brand-700 px-2 py-1 text-xs font-medium text-white disabled:opacity-60"
+                        >
+                          {t("Submit day")}
+                        </button>
                       )}
-                      {dayEditable && !e.voided_at && (
-                        <span className="ms-auto flex gap-2">
-                          <button
-                            type="button"
-                            onClick={() =>
-                              setEntryDialog({ entry: e, date: d })
-                            }
-                            className="rounded-md border border-border px-2.5 py-1 text-xs font-medium transition-colors hover:bg-accent"
-                          >
-                            {t("Edit")}
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setVoidTarget(e)}
-                            className="rounded-md border border-red-300 px-2.5 py-1 text-xs font-medium text-red-700 transition-colors hover:bg-red-50 dark:border-red-800/60 dark:text-red-300 dark:hover:bg-red-950/40"
-                          >
-                            {t("Void")}
-                          </button>
-                        </span>
-                      )}
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </section>
-          );
-        })}
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
       </div>
 
       <div className="mt-4 flex flex-wrap items-center gap-2">

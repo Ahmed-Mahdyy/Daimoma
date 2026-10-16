@@ -2,6 +2,9 @@
 # Stage 1: Build hashed React SPA assets (no secrets in build args).
 FROM node:22-bookworm-slim AS frontend-build
 WORKDIR /frontend
+# Set VITE_DEMO_LOGIN=1 to ship the demo quick-login panel in the bundle.
+ARG VITE_DEMO_LOGIN=0
+ENV VITE_DEMO_LOGIN=$VITE_DEMO_LOGIN
 COPY frontend/package.json frontend/package-lock.json ./
 RUN npm ci
 COPY frontend/ ./

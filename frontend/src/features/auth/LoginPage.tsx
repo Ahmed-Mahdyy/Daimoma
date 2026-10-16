@@ -22,8 +22,10 @@ const HERO_SLIDES = [
   { line: "login.hero2Line", sub: "login.hero2Sub" },
   { line: "login.hero3Line", sub: "login.hero3Sub" },
 ] as const;
-// Mirrors E2E_SEED_PASSWORD's default in seed_e2e.py (dev-only panel).
-const DEMO_PASSWORD = "E2ePassw0rd1";
+// Shared demo-seed password — must match DEMO_SEED_PASSWORD on the server.
+// In dev builds it also works with seed_e2e.py when E2E_SEED_PASSWORD matches.
+const DEMO_PASSWORD = "Daimoma2026Demo";
+const SHOW_DEMO_PANEL = import.meta.env.DEV || import.meta.env.VITE_DEMO_LOGIN === "1";
 
 export function LoginPage() {
   const navigate = useNavigate();
@@ -155,15 +157,16 @@ export function LoginPage() {
           {isSubmitting ? t("login.signingIn") : t("login.signIn")}
         </Button>
       </form>
-      {import.meta.env.DEV && (
+      {SHOW_DEMO_PANEL && (
         <div className="mt-6 rounded-xl border border-brand-100 bg-brand-50/60 p-4">
           <p className="text-xs font-bold uppercase tracking-wider text-brand-800">{t("Local demo accounts")}</p>
           <p className="mt-1 text-xs text-slate-600">{t("Pick a role to sign in instantly with the local seed password.")}</p>
+          <p className="mt-1 text-xs text-slate-600">{t("Shared demo password:")} <code className="rounded bg-white px-1 font-mono">{DEMO_PASSWORD}</code></p>
           <div className="mt-3 flex flex-wrap gap-2">
             {([
-              ["Employee", "employee-e2e@acme.test"],
-              ["Manager", "manager-e2e@acme.test"],
-              ["HR", "hr-e2e@acme.test"],
+              ["Employee", "ahmed.refaat@acme.test"],
+              ["Manager", "dina.mansour@acme.test"],
+              ["HR", "hr-1@acme.test"],
             ] as const).map(([role, email]) => (
               <Button key={role} type="button" size="sm" variant="outline" onClick={() => onDemoPick(email)} aria-label={t("Use {role} demo account", { role })}>{role === "HR" ? "HR" : t(role)}</Button>
             ))}
