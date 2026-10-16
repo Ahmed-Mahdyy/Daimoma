@@ -298,7 +298,7 @@ function RequestsReport({
 export function ReportsPage() {
   const { t } = useLanguage();
   const [params, setParams] = useSearchParams();
-  const [tab, setTab] = useState<"hours" | "requests">("hours");
+  const [tab, setTab] = useState<"hours" | "requests">("requests");
 
   const filters = {
     from: params.get("from") ?? "",
@@ -351,8 +351,8 @@ export function ReportsPage() {
         <div role="tablist" aria-label={t("Report type")} className="flex gap-1">
           {(
             [
-              ["hours", t("Working hours")],
               ["requests", t("Requests")],
+              ["hours", t("Working hours")],
             ] as const
           ).map(([key, label]) => (
             <Button
