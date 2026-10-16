@@ -9,7 +9,8 @@ Audience: judges/reviewers. Slide notes in italics. All figures come from
 ## 1 — Title
 
 # Daimoma — ديمومة
-**Employee operations, in one place.**
+**«سجّل وانسَ — ديمومة مستمرة»**
+*Record and forget — Daimoma is ongoing.*
 
 Requests · Timesheets · Approvals · Reports — bilingual, accessible, deployed.
 

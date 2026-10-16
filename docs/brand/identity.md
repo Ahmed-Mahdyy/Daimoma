@@ -10,7 +10,11 @@ Status: phase-001 deliverable (T004). Name approved by owner 2026-09-25 (D-001).
 - **Rationale**: the product makes requests, approvals, and time tracking one uninterrupted flow — the workday keeps moving instead of stalling in scattered channels. The root ties it to working hours while the abstract meaning covers all modules. Not CDS-related; a real Arabic word as required.
 - **Pronunciation**: day-MOO-ma. Risk: occasional misspelling "Daymooma" — addressed in `usage.md` spelling rules.
 
-## Tagline options (owner picks; recommended first)
+## Tagline
+
+**Approved 2026-10-16 (owner):** «سجّل وانسَ — ديمومة مستمرة» — "Record and forget — Daimoma is ongoing." ديمومة works double duty: the product name and the word for continuity.
+
+### Earlier options (superseded)
 
 1. **"Your workday, uninterrupted."** — Recommended; states the continuity promise for both requests and time.
 2. "Work, in continuity."
