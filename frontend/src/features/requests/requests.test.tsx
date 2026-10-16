@@ -24,8 +24,8 @@ vi.mock("../../api/requests", async (importOriginal) => {
     updateRequestType: vi.fn(),
   };
 });
-vi.mock("../auth/auth-context", () => ({
-  useAuth: () => ({
+vi.mock("../auth/auth-context", () => {
+  const auth = {
     user: {
       email: "emp@acme.test",
       roles: [],
@@ -34,8 +34,9 @@ vi.mock("../auth/auth-context", () => ({
     },
     isLoading: false,
     isAuthenticated: true,
-  }),
-}));
+  };
+  return { useAuth: () => auth, useOptionalAuth: () => auth };
+});
 
 import {
   approveRequest,

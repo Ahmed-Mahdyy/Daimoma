@@ -34,7 +34,10 @@ const AUTH = {
   isLoading: false,
   isAuthenticated: true,
 };
-vi.mock("../auth/auth-context", () => ({ useAuth: () => AUTH }));
+vi.mock("../auth/auth-context", () => ({
+  useAuth: () => AUTH,
+  useOptionalAuth: () => AUTH,
+}));
 
 import {
   approveTimesheet,

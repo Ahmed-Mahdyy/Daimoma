@@ -5,6 +5,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("../features/auth/auth-context", () => ({
   useAuth: vi.fn(),
+  useOptionalAuth: vi.fn(),
 }));
 vi.mock("../api/notifications", () => ({
   getUnreadCount: vi.fn().mockResolvedValue({ unread_count: 0 }),

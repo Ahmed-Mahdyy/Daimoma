@@ -7,7 +7,10 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 vi.mock("../../api/reporting", () => ({
   getDashboard: vi.fn(),
 }));
-vi.mock("../auth/auth-context", () => ({ useAuth: () => AUTH }));
+vi.mock("../auth/auth-context", () => ({
+  useAuth: () => AUTH,
+  useOptionalAuth: () => AUTH,
+}));
 
 import { getDashboard, type Dashboard } from "../../api/reporting";
 import { LanguageProvider } from "../../app/LanguageProvider";

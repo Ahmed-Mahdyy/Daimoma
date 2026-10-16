@@ -13,8 +13,8 @@ vi.mock("../../api/timesheets", async (importOriginal) => {
     cancelCheckIn: vi.fn(),
   };
 });
-vi.mock("../auth/auth-context", () => ({
-  useAuth: () => ({
+vi.mock("../auth/auth-context", () => {
+  const auth = {
     user: {
       id: "u-1",
       email: "emp@acme.test",
@@ -24,8 +24,9 @@ vi.mock("../auth/auth-context", () => ({
     },
     isLoading: false,
     isAuthenticated: true,
-  }),
-}));
+  };
+  return { useAuth: () => auth, useOptionalAuth: () => auth };
+});
 
 import { cancelCheckIn, checkIn, getPunchStatus } from "../../api/timesheets";
 import { LanguageProvider } from "../../app/LanguageProvider";

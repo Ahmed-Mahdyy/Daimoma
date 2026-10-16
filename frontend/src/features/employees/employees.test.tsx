@@ -12,13 +12,14 @@ vi.mock("../../api/departments", () => ({
   createDepartment: vi.fn(),
   updateDepartment: vi.fn(),
 }));
-vi.mock("../auth/auth-context", () => ({
-  useAuth: () => ({
+vi.mock("../auth/auth-context", () => {
+  const auth = {
     user: { email: "hr@x.test", roles: ["HR"], display_name: "HR" },
     isLoading: false,
     isAuthenticated: true,
-  }),
-}));
+  };
+  return { useAuth: () => auth, useOptionalAuth: () => auth };
+});
 
 import { listEmployees } from "../../api/employees";
 import { EmployeesPage } from "./EmployeesPage";
