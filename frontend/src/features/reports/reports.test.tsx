@@ -35,7 +35,7 @@ vi.mock("../../api/employees", () => ({
 }));
 vi.mock("../auth/auth-context", () => ({
   useAuth: () => AUTH,
-  useOptionalAuth: () => AUTH,
+  useOptionalAuth: () => AUTH.user,
 }));
 
 import { getHoursReport, getRequestsReport } from "../../api/reporting";

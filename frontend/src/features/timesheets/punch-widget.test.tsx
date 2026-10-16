@@ -25,7 +25,7 @@ vi.mock("../auth/auth-context", () => {
     isLoading: false,
     isAuthenticated: true,
   };
-  return { useAuth: () => auth, useOptionalAuth: () => auth };
+  return { useAuth: () => auth, useOptionalAuth: () => auth.user };
 });
 
 import { cancelCheckIn, checkIn, getPunchStatus } from "../../api/timesheets";

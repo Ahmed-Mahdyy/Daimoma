@@ -9,7 +9,7 @@ vi.mock("../../api/reporting", () => ({
 }));
 vi.mock("../auth/auth-context", () => ({
   useAuth: () => AUTH,
-  useOptionalAuth: () => AUTH,
+  useOptionalAuth: () => AUTH.user,
 }));
 
 import { getDashboard, type Dashboard } from "../../api/reporting";

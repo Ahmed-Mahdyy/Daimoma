@@ -2,8 +2,8 @@
 # Managed by the Specify CLI; safe to edit (your changes are preserved on refresh).
 
 # Local pointer to the current feature directory. Rewritten every time you
-# switch features, so it is per-checkout state rather than something to share.
-feature.json
+# switch features. Tracked in this repo: the "one active feature" rule and
+# CI's `specs.py check` both require it to be present on every checkout.
 
 # Per-machine extension config overrides.
 extensions/*/local-config.yml

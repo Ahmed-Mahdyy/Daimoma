@@ -36,7 +36,7 @@ const AUTH = {
 };
 vi.mock("../auth/auth-context", () => ({
   useAuth: () => AUTH,
-  useOptionalAuth: () => AUTH,
+  useOptionalAuth: () => AUTH.user,
 }));
 
 import {
