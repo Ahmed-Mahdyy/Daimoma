@@ -72,4 +72,39 @@ Required GitHub repo secrets (added by owner — no gh CLI available):
 
 - **AWS security group**: inbound TCP 8080 is not open — external access
   currently blocked (loopback verified). Owner action in EC2 console required.
+  *(Resolved 2026-10-16 — see addendum; public entry is now NPM `:8380`.)*
 - Owner acceptance sign-in against the live URL is pending.
+  *(Owner actively using the live site as of 2026-10-16 — see addendum; formal
+  sign-off still pending.)*
+
+## Addendum — 2026-10-16 (operations + demo enrichment)
+
+Post-release changes applied to the live host and reconciled in git commit
+`c152856`:
+
+- **Nginx Proxy Manager** (`jc21/nginx-proxy-manager` 2.16) added as the
+  public edge: proxy HTTP `:8380` → `deployment-web-1:8080` over the
+  `deployment_internal` Docker network (container DNS, loopback binding
+  unchanged). Admin UI on `:8181`, HTTPS proxy reserved on `:8443` (no domain
+  yet — Let's Encrypt requires one). Existing `app-nginx` keeps `:80`;
+  host-Nginx direct edge on `:8080` remains as fallback.
+- **Portainer CE 2.45** on `:9000` for container management (Docker socket;
+  admin created via setup-token flow).
+- **AWS SG** inbound rules now open: 8380/8443/8181/9000/8080 (verified —
+  admin UIs reachable externally). Public demo URL is
+  `http://13.53.139.255:8380`.
+- **Deploy key rotated**: the original `DEPLOY_SSH_KEY` pair was exposed in
+  session output and treated as compromised — `daimoma_deploy_key_v2`
+  authorized on the server, old key removed. Repo secrets still required:
+  `DEPLOY_SSH_KEY` (v2 private), `DEPLOY_HOST`, `DEPLOY_USER`.
+- **`seed_demo` v2**: 5 departments, 16 users (2 HR / 4 managers / 10
+  employees, realistic names), 53 requests across all types+states, 83
+  timesheets, 387 workday entries. `DEMO_SEED_PASSWORD` env gives all new
+  accounts one shared demo password.
+- **Demo quick-login panel** enabled in production via `VITE_DEMO_LOGIN=1`
+  build arg — the shared demo password is displayed on the login page.
+  **Deliberate demo-mode deviation: this panel and password must be
+  disabled/rotated before any real data is deployed (D-008 gate).**
+
+Owner activity on the live URL observed 2026-10-16 (bug reports filed from
+real usage); **formal acceptance sign-off still pending**.

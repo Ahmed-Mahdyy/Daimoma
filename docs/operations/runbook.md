@@ -1,6 +1,6 @@
 # Daimoma — Operations Runbook (007:T007, T010)
 
-Environment: external Ubuntu server, host Nginx (TLS termination), Docker Compose stack in `deployment/compose.prod.yml`. Owner: application operator (single deployment).
+Environment: external Ubuntu server `ubuntu@13.53.139.255`. Public edge is Nginx Proxy Manager on `:8380` → `deployment-web-1:8080` over the `deployment_internal` Docker network; a direct host-Nginx edge on `:8080` remains as fallback (HTTP only — no domain/TLS yet). Docker Compose stack in `deployment/compose.prod.yml`; the `web` container binds loopback `127.0.0.1:8090` only. Owner: application operator (single deployment).
 
 ## Deploy / update
 
@@ -40,6 +40,13 @@ The login quick-login panel ships only when the frontend is built with `VITE_DEM
 - Keep the previous image tag (e.g. `docker compose build` before `up`; tag `daimoma-web:<sha>`/`daimoma-backend:<sha>` to re-pull).
 - Application rollback = redeploy the previous compatible image. **Schema rollback is not assumed safe** — prefer forward-fix migrations; expand/contract changes only.
 - If `migrate` fails: inspect `docker compose logs migrate`, fix the migration or data issue, redeploy. Never `migrate --fake` or reset the DB.
+
+## Edge and admin tooling (NPM + Portainer)
+
+- **Nginx Proxy Manager** container `nginx-proxy-manager` (`--restart=always`, volumes `/data`, `/letsencrypt`): proxy HTTP `:8380`, HTTPS `:8443` (unused until a domain exists — Let's Encrypt cannot issue for a bare IP), admin UI `:8181`. Attached to `deployment_internal`; the Daimoma proxy host forwards to `deployment-web-1:8080` by container DNS — if the compose project is recreated under a different name, update the proxy host target. Admin login `admin@daimoma.local`; generated password in `~/.npm_admin_cred` (mode 600) on the server.
+- **Portainer CE** container `portainer` (`--restart=always`, volume `portainer_data`, mounted `/var/run/docker.sock`): admin UI `:9000`, manages all containers on the host. First-run setup token rotates on restart — if the UI reports a lockout, `docker restart portainer` and re-open within ~5 minutes.
+- Both admin UIs are currently on public SG rules at owner request; restrict `:8181`/`:9000` to owner IPs or VPN when possible — Portainer's Docker-socket access is root-equivalent.
+- AWS SG inbound (current): `22`, `80` (other app), `8380`, `8443`, `8181`, `9000`, `8080`. New ports are opened only from the AWS account — `ufw` is inactive and iptables accepts on the VM, so nothing server-side blocks reachability.
 
 ## Backup
 
