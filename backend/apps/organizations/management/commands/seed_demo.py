@@ -41,22 +41,38 @@ def _generate_password() -> str:
 
 # (email, employee_code, display_name, department, roles, manager_email)
 PEOPLE = [
-    ("hr-1@acme.test", "DEMO-HR1", "Hana Abdelrahman", "People & Culture", (ROLE_HR,), None),
-    ("hr-2@acme.test", "DEMO-HR2", "Hassan El-Sayed", "People & Culture", (ROLE_HR,), "hr-1@acme.test"),
-    ("mgr-eng@acme.test", "DEMO-MGR1", "Mona Kamel", "Engineering", (ROLE_MANAGER,), "hr-1@acme.test"),
-    ("mgr-ops@acme.test", "DEMO-MGR2", "Omar Farouk", "Operations", (ROLE_MANAGER,), "hr-1@acme.test"),
-    ("dina.mansour@acme.test", "DEMO-MGR3", "Dina Mansour", "Finance", (ROLE_MANAGER,), "hr-1@acme.test"),
-    ("hossam.nabil@acme.test", "DEMO-MGR4", "Hossam Nabil", "Sales & Marketing", (ROLE_MANAGER,), "hr-1@acme.test"),
-    ("emp-eng-1@acme.test", "DEMO-EMP1", "Nourhan Adel", "Engineering", (), "mgr-eng@acme.test"),
-    ("emp-eng-2@acme.test", "DEMO-EMP2", "Karim Youssef", "Engineering", (), "mgr-eng@acme.test"),
-    ("ahmed.refaat@acme.test", "DEMO-EMP11", "Ahmed Refaat", "Engineering", (), "mgr-eng@acme.test"),
-    ("emp-ops-1@acme.test", "DEMO-EMP3", "Salma Fathy", "Operations", (), "mgr-ops@acme.test"),
-    ("emp-ops-2@acme.test", "DEMO-EMP4", "Tarek Mostafa", "Operations", (), "mgr-ops@acme.test"),
-    ("mariam.adel@acme.test", "DEMO-EMP12", "Mariam Adel", "Operations", (), "mgr-ops@acme.test"),
-    ("yasmin.fouad@acme.test", "DEMO-EMP13", "Yasmin Fouad", "Finance", (), "dina.mansour@acme.test"),
-    ("omar.sherif@acme.test", "DEMO-EMP14", "Omar Sherif", "Finance", (), "dina.mansour@acme.test"),
-    ("layla.ibrahim@acme.test", "DEMO-EMP15", "Layla Ibrahim", "Sales & Marketing", (), "hossam.nabil@acme.test"),
-    ("nada.hassan@acme.test", "DEMO-EMP16", "Nada Hassan", "Sales & Marketing", (), "hossam.nabil@acme.test"),
+    ("hr-1@acme.test", "DEMO-HR1", "Hana Abdelrahman",
+     "People & Culture", (ROLE_HR,), None),
+    ("hr-2@acme.test", "DEMO-HR2", "Hassan El-Sayed",
+     "People & Culture", (ROLE_HR,), "hr-1@acme.test"),
+    ("mgr-eng@acme.test", "DEMO-MGR1", "Mona Kamel",
+     "Engineering", (ROLE_MANAGER,), "hr-1@acme.test"),
+    ("mgr-ops@acme.test", "DEMO-MGR2", "Omar Farouk",
+     "Operations", (ROLE_MANAGER,), "hr-1@acme.test"),
+    ("dina.mansour@acme.test", "DEMO-MGR3", "Dina Mansour",
+     "Finance", (ROLE_MANAGER,), "hr-1@acme.test"),
+    ("hossam.nabil@acme.test", "DEMO-MGR4", "Hossam Nabil",
+     "Sales & Marketing", (ROLE_MANAGER,), "hr-1@acme.test"),
+    ("emp-eng-1@acme.test", "DEMO-EMP1", "Nourhan Adel",
+     "Engineering", (), "mgr-eng@acme.test"),
+    ("emp-eng-2@acme.test", "DEMO-EMP2", "Karim Youssef",
+     "Engineering", (), "mgr-eng@acme.test"),
+    ("ahmed.refaat@acme.test", "DEMO-EMP11", "Ahmed Refaat",
+     "Engineering", (), "mgr-eng@acme.test"),
+    ("emp-ops-1@acme.test", "DEMO-EMP3", "Salma Fathy",
+     "Operations", (), "mgr-ops@acme.test"),
+    ("emp-ops-2@acme.test", "DEMO-EMP4", "Tarek Mostafa",
+     "Operations", (), "mgr-ops@acme.test"),
+    ("mariam.adel@acme.test", "DEMO-EMP12", "Mariam Adel",
+     "Operations", (), "mgr-ops@acme.test"),
+    ("yasmin.fouad@acme.test", "DEMO-EMP13", "Yasmin Fouad",
+     "Finance", (), "dina.mansour@acme.test"),
+    ("omar.sherif@acme.test", "DEMO-EMP14", "Omar Sherif",
+     "Finance", (), "dina.mansour@acme.test"),
+    ("layla.ibrahim@acme.test", "DEMO-EMP15", "Layla Ibrahim",
+     "Sales & Marketing", (), "hossam.nabil@acme.test"),
+    ("nada.hassan@acme.test", "DEMO-EMP16", "Nada Hassan",
+     "Sales & Marketing", (), "hossam.nabil@acme.test"),
 ]
 
 # Old placeholder display names → realistic names (updated only when the
@@ -420,10 +436,13 @@ class Command(BaseCommand):
         if created_credentials:
             if shared_password:
                 self.stdout.write(
-                    f"All new accounts share DEMO_SEED_PASSWORD from the environment: {shared_password}"
+                    "All new accounts share DEMO_SEED_PASSWORD from the environment: "
+                    f"{shared_password}"
                 )
             else:
-                self.stdout.write("Generated synthetic credentials (shown once — store securely):")
+                self.stdout.write(
+                    "Generated synthetic credentials (shown once — store securely):"
+                )
                 for email, role, pwd in created_credentials:
                     self.stdout.write(f"  {email} ({role}): {pwd}")
         if skipped_users:
