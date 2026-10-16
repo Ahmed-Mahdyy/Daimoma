@@ -5,6 +5,7 @@
  */
 import { AxeBuilder } from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
+import { selectRequestType } from "./helpers";
 
 const PASSWORD = "E2ePassw0rd1";
 
@@ -121,8 +122,10 @@ test.describe("accessibility", () => {
     await loginAs(page, "employee-e2e@acme.test");
     const sidebar = page.locator(".workspace-sidebar");
     const brand = page.locator(".workspace-brand");
-    const mark = brand.locator("img");
-    await expect(mark).toHaveAttribute("src", "/brand/logo-icon.png");
+    // The brand renders paired light/dark variants; only one is visible per
+    // theme and both keep the approved artwork files.
+    const mark = brand.locator('img[src="/brand/logo-icon.png"]');
+    await expect(mark).toBeVisible();
     const light = await sidebar.evaluate((el) => getComputedStyle(el).backgroundColor);
     const lightBrand = await brand.locator(".workspace-brand-mark").evaluate((el) => getComputedStyle(el).backgroundColor);
     const stage = page.locator(".workspace-stage");
@@ -143,14 +146,15 @@ test.describe("accessibility", () => {
     expect(await stage.evaluate((el) => getComputedStyle(el, "::before").backgroundImage)).not.toBe(lightPattern);
     await expect(sidebar).not.toHaveCSS("background-color", light);
     await expect(brand.locator(".workspace-brand-mark")).not.toHaveCSS("background-color", lightBrand);
-    await expect(mark).toHaveAttribute("src", "/brand/logo-icon.png");
+    await expect(mark).not.toBeVisible();
+    await expect(brand.locator('img[src="/brand/logo-icon-dark.png"]')).toBeVisible();
     await expectNoSeriousViolations(page, "dark themed sidebar");
   });
 
   test("Arabic request detail is readable in dark mode", async ({ page }) => {
     await loginAs(page, "employee-e2e@acme.test");
     await page.goto("/requests/new");
-    await page.getByLabel(/request type/i).selectOption({ label: "General request" });
+    await selectRequestType(page, "General request");
     await page.getByLabel(/^title$/i).fill(`Contrast check ${Date.now()}`);
     await page.getByRole("button", { name: /save draft/i }).click();
     await expect(page.locator("dl dt").first()).toBeVisible();
@@ -183,6 +187,11 @@ test.describe("accessibility", () => {
     page,
   }) => {
     await page.goto("/login");
+    // The session check gates rendering behind a loading state — wait for
+    // the form before tabbing or the first Tab is swallowed.
+    await expect(
+      page.getByRole("button", { name: /sign in/i }),
+    ).toBeVisible();
     // Land on a focusable control, tab through the form in order.
     // The hero's three slide indicators are the first tabbable elements.
     for (const n of [1, 2, 3]) {

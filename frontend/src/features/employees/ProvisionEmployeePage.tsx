@@ -135,7 +135,7 @@ export function ProvisionEmployeePage() {
             <TabsTrigger value="education">{t("Education")}</TabsTrigger>
             <TabsTrigger value="work">{t("Work information")}</TabsTrigger>
           </TabsList>
-          <TabsContent value="general" className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <TabsContent value="general" mobileLabel={t("General information")} className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <label className="block text-sm font-medium">
               {t("Email")} *
               <input type="email" className={`mt-1 ${input}`} {...set("email")} />
@@ -206,7 +206,7 @@ export function ProvisionEmployeePage() {
               </div>
             </fieldset>
           </TabsContent>
-          <TabsContent value="personal" className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <TabsContent value="personal" mobileLabel={t("Personal information")} className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             {PERSONAL_FIELDS.map(([key, label, type]) => (
               <label key={key} className="block text-sm font-medium">
                 {t(label)}
@@ -214,7 +214,7 @@ export function ProvisionEmployeePage() {
               </label>
             ))}
           </TabsContent>
-          <TabsContent value="education" className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <TabsContent value="education" mobileLabel={t("Education")} className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             {EDUCATION_FIELDS.map(([key, label, type]) => (
               <label key={key} className="block text-sm font-medium">
                 {t(label)}
@@ -233,7 +233,7 @@ export function ProvisionEmployeePage() {
               </select>
             </label>
           </TabsContent>
-          <TabsContent value="work" className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <TabsContent value="work" mobileLabel={t("Work information")} className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             {EMPLOYMENT_FIELDS.map(([key, label, type]) => (
               <label key={key} className="block text-sm font-medium">
                 {t(label)}

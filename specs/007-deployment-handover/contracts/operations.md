@@ -1,10 +1,10 @@
 # Deployment and Operations Contract
 
-Status: provisional; provider credentials, budget, infrastructure mutation, and production release require separate approval.
+Status: approved 2026-10-15 for self-hosted Ubuntu + host Nginx + Docker Compose packaging (D-007); automated backup/restore waived by owner for synthetic deployment (D-008); final branding approved (D-010). Actual remote server cutover remains an operator-executed step.
 
 ## Boundaries
 
-Public HTTPS application serves React assets and `/api/v1/`; private PostgreSQL, private media storage, authorized downloads, approved scanner/email. No runserver, public database port, public media bucket, secrets in Vite/browser variables, or SPA fallback on API/private paths. Local/CI/staging/production have separate secrets and data.
+Public HTTPS application is terminated by host Nginx on the external Ubuntu server (`deployment/nginx-host.conf.example`) and reverse-proxied over loopback (`127.0.0.1:${APP_PORT:-8080}`) to the Dockerized web/application stack (`deployment/compose.prod.yml` + `deployment/Dockerfile`), serving hashed React assets and `/api/v1/` on one origin; PostgreSQL (`postgres:17`) and media volumes stay private inside the Docker network with no public host port. No `runserver`, public database port, public media bucket, secrets in Vite/browser variables, or SPA fallback on `/api/`, `/health/`, `/readyz/`, `/static/`, or `/media/` paths. Local/CI/staging/production have separate secrets and data.
 
 ## Configuration interface
 
@@ -20,7 +20,7 @@ Liveness indicates process availability without secret/data output; readiness re
 
 ## Backups and demo
 
-Approve retention/RPO/RTO before release; back up database plus private files and rehearse restoration in isolation. Demo seeding uses synthetic data/real services, explicit demo-environment guard, idempotent skip/report on existing records, and securely generated credentials. It cannot silently run on production or overwrite passwords/data.
+Per owner decision 2026-10-15 (D-008), automated backup/retention/restore infrastructure is waived for this synthetic deployment (`007:T008` and `007:T009` deferred); manual `pg_dump` commands are documented in the operations runbook for operator convenience. Demo seeding (`python manage.py seed_demo`) uses synthetic data/real services, an explicit demo-environment guard (`ALLOW_DEMO_SEED=1`), idempotent skip/report on existing records, and securely generated runtime credentials. It cannot silently run on production or overwrite existing passwords/data.
 
 ## Handover and evidence
 

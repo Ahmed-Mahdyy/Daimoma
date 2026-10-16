@@ -65,13 +65,26 @@ function TabsTrigger({
 function TabsContent({
   className,
   children,
+  mobileLabel,
   ...props
-}: React.ComponentProps<typeof TabsPrimitive.Content>) {
+}: React.ComponentProps<typeof TabsPrimitive.Content> & {
+  /** Small heading shown above the section when tabs collapse on mobile. */
+  mobileLabel?: React.ReactNode;
+}) {
   // On small screens every section renders — one continuous page instead
   // of hidden tab panels. Keeps the caller's layout classes intact.
   const mobile = useIsMobile();
   if (mobile) {
-    return <div className={className}>{children}</div>;
+    return (
+      <div>
+        {mobileLabel && (
+          <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+            {mobileLabel}
+          </h3>
+        )}
+        <div className={className}>{children}</div>
+      </div>
+    );
   }
   return (
     <TabsPrimitive.Content

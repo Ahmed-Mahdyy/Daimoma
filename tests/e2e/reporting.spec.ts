@@ -174,11 +174,17 @@ test.describe.serial("dashboards and reporting", () => {
     await signOut(page);
   });
 
-  test("HR back link returns from employee creation", async ({ page }) => {
+  test("HR breadcrumb returns from employee creation", async ({ page }) => {
     await loginAs(page, "hr-e2e@acme.test");
     await page.getByRole("navigation", { name: "Quick actions" }).getByRole("link", { name: "Add Employee" }).click();
     await expect(page.getByRole("heading", { name: "New employee" })).toBeVisible();
-    await page.getByRole("link", { name: /back to employees/i }).click();
+    // Breadcrumbs replaced the standalone back link — the Employees crumb
+    // leads back to the directory.
+    await page
+      .getByRole("navigation", { name: /breadcrumb/i })
+      .first()
+      .getByRole("link", { name: "Employees" })
+      .click();
     await expect(page.getByRole("heading", { name: "Employees" })).toBeVisible();
     await signOut(page);
   });
@@ -237,7 +243,11 @@ test.describe.serial("dashboards and reporting", () => {
   }) => {
     await page.setViewportSize({ width: 360, height: 800 });
     await loginAs(page, "hr-e2e@acme.test");
-    await page.getByRole("tab", { name: "Organization dashboard" }).click();
+    // On small screens, tabs collapse into a single continuous stacked page
+    // with section headings — all three dashboard regions render directly.
+    await expect(page.getByRole("tab")).toHaveCount(0);
+    await expect(page.getByRole("region", { name: "Personal overview" })).toBeVisible();
+    await expect(page.getByRole("region", { name: "Team dashboard" })).toBeVisible();
     await expect(page.getByRole("region", { name: "Organization dashboard" })).toBeVisible();
     await expect(page.locator("body")).toHaveJSProperty("scrollWidth", 360);
     await page.getByRole("button", { name: "Open menu" }).click();

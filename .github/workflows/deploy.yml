@@ -1,0 +1,62 @@
+name: Deploy to Production
+
+# Promotion contract (specs/007-deployment-handover/contracts/operations.md):
+# lint/types/tests/schema/security -> image build -> human authorization ->
+# production deploy. This workflow runs only after "CI & Production Build Gate"
+# succeeds on main; a failed prerequisite stops promotion.
+on:
+  workflow_run:
+    workflows: ["CI & Production Build Gate"]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch: {} # authorized manual redeploy of current main
+
+jobs:
+  deploy:
+    name: Deploy production stack
+    runs-on: ubuntu-latest
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      github.event.workflow_run.conclusion == 'success'
+    env:
+      DEPLOY_PATH: /home/ubuntu/daimoma
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install deploy SSH key
+        run: |
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "${{ secrets.DEPLOY_SSH_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H "${{ secrets.DEPLOY_HOST }}" >> ~/.ssh/known_hosts
+
+      - name: Rsync source tree to server
+        run: |
+          rsync -az --delete \
+            -e "ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=yes" \
+            --exclude '.git' \
+            --exclude '.env' \
+            --exclude '.env.prod' \
+            --exclude 'deployment/.env.prod' \
+            --exclude 'node_modules' \
+            --exclude 'dist' \
+            --exclude '__pycache__' \
+            --exclude '.venv' \
+            --exclude '.playwright-browsers' \
+            --exclude 'test-results' \
+            ./ "${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}:${DEPLOY_PATH}/"
+
+      - name: Build and restart production stack
+        run: |
+          ssh -i ~/.ssh/deploy_key "${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}" '
+            set -e
+            cd ${DEPLOY_PATH}
+            docker compose -f deployment/compose.prod.yml --env-file deployment/.env.prod up -d --build
+            docker compose -f deployment/compose.prod.yml --env-file deployment/.env.prod ps
+          '
+
+      - name: Post-deploy smoke check
+        run: |
+          sleep 5
+          curl -fsS "http://${{ secrets.DEPLOY_HOST }}:8080/health/" | grep -q '"ok"'
+          curl -fsS -o /dev/null "http://${{ secrets.DEPLOY_HOST }}:8080/"

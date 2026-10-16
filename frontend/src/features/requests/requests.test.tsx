@@ -345,6 +345,7 @@ describe("RequestFormPage", () => {
         {
           id: "g1",
           employee: "p1",
+          employee_name: "Emmie",
           request_type: "t3",
           type_name: "Annual leave",
           unit: "unit",

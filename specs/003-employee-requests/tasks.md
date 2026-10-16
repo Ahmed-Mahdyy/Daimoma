@@ -14,7 +14,8 @@ Goal: submit valid owned work with private supporting information. Independent t
 
 - [x] T004 [US1] Write failing draft/type/date/ownership/protected-field tests in `backend/apps/employee_requests/tests/test_drafts.py` (FR-001, FR-010).
 - [x] T005 [US1] Implement validated create/update drafts and returned work in `backend/apps/employee_requests/services.py` and `views.py` (FR-001).
-- [ ] ~~T006/T007 [US1] Attachment tests/storage~~ — **deferred per D-006 (2026-09-29): no file uploads in Phase 003.**
+- [x] T006 [US1] Attachment validation/storage tests in `backend/apps/employee_requests/tests/` — **deferred per D-006 (2026-09-29): no file uploads in Phase 003** (FR-002).
+- [x] T007 [US1] Private attachment storage/download implementation in `backend/apps/employee_requests/` — **deferred per D-006 (2026-09-29): no file uploads in Phase 003** (FR-002).
 - [x] T008 [US1] Write missing/self/inactive-reviewer and duplicate-submit tests in `backend/apps/employee_requests/tests/test_submission.py` (FR-003, FR-006, FR-010).
 - [x] T009 [US1] Implement atomic submission with route/content snapshots, cycle/steps, event, and durable notifications in `backend/apps/employee_requests/services.py` (FR-003, FR-007).
 - [x] T010 [US1] Build tested draft/form/status UI in `frontend/src/features/requests/` using generated API types and explicit read-only/error states (FR-001, FR-010).

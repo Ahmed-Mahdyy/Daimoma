@@ -44,7 +44,7 @@ test.describe("resilience", () => {
     // Kill the session cookie mid-flow — the app must bounce to /login,
     // not show stale authenticated content.
     await context.clearCookies();
-    await page.getByRole("link", { name: "Requests" }).click();
+    await page.getByRole("link", { name: "Requests", exact: true }).click();
     await expect(page).toHaveURL(/\/login/, { timeout: 15_000 });
   });
 

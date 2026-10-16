@@ -4,6 +4,7 @@
  * Requires the stack up + `python manage.py seed_e2e`. Synthetic users (D-008).
  */
 import { expect, test, type Page } from "@playwright/test";
+import { selectRequestType } from "./helpers";
 
 const PASSWORD = "E2ePassw0rd1";
 // 1x1 synthetic PNG — enough for the upload/verify path.
@@ -49,17 +50,38 @@ test.describe.serial("enhancements", () => {
     await expect(
       page.getByRole("table").getByRole("row").nth(1).or(page.getByText("No allocations yet.")),
     ).toBeVisible();
-    const covering = page
+    const REQUEST_DATE = Date.parse("2027-06-01T00:00:00Z");
+    // Parse each Early-leave row's locale "M/D/YYYY → M/D/YYYY" period: does
+    // any active grant cover the request date, and where does the latest
+    // end? Overlapping grants are refused, so a new grant must start the
+    // day after the latest existing end (adjacent periods are allowed).
+    let covered = false;
+    let latestEnd = 0;
+    for (const row of await page
       .getByRole("row", { name: /Early leave/ })
-      .filter({ hasText: "2027-12-31" });
-    if ((await covering.count()) === 0) {
+      .all()) {
+      const text = (await row.textContent()) ?? "";
+      if (/removed/i.test(text)) continue;
+      const m = text.match(
+        /(\d{1,2}\/\d{1,2}\/\d{4})\s*→\s*(\d{1,2}\/\d{1,2}\/\d{4})/,
+      );
+      if (!m) continue;
+      const start = Date.parse(m[1]);
+      const end = Date.parse(m[2]);
+      if (end > latestEnd) latestEnd = end;
+      if (start <= REQUEST_DATE && REQUEST_DATE <= end) covered = true;
+    }
+    if (!covered) {
+      const start = latestEnd
+        ? new Date(latestEnd + 86_400_000).toISOString().slice(0, 10)
+        : "2026-01-01";
       await page.getByRole("link", { name: /add allocation/i }).click();
       await expect(page.getByRole("heading", { name: "Add allocation" })).toBeVisible();
       await page.getByRole("combobox", { name: "Employee" }).selectOption({ label: "Edu Employee" });
       await page.getByRole("combobox", { name: "Request type" }).selectOption({ label: "Early leave" });
       // Hour-unit grants are measured in minutes — 480 = 8 hours.
       await page.getByRole("spinbutton", { name: /amount/i }).fill("480");
-      await page.getByRole("textbox", { name: "Start date" }).fill("2026-11-01");
+      await page.getByRole("textbox", { name: "Start date" }).fill(start);
       await page.getByRole("textbox", { name: "End date" }).fill("2027-12-31");
       await page.getByRole("button", { name: /add allocation/i }).click();
       await expect(page.getByRole("heading", { name: "Employee allocations" })).toBeVisible();
@@ -72,7 +94,7 @@ test.describe.serial("enhancements", () => {
     await page.getByRole("navigation", { name: "Main" }).getByRole("link", { name: "Requests", exact: true }).click();
     await page.getByRole("link", { name: "New request", exact: true }).first().click();
 
-    await page.getByLabel(/request type/i).selectOption({ label: "Early leave" });
+    await selectRequestType(page, "Early leave");
     await expect(page.getByLabel(/^date$/i)).toBeVisible();
     await expect(page.getByLabel(/^hours$/i)).toBeVisible();
     await expect(page.getByLabel(/^from$/i)).toBeVisible();
@@ -148,7 +170,11 @@ test.describe.serial("enhancements", () => {
     await expect(page.getByText(/current employees/i)).toBeVisible();
     // Empty state — nobody is assigned to a brand-new department.
     await expect(page.getByText(/no employees are assigned/i)).toBeVisible();
-    await page.getByRole("link", { name: "← Departments" }).click();
+    await page
+      .getByRole("navigation", { name: /breadcrumb/i })
+      .first()
+      .getByRole("link", { name: "Departments" })
+      .click();
     await expect(page.getByRole("heading", { name: "Departments", level: 1 })).toBeVisible();
     await signOut(page);
   });
@@ -327,7 +353,7 @@ test.describe.serial("enhancements", () => {
       .getByRole("link", { name: "Requests", exact: true })
       .click();
     await page.getByRole("link", { name: "New request", exact: true }).first().click();
-    await page.getByLabel(/request type/i).selectOption({ label: "General request" });
+    await selectRequestType(page, "General request");
     await page.getByLabel(/^title$/i).fill(title);
     await page.getByLabel(/details/i).fill("notification target check");
     await page.getByRole("button", { name: /save draft/i }).click();

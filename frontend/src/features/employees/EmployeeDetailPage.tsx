@@ -216,7 +216,7 @@ export function EmployeeDetailPage() {
             <TabsTrigger value="education">{t("Education")}</TabsTrigger>
             {isHr && <TabsTrigger value="work">{t("Work information")}</TabsTrigger>}
           </TabsList>
-          <TabsContent value="general" className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <TabsContent value="general" mobileLabel={t("General information")} className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <label className="text-sm">
               {t("Email")}
               <input type="email" className={input} {...field("email")} />
@@ -306,7 +306,7 @@ export function EmployeeDetailPage() {
               </>
             )}
           </TabsContent>
-          <TabsContent value="personal" className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <TabsContent value="personal" mobileLabel={t("Personal information")} className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             {PERSONAL_FIELDS.map(([key, label, type]) => (
               <label key={key} className="text-sm">
                 {t(label)}
@@ -321,7 +321,7 @@ export function EmployeeDetailPage() {
               </label>
             ))}
           </TabsContent>
-          <TabsContent value="education" className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <TabsContent value="education" mobileLabel={t("Education")} className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             {EDUCATION_FIELDS.map(([key, label, type]) => (
               <label key={key} className="text-sm">
                 {t(label)}
@@ -351,7 +351,7 @@ export function EmployeeDetailPage() {
             </label>
           </TabsContent>
           {isHr && (
-            <TabsContent value="work" className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <TabsContent value="work" mobileLabel={t("Work information")} className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <p className="text-xs text-muted-foreground sm:col-span-2">
                 {t("Only HR can see employment and contract details.")}
               </p>

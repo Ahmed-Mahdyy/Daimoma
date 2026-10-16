@@ -52,6 +52,8 @@ test("HR sees admin navigation and the org-wide directory", async ({
   await expect(
     page.getByRole("navigation", { name: "Main" }).getByRole("link", { name: "Departments", exact: true }),
   ).toBeVisible();
+  // HR's Audit link lives inside the collapsed Settings group.
+  await page.getByRole("button", { name: "Expand Settings Menu" }).click();
   await expect(page.getByRole("link", { name: "Audit" })).toBeVisible();
 
   await page.getByRole("link", { name: "Employees" }).click();

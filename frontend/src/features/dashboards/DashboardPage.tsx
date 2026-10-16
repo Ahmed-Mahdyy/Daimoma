@@ -210,9 +210,9 @@ export function DashboardPage() {
             <TabsTrigger value="team">{t("Team dashboard")}</TabsTrigger>
             {isHr && <TabsTrigger value="organization">{t("Organization dashboard")}</TabsTrigger>}
           </TabsList>
-          <TabsContent value="personal"><DashboardCard scope="personal" canReview /></TabsContent>
-          <TabsContent value="team"><DashboardCard scope="team" canReview /></TabsContent>
-          {isHr && <TabsContent value="organization"><DashboardCard scope="organization" canReview /></TabsContent>}
+          <TabsContent value="personal" mobileLabel={t("Personal overview")}><DashboardCard scope="personal" canReview /></TabsContent>
+          <TabsContent value="team" mobileLabel={t("Team dashboard")}><DashboardCard scope="team" canReview /></TabsContent>
+          {isHr && <TabsContent value="organization" mobileLabel={t("Organization dashboard")}><DashboardCard scope="organization" canReview /></TabsContent>}
         </Tabs>
       ) : (
         <DashboardCard scope="personal" canReview={false} />

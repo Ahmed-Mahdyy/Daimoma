@@ -1,0 +1,97 @@
+# Production Docker Compose stack for an external Ubuntu server running host Nginx (D-007).
+# Usage from repository root:
+#   docker compose -f deployment/compose.prod.yml --env-file deployment/.env.prod up -d --build
+
+services:
+  db:
+    image: postgres:17
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:?POSTGRES_DB is required}
+      POSTGRES_USER: ${POSTGRES_USER:?POSTGRES_USER is required}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+    volumes:
+      - pgdata_prod:/var/lib/postgresql/data
+    networks:
+      - internal
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  migrate:
+    build:
+      context: ..
+      dockerfile: deployment/Dockerfile
+      target: backend
+    env_file: .env.prod
+    # Release step: refresh shared static assets, then apply migrations once.
+    command:
+      [
+        "sh",
+        "-c",
+        "python manage.py collectstatic --noinput --clear && python manage.py migrate --noinput",
+      ]
+    volumes:
+      - static_prod:/app/staticfiles
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - internal
+    restart: "no"
+
+  backend:
+    build:
+      context: ..
+      dockerfile: deployment/Dockerfile
+      target: backend
+    restart: unless-stopped
+    env_file: .env.prod
+    volumes:
+      - media_prod:/app/media
+    depends_on:
+      db:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    networks:
+      - internal
+    # Django validates the Host header before any view runs, so the probe
+    # must present the first configured public host (ALLOWED_HOSTS).
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "python -c \"import os, urllib.request; h = os.environ['DJANGO_ALLOWED_HOSTS'].split(',')[0].strip(); req = urllib.request.Request('http://127.0.0.1:8000/readyz/', headers={'Host': h, 'X-Forwarded-Proto': 'https'}); urllib.request.urlopen(req, timeout=3)\"",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+
+  web:
+    build:
+      context: ..
+      dockerfile: deployment/Dockerfile
+      target: web
+    restart: unless-stopped
+    ports:
+      # Bound to loopback only; the Ubuntu host Nginx proxies public HTTPS traffic here.
+      - "127.0.0.1:${APP_PORT:-8080}:8080"
+    volumes:
+      - static_prod:/srv/static:ro
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - internal
+
+networks:
+  internal:
+    driver: bridge
+
+volumes:
+  pgdata_prod:
+  media_prod:
+  static_prod:

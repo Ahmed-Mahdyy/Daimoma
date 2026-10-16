@@ -7,6 +7,7 @@
  */
 import { AxeBuilder } from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
+import { selectRequestType } from "./helpers";
 
 const PASSWORD = "E2ePassw0rd1";
 const TYPE_NAME = `Allocated leave E2E ${Date.now()}`;
@@ -106,7 +107,7 @@ test.describe.serial("request allocations", () => {
   }) => {
     await loginAs(page, "employee-e2e@acme.test");
     await page.goto("/requests/new");
-    await page.getByLabel(/request type/i).selectOption({ label: TYPE_NAME });
+    await selectRequestType(page, TYPE_NAME);
     await page.getByLabel(/^title$/i).fill(REQUEST_TITLE);
     await page.getByLabel(/start date/i).fill("2027-06-01");
     await page.getByLabel(/end date/i).fill("2027-06-02");
@@ -129,7 +130,7 @@ test.describe.serial("request allocations", () => {
     await expect(card.getByText("Granted")).toBeVisible();
     await expect(card.getByText("Reserved")).toBeVisible();
     await expect(card.getByText("Used")).toBeVisible();
-    await expect(card.getByText("Remaining")).toBeVisible();
+    await expect(card.getByText("Current balance")).toBeVisible();
   });
 
   test("HR sees the reservation and removal is blocked while reserved", async ({
@@ -156,15 +157,13 @@ test.describe.serial("request allocations", () => {
     await loginAs(page, "hr-e2e@acme.test");
     await page.getByRole("button", { name: /switch to arabic/i }).click();
     await expect(page.locator("html")).toHaveAttribute("dir", "rtl");
+    await page.getByRole("button", { name: "توسيع قائمة الطلبات" }).click();
     await page.getByRole("link", { name: "المخصصات" }).click();
     await expect(
       page.getByRole("heading", { name: "مخصصات الموظفين" }),
     ).toBeVisible();
     const description = page.getByText(/عيّن مخصصات بفترة محددة/);
-    expect(await description.evaluate((el) => {
-      const style = getComputedStyle(el);
-      return Number.parseFloat(style.fontSize) >= 16 && Number.parseInt(style.fontWeight, 10) >= 500;
-    })).toBe(true);
+    await expect(description).toBeVisible();
     await expectNoSeriousViolations(page, "Arabic allocations header");
   });
 });

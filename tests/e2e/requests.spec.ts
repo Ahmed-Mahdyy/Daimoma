@@ -4,6 +4,7 @@
  * Synthetic users only (D-008).
  */
 import { expect, test, type Page } from "@playwright/test";
+import { selectRequestType } from "./helpers";
 
 const PASSWORD = "E2ePassw0rd1";
 const TITLE = `E2E leave ${Date.now()}`;
@@ -32,7 +33,7 @@ test.describe.serial("request lifecycle", () => {
 
     // "General request" is not measurable — no amount or grant is needed, so
     // the lifecycle stays independent of allocation fixtures.
-    await page.getByLabel(/request type/i).selectOption({ label: "General request" });
+    await selectRequestType(page, "General request");
     await page.getByLabel(/^title$/i).fill(TITLE);
     await page.getByLabel(/details/i).fill("Synthetic e2e request");
     await page.getByRole("button", { name: /save draft/i }).click();
@@ -49,7 +50,7 @@ test.describe.serial("request lifecycle", () => {
     page,
   }) => {
     await loginAs(page, "manager-e2e@acme.test");
-    await page.getByRole("link", { name: "Requests" }).click();
+    await page.getByRole("link", { name: "Requests", exact: true }).click();
     await page.getByRole("link", { name: TITLE }).click();
     await expect(page.getByText(/awaits your decision/i)).toBeVisible();
 
@@ -65,7 +66,7 @@ test.describe.serial("request lifecycle", () => {
     page,
   }) => {
     await loginAs(page, "employee-e2e@acme.test");
-    await page.getByRole("link", { name: "Requests" }).click();
+    await page.getByRole("link", { name: "Requests", exact: true }).click();
     await page.getByRole("link", { name: TITLE }).click();
     await expect(page.getByText("Returned").first()).toBeVisible();
     await expect(
@@ -83,7 +84,7 @@ test.describe.serial("request lifecycle", () => {
     page,
   }) => {
     await loginAs(page, "manager-e2e@acme.test");
-    await page.getByRole("link", { name: "Requests" }).click();
+    await page.getByRole("link", { name: "Requests", exact: true }).click();
     await page.getByRole("link", { name: TITLE }).click();
     await page.getByRole("button", { name: /^approve$/i }).click();
     await page
@@ -94,7 +95,7 @@ test.describe.serial("request lifecycle", () => {
     await signOut(page);
 
     await loginAs(page, "employee-e2e@acme.test");
-    await page.getByRole("link", { name: "Requests" }).click();
+    await page.getByRole("link", { name: "Requests", exact: true }).click();
     await page.getByRole("link", { name: TITLE }).click();
     await expect(page.getByText("Approved").first()).toBeVisible();
     await expect(page.getByText(/cycle 2/i).first()).toBeVisible();
@@ -105,7 +106,7 @@ test.describe.serial("request lifecycle", () => {
     page,
   }) => {
     await loginAs(page, "hr-e2e@acme.test");
-    await page.getByRole("link", { name: "Requests" }).click();
+    await page.getByRole("link", { name: "Requests", exact: true }).click();
     await expect(
       page.getByRole("link", { name: TITLE }),
     ).toBeVisible();
@@ -129,7 +130,7 @@ test("employee bulk-deletes a draft via row selection", async ({ page }) => {
   const draftTitle = `E2E delete ${Date.now()}`;
 
   await page.goto("/requests/new");
-  await page.getByLabel(/request type/i).selectOption({ label: "General request" });
+  await selectRequestType(page, "General request");
   await page.getByLabel(/^title$/i).fill(draftTitle);
   await page.getByLabel(/details/i).fill("Disposable e2e draft");
   await page.getByRole("button", { name: /save draft/i }).click();
