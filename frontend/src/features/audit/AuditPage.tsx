@@ -63,9 +63,9 @@ const columns = (t: (key: string) => string): ColumnDef<AuditEventRow, unknown>[
   },
 ];
 
-/** Scoped audit history (FR-006): HR sees the whole organization; managers
- * see events affecting current direct reports. Read-only — append-only on
- * the server. */
+/** Scoped audit history (FR-006, amended 2026-10-17): HR sees the whole
+ * organization; managers and employees have no audit access. Read-only —
+ * append-only on the server. */
 export function AuditPage() {
   const { t } = useLanguage();
   const [params, setParams] = useSearchParams();

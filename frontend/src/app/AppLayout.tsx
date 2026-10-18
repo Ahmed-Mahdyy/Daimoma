@@ -22,17 +22,16 @@ import type { I18nKey } from "../lib/i18n";
 const linkClass = ({ isActive }: { isActive: boolean }) =>
   `workspace-nav-link ${isActive ? "workspace-nav-active" : ""}`;
 
-const navigation: { to: string; key: I18nKey; icon: string; hr?: boolean; managerOnly?: boolean; elevated?: boolean }[] = [
+const navigation: { to: string; key: I18nKey; icon: string; hr?: boolean; elevated?: boolean }[] = [
   { to: "/", key: "nav.home", icon: "M3 10.5 12 3l9 7.5V21h-6v-6H9v6H3z" },
   { to: "/timesheets", key: "nav.timesheets", icon: "M5 3v4m14-4v4M4 9h16M5 5h14a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2z" },
   { to: "/employees", key: "nav.employees", icon: "M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2h14zm-7-9a4 4 0 1 0 0-8 4 4 0 0 0 0 8zm9-7a4 4 0 0 1 0 8m0 2a4 4 0 0 1 4 4v2", elevated: true },
   { to: "/departments", key: "nav.departments", icon: "M3 21V7l9-4 9 4v14M3 11h18M8 21v-6h8v6", hr: true },
   { to: "/reports", key: "nav.reports", icon: "M4 20V11m5 9V4m5 16v-7m5 7V8M2 20h20" },
-  { to: "/audit", key: "nav.audit", icon: "M12 3a9 9 0 1 0 9 9M12 7v5l3 2", managerOnly: true },
 ];
 
-/** Settings children — everyone gets Profile; HR adds administration.
- * Managers keep a top-level Audit link instead. */
+/** Settings children — everyone gets Profile; HR adds administration
+ * (Audit is HR-only per owner decision 2026-10-17). */
 const HR_SETTINGS_CHILDREN: { to: string; key: I18nKey }[] = [
   { to: "/settings/organization", key: "nav.organization" },
   { to: "/audit", key: "nav.audit" },
@@ -96,7 +95,7 @@ export function AppLayout() {
   const roles = user?.roles ?? [];
   const isHr = roles.includes("HR");
   const isManager = roles.includes("Manager");
-  const canSeeAudit = isHr || isManager;
+  const roleLabel = isHr ? "HR" : isManager ? "Manager" : "Employee";
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [requestsOpen, setRequestsOpen] = useState(false);
   const requestChildren = [
@@ -116,7 +115,6 @@ export function AppLayout() {
   const visibleLinks = navigation.filter(
     (item) =>
       (!item.hr || isHr) &&
-      (!item.managerOnly || (isManager && !isHr)) &&
       (!item.elevated || isHr || isManager),
   );
   const name = user?.display_name || user?.email || "Account";
@@ -188,7 +186,7 @@ export function AppLayout() {
             </div>
           </nav>
           <div className="workspace-sidebar-bottom"><p className="workspace-nav-heading">{t("nav.quickActions")}</p><nav aria-label={t("nav.quickActions")} className="workspace-nav"><button type="button" className="workspace-nav-link" disabled={openCurrentWeek.isPending} onClick={() => openCurrentWeek.mutate()}>{t("nav.currentTimesheet")}</button>{isHr && (<><Link className="workspace-nav-link" to="/employees/new" onClick={() => setMenuOpen(false)}>{t("nav.addEmployee")}</Link><Link className="workspace-nav-link" to="/departments" onClick={() => setMenuOpen(false)}>{t("nav.manageDepartments")}</Link></>)}</nav></div>
-          <div className="workspace-sidebar-bottom"><div className="workspace-profile"><Avatar>{user?.photo_url && <AvatarImage src={user.photo_url} alt="" />}<AvatarFallback>{name.slice(0, 1).toUpperCase()}</AvatarFallback></Avatar><span className="min-w-0"><strong className="block truncate text-sm">{name}</strong><small className="block truncate">{isHr ? "HR" : canSeeAudit ? "Manager" : "Employee"}</small></span></div><button type="button" onClick={() => void signOut()} className="workspace-signout">{t("shell.signOut")} <span aria-hidden="true">↗</span></button></div>
+          <div className="workspace-sidebar-bottom"><div className="workspace-profile"><Avatar>{user?.photo_url && <AvatarImage src={user.photo_url} alt="" />}<AvatarFallback>{name.slice(0, 1).toUpperCase()}</AvatarFallback></Avatar><span className="min-w-0"><strong className="block truncate text-sm">{name}</strong><small className="block truncate">{roleLabel}</small></span></div><button type="button" onClick={() => void signOut()} className="workspace-signout">{t("shell.signOut")} <span aria-hidden="true">↗</span></button></div>
         </div>
       </aside>
       {menuOpen && (
@@ -207,7 +205,7 @@ export function AppLayout() {
             <span className="workspace-mobile-brand hidden min-[430px]:inline lg:hidden">{t("brand.name")}</span>
             <TopbarCrumbs />
           </div>
-          <div className="flex shrink-0 items-center gap-1 sm:gap-2"><PunchWidget /><Button type="button" variant="ghost" size="icon" aria-label={lang === "en" ? t("shell.languageToArabic") : t("shell.languageToEnglish")} title={lang === "en" ? t("shell.languageToArabic") : t("shell.languageToEnglish")} onClick={() => setLang(lang === "en" ? "ar" : "en")}><Languages className="size-4" /><span className="sr-only">{t("shell.language")}</span></Button><Button type="button" variant="ghost" size="icon" aria-label={mode === "dark" ? t("shell.themeToLight") : t("shell.themeToDark")} onClick={toggle}>{mode === "dark" ? <Sun /> : <Moon />}</Button><NotificationBell /><DropdownMenu><DropdownMenuTrigger asChild><Button type="button" variant="ghost" size="icon" aria-label={t("shell.accountMenu")} className="cursor-pointer rounded-full ring-[#c9a227]/50 transition hover:ring-4 data-[state=open]:ring-4"><Avatar className="size-8">{user?.photo_url && <AvatarImage src={user.photo_url} alt="" />}<AvatarFallback>{name.slice(0, 1).toUpperCase()}</AvatarFallback></Avatar></Button></DropdownMenuTrigger><DropdownMenuContent align="end" className="w-64"><DropdownMenuLabel><strong className="block truncate">{name}</strong><span className="block truncate text-xs font-normal text-muted-foreground">{user?.email}</span><Badge className="mt-2" variant="secondary">{isHr ? "HR" : canSeeAudit ? "Manager" : "Employee"}</Badge><span className="ms-2 text-xs font-normal text-muted-foreground">{user?.employee_code}</span></DropdownMenuLabel><DropdownMenuSeparator /><DropdownMenuItem asChild><Link to="/profile">{t("shell.myProfile")}</Link></DropdownMenuItem>{isHr && <DropdownMenuItem asChild><Link to="/settings">{t("nav.settings")}</Link></DropdownMenuItem>}<DropdownMenuItem onSelect={() => void signOut()}>{t("shell.signOut")}</DropdownMenuItem></DropdownMenuContent></DropdownMenu></div>
+          <div className="flex shrink-0 items-center gap-1 sm:gap-2"><PunchWidget /><Button type="button" variant="ghost" size="icon" aria-label={lang === "en" ? t("shell.languageToArabic") : t("shell.languageToEnglish")} title={lang === "en" ? t("shell.languageToArabic") : t("shell.languageToEnglish")} onClick={() => setLang(lang === "en" ? "ar" : "en")}><Languages className="size-4" /><span className="sr-only">{t("shell.language")}</span></Button><Button type="button" variant="ghost" size="icon" aria-label={mode === "dark" ? t("shell.themeToLight") : t("shell.themeToDark")} onClick={toggle}>{mode === "dark" ? <Sun /> : <Moon />}</Button><NotificationBell /><DropdownMenu><DropdownMenuTrigger asChild><Button type="button" variant="ghost" size="icon" aria-label={t("shell.accountMenu")} className="cursor-pointer rounded-full ring-[#c9a227]/50 transition hover:ring-4 data-[state=open]:ring-4"><Avatar className="size-8">{user?.photo_url && <AvatarImage src={user.photo_url} alt="" />}<AvatarFallback>{name.slice(0, 1).toUpperCase()}</AvatarFallback></Avatar></Button></DropdownMenuTrigger><DropdownMenuContent align="end" className="w-64"><DropdownMenuLabel><strong className="block truncate">{name}</strong><span className="block truncate text-xs font-normal text-muted-foreground">{user?.email}</span><Badge className="mt-2" variant="secondary">{roleLabel}</Badge><span className="ms-2 text-xs font-normal text-muted-foreground">{user?.employee_code}</span></DropdownMenuLabel><DropdownMenuSeparator /><DropdownMenuItem asChild><Link to="/profile">{t("shell.myProfile")}</Link></DropdownMenuItem>{isHr && <DropdownMenuItem asChild><Link to="/settings">{t("nav.settings")}</Link></DropdownMenuItem>}<DropdownMenuItem onSelect={() => void signOut()}>{t("shell.signOut")}</DropdownMenuItem></DropdownMenuContent></DropdownMenu></div>
         </header>
         <main id="main-content" className="workspace-content mx-auto w-full max-w-7xl px-4 py-7 sm:px-8 sm:py-10"><OutletErrorBoundary key={pathname}><Outlet /></OutletErrorBoundary></main>
         </PageCrumbsProvider>

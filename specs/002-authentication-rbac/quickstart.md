@@ -16,7 +16,7 @@ From frontend after scripts exist: `npm ci`, `npm run lint`, `npm run typecheck`
 
 ## Happy Path
 
-HR provisions synthetic employee -> invitation acceptance -> login -> own profile edit -> password change -> logout. HR updates department/manager and sees safe audit history; managers see audit events for their direct reports only. Manager sees only current direct team. Verify the local production-like smoke flow; remote self-hosted staging awaits a server and explicit deployment approval (D-007).
+HR provisions synthetic employee -> invitation acceptance -> login -> own profile edit -> password change -> logout. HR updates department/manager and sees safe audit history; audit is HR-only per the 2026-10-17 amendment. Manager sees only current direct team. Verify the local production-like smoke flow; remote self-hosted staging awaits a server and explicit deployment approval (D-007).
 
 ## Edge Cases
 

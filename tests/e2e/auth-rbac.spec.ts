@@ -82,7 +82,8 @@ test("employee has no directory nav link; direct URL stays self-scoped", async (
 
 test("manager sees only direct reports in the directory", async ({ page }) => {
   await loginAs(page, "manager-e2e@acme.test");
-  await expect(page.getByRole("link", { name: "Audit" })).toBeVisible();
+  // Audit is HR-only (owner decision 2026-10-17) — managers get no link.
+  await expect(page.getByRole("link", { name: "Audit" })).not.toBeVisible();
   await expect(
     page.getByRole("navigation", { name: "Main" }).getByRole("link", { name: "Departments", exact: true }),
   ).not.toBeVisible();

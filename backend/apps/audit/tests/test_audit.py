@@ -1,7 +1,7 @@
 """T017 — audit redaction/immutability + scoped read access (FR-006, FR-010).
 
-Visibility per owner decision: HR sees all organization events; managers see
-events affecting current direct reports only; employees see none."""
+Visibility per owner decision (amended 2026-10-17): HR sees all organization
+events; managers and employees have no audit access."""
 
 import pytest
 from rest_framework.test import APIClient
@@ -89,24 +89,17 @@ class TestScopedReads:
         ids = {r["id"] for r in body["results"]}
         assert {str(e1.id), str(e2.id)} <= ids
 
-    def test_manager_sees_only_direct_report_events(self, org, manager):
+    def test_manager_forbidden(self, org, manager):
+        # Audit is HR-only (owner decision 2026-10-17) — even for events
+        # that target a manager's own direct report.
         report = make_profile(org, make_user(org, "r1@x.test"), "R1", manager=manager.profile)
-        other = make_profile(org, make_user(org, "r2@x.test"), "R2")
-        mine = AuditEvent.objects.create(
+        AuditEvent.objects.create(
             organization=org,
             action="m1",
             target_type="accounts.employeeprofile",
             target_id=report.id,
         )
-        AuditEvent.objects.create(
-            organization=org,
-            action="m2",
-            target_type="accounts.employeeprofile",
-            target_id=other.id,
-        )
-        body = authed_client(manager).get(AUDIT).json()
-        ids = {r["id"] for r in body["results"]}
-        assert ids == {str(mine.id)}
+        assert authed_client(manager).get(AUDIT).status_code == 403
 
     def test_employee_forbidden(self, employee):
         assert authed_client(employee).get(AUDIT).status_code == 403

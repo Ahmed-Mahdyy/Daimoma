@@ -4,7 +4,7 @@ from rest_framework.exceptions import ValidationError
 from rest_framework.views import APIView
 
 from apps.accounts.pagination import DefaultPagination
-from apps.accounts.permissions import IsManagerOrHR
+from apps.accounts.permissions import IsHR
 from apps.audit.selectors import scoped_events
 from apps.audit.serializers import AuditEventSerializer
 
@@ -32,10 +32,11 @@ PagedAuditEvents = inline_serializer(
 class AuditEventListView(APIView):
     """GET /api/v1/audit-events/ — paginated, scoped audit history.
 
-    HR: all organization events. Managers: events affecting current direct
-    reports only. Employees: 403. Append-only — no detail/patch/delete."""
+    HR only: all organization events. Managers and employees: 403
+    (owner decision 2026-10-17 — audit is HR-only). Append-only —
+    no detail/patch/delete."""
 
-    permission_classes = [IsManagerOrHR]
+    permission_classes = [IsHR]
     http_method_names = ["get", "head", "options"]
 
     @extend_schema(responses={200: PagedAuditEvents}, operation_id="audit_events_list")

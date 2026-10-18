@@ -71,10 +71,11 @@ describe("AppLayout role-aware navigation", () => {
     ).not.toBeInTheDocument();
   });
 
-  it("shows Audit + Employees for a manager but not Departments", () => {
+  it("shows Employees for a manager but not Audit, Settings or Departments", () => {
+    // Audit is HR-only (owner decision 2026-10-17).
     renderLayout(["Manager"]);
-    expect(screen.getByRole("link", { name: "Audit" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Employees" })).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Audit" })).not.toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "Settings" })).not.toBeInTheDocument();
     expect(
       screen.queryByRole("link", { name: "Departments" }),

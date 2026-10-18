@@ -114,7 +114,7 @@ const router = createBrowserRouter([
               { path: "/departments", element: <RequireHr><DepartmentsPage /></RequireHr> },
               { path: "/departments/new", element: <RequireHr><DepartmentNewPage /></RequireHr> },
               { path: "/departments/:id", element: <RequireHr><DepartmentDetailPage /></RequireHr> },
-              { path: "/audit", element: <AuditPage /> },
+              { path: "/audit", element: <RequireHr><AuditPage /></RequireHr> },
               { path: "/profile", element: <SettingsPage /> },
               { path: "/settings", element: <RequireHr><SettingsPage /></RequireHr> },
               { path: "/settings/organization", element: <RequireHr><OrgSettingsPage /></RequireHr> },
