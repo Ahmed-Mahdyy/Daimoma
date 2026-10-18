@@ -8,6 +8,7 @@ from django.core.management.base import CommandError
 
 from apps.accounts.models import EmployeeProfile, User
 from apps.employee_requests.models import EmployeeRequest
+from apps.organizations.models import Organization
 from apps.timesheets.models import Timesheet
 
 
@@ -47,3 +48,22 @@ def test_seed_demo_is_idempotent_and_preserves_existing_passwords(monkeypatch):
     assert "Generated synthetic credentials" not in second_output
     assert dict(User.objects.values_list("email", "password")) == hashes_before
     assert EmployeeRequest.objects.count() == req_count_before
+
+
+@pytest.mark.django_db
+def test_seed_demo_fills_empty_workweek_on_existing_org(monkeypatch):
+    """A pre-existing org with no configured workweek gets one so sheet
+    seeding produces working days; a configured workweek is never touched."""
+    monkeypatch.setenv("ALLOW_DEMO_SEED", "1")
+    org = Organization.objects.create(
+        name="Legacy", timezone="UTC", week_start=0, working_weekdays=[]
+    )
+    call_command("seed_demo", stdout=StringIO())
+    org.refresh_from_db()
+    assert org.working_weekdays == [0, 1, 2, 3, 4]
+
+    org.working_weekdays = [6, 0]
+    org.save(update_fields=["working_weekdays"])
+    call_command("seed_demo", stdout=StringIO())
+    org.refresh_from_db()
+    assert org.working_weekdays == [6, 0]

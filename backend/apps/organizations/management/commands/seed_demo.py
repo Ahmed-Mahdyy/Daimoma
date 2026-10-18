@@ -170,6 +170,11 @@ class Command(BaseCommand):
             org_status = "created"
         else:
             org_status = "skipped (existing)"
+        # Timesheet seeding needs a nonempty workweek to produce working days;
+        # fill only an empty set, never overwrite a configured one.
+        if not org.working_weekdays:
+            org.working_weekdays = [0, 1, 2, 3, 4]
+            org.save(update_fields=["working_weekdays"])
 
         depts = {}
         for name in DEPARTMENTS:
