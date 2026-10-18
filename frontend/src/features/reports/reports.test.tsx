@@ -113,8 +113,12 @@ describe("ReportsPage", () => {
 
   it("renders the working-hours report with totals", async () => {
     renderPage();
-    expect(await screen.findByText("Emma Employee")).toBeInTheDocument();
-    expect(screen.getAllByText("4h 00m").length).toBeGreaterThan(0);
+    // Requests is the default tab — switch to working hours first.
+    await screen.findByText("Emma Employee");
+    await userEvent.click(
+      screen.getByRole("tab", { name: "Working hours" }),
+    );
+    expect((await screen.findAllByText("4h 00m")).length).toBeGreaterThan(0);
     expect(screen.getByText("Engineering")).toBeInTheDocument();
   });
 
@@ -141,6 +145,10 @@ describe("ReportsPage", () => {
     const { downloadReportCsv } = await import("../../api/reporting");
     renderPage();
     await screen.findByText("Emma Employee");
+    await userEvent.click(
+      screen.getByRole("tab", { name: "Working hours" }),
+    );
+    await screen.findAllByText("4h 00m");
     await userEvent.click(
       screen.getByRole("button", { name: /export csv/i }),
     );
