@@ -1,6 +1,6 @@
 # Evidence 007 — Staging/production packaging & smoke (T006)
 
-Date: 2026-10-15. Scope: production packaging artifacts for the approved D-007 target (external Ubuntu server + host Nginx + Docker Compose). No remote server was provisioned; the rehearsal ran locally against the real production artifacts.
+Date: 2026-10-17. Scope: production packaging artifacts for the approved D-007 target (external Ubuntu server + host Nginx + Docker Compose). No remote server was provisioned; the rehearsal ran locally against the real production artifacts.
 
 ## Artifacts delivered
 
@@ -14,7 +14,7 @@ Date: 2026-10-15. Scope: production packaging artifacts for the approved D-007 t
 - `backend/tests/test_deployment.py` — liveness/readiness/fail-closed coverage (6 tests).
 - `backend/apps/organizations/management/commands/seed_demo.py` + `test_seed_demo.py` — guarded (`ALLOW_DEMO_SEED=1`), idempotent, runtime-generated credentials.
 
-## Production-compose smoke — actual observed results (2026-10-15)
+## Production-compose smoke — actual observed results (2026-10-17)
 
 Executed `docker compose -f deployment/compose.prod.yml --env-file deployment/.env.prod up -d --wait` with generated throwaway secrets:
 

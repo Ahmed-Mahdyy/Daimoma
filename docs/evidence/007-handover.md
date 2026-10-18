@@ -1,6 +1,6 @@
 # Evidence 007 — Handover deliverables (T012–T015)
 
-Date: 2026-10-15. Scope: handover documentation and demo-prep completeness for the synthetic deployment.
+Date: 2026-10-17. Scope: handover documentation and demo-prep completeness for the synthetic deployment.
 
 ## Deliverable map (FR-007/FR-008)
 
@@ -28,4 +28,4 @@ AI assistance (Devin/SWE-2) is disclosed; requirement → task → test traceabi
 
 ## Open items
 
-- `007:T016`/`T017` production promotion + secure credential delivery — pending the provisioned Ubuntu server and explicit release authorization. The local production-compose rehearsal (T013) passed end-to-end on 2026-10-15 (`docs/evidence/007-staging.md`); a fresh-checkout run on the real server remains the final operator step.
+- `007:T016`/`T017` — completed: deployed to `ubuntu@13.53.139.255` on 2026-10-16 and owner-accepted (see `docs/evidence/007-release.md`). The local production-compose rehearsal (T013) passed end-to-end on 2026-10-17 (`docs/evidence/007-staging.md`).

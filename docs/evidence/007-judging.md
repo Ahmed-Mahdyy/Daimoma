@@ -1,6 +1,6 @@
 # Evidence 007 — AI-use & judging traceability (T014)
 
-Date: 2026-10-15. Records AI-use disclosure and requirement→task→test traceability for handover review. No fabricated scores; no backdated approvals.
+Date: 2026-10-17. Records AI-use disclosure and requirement→task→test traceability for handover review. No fabricated scores; no backdated approvals.
 
 ## AI assistance disclosure
 

@@ -1,6 +1,6 @@
 # Evidence 007 — Demo rehearsal (T015)
 
-Date: 2026-10-15. Rehearsal of the product story against the production-compose stack (`deployment/compose.prod.yml` + `seed_demo`).
+Date: 2026-10-17. Rehearsal of the product story against the production-compose stack (`deployment/compose.prod.yml` + `seed_demo`).
 
 ## Rehearsed demo flow
 
